@@ -3,9 +3,11 @@ package org.in.media.res.sqlBuilder.implementation;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.implementation.factories.SqlCLausesFactory;
+import org.in.media.res.sqlBuilder.implementation.From.Joiner;
+import org.in.media.res.sqlBuilder.implementation.factories.CLauseFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
 import org.in.media.res.sqlBuilder.interfaces.query.IAggregator;
@@ -22,16 +24,14 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 
 public class Query implements IQuery, ITranspilable, IJoinable {
 
-	private ISelect selectClause = SqlCLausesFactory.instanciateSelect();
+	private ISelect selectClause = CLauseFactory.instanciateSelect();
 
-	private IFrom fromClause = SqlCLausesFactory.instanciateFrom();
+	private IFrom fromClause = CLauseFactory.instanciateFrom();
 
-	private IWhere whereClause = SqlCLausesFactory.instanciateWhere();
-
-	private StringBuilder sb = new StringBuilder();
+	private IWhere whereClause = CLauseFactory.instanciateWhere();
 
 	public String transpile() {
-		resetBuilder();
+		StringBuilder sb = new StringBuilder();
 		sb.append(selectClause.transpile());
 		sb.append(fromClause.transpile());
 		sb.append(whereClause.transpile());
@@ -106,10 +106,6 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	public IQuery rightJoin(ITable t) {
 		this.fromClause.rightJoin(t);
 		return this;
-	}
-
-	private void resetBuilder() {
-		sb.setLength(0);
 	}
 
 	@Override
@@ -395,6 +391,26 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	public IWhere condition(ICondition condition) {
 		this.whereClause.condition(condition);
 		return this;
+	}
+
+	@Override
+	public List<IColumn> columns() {
+		return this.selectClause.columns();
+	}
+
+	@Override
+	public Map<IColumn, AggregateOperator> aggColumns() {
+		return this.selectClause.aggColumns();
+	}
+
+	@Override
+	public Map<ITable, Joiner> joins() {
+		return this.fromClause.joins();
+	}
+
+	@Override
+	public List<ICondition> conditions() {
+		return this.whereClause.conditions();
 	}
 
 }

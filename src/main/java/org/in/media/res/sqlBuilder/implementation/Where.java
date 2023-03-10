@@ -17,41 +17,27 @@ import java.util.List;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.implementation.factories.WhereTranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.query.IAggregator;
 import org.in.media.res.sqlBuilder.interfaces.query.IComparator;
 import org.in.media.res.sqlBuilder.interfaces.query.ICondition;
 import org.in.media.res.sqlBuilder.interfaces.query.IConnector;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
+import org.in.media.res.sqlBuilder.interfaces.query.IWhereTranspiler;
 
 public class Where implements IWhere {
 
-	private StringBuilder sb = new StringBuilder();
-
-	private String WHERE_ = " WHERE ";
-
 	private List<ICondition> filters = new ArrayList<>();
 
+	private IWhereTranspiler whereTranspiler = WhereTranspilerFactory.instanciateWhereTranspiler();
+
 	public String transpile() {
-		resetBuilder();
-		sb.append(WHERE_);
-		if (haveData()) {
-			for (ICondition f : filters)
-				sb.append(f.transpile());
-		}
-		return sb.toString();
+		return this.whereTranspiler.transpile(this);
 	}
 
-	private boolean haveData() {
-		return !filters.isEmpty();
-	}
-
-	public void reset() {
-		resetBuilder();
-	}
-
-	private void resetBuilder() {
-		sb.setLength(0);
+	public List<ICondition> conditions() {
+		return filters;
 	}
 
 	@Override

@@ -1,9 +1,11 @@
 package org.in.media.res.sqlBuilder.interfaces.query;
 
 import java.util.Date;
+import java.util.List;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.implementation.Condition.ConditionItem;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 
 public interface ICondition extends ITranspilable {
@@ -16,7 +18,7 @@ public interface ICondition extends ITranspilable {
 
 	void addValue(Date value);
 
-	void resetBuilder();
+	List<ConditionItem> values();
 
 	IColumn getLeft();
 

@@ -69,4 +69,13 @@ public class Table<T extends ITableDescriptor<T>> implements ITable {
 		return getAlias() != null && !getAlias().isEmpty() && !getAlias().isBlank();
 	}
 
+	public boolean hasTableName() {
+		String tableName = tableName();
+		return tableName != null && !tableName.isBlank() && !tableName.isEmpty();
+	}
+
+	public String tableName() {
+		return this.hasAlias() ? this.getAlias() : this.getName();
+	}
+
 }

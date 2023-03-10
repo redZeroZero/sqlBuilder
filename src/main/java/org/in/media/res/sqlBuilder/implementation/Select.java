@@ -6,63 +6,26 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.implementation.factories.SelectTranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
+import org.in.media.res.sqlBuilder.interfaces.query.ISelectTranspiler;
 
 public class Select implements ISelect {
-
-	private String SEP_ = ", ";
-	
-	private String EMPTY_STR = "";
-
-	private String SELECT_ = "SELECT ";
-
-	private String OP_PARENTHESIS = "(";
-
-	private String CL_PARENTHESIS = ")";
 
 	private List<IColumn> columns = new ArrayList<>();
 
 	private Map<IColumn, AggregateOperator> aggColumns = new HashMap<>();
 
-	private StringBuilder sb = new StringBuilder();
+	ISelectTranspiler selectTranspiler = SelectTranspilerFactory.instanciateSelectTranspiler();
 
 	public String transpile() {
-		resetBuilder();
-		sb.append(SELECT_);
-
-		if (!aggColumns.isEmpty())
-			transpileAggregates();
-		transpileColumns();
-
-		return sb.toString();
-	}
-
-	private void transpileColumns() {
-		for (int i = 0; i < columns.size(); i++) {
-			if ((columns.size() - 1 == i))
-				sb.append(columns.get(i).transpile());
-			else
-				sb.append(columns.get(i).transpile()).append(SEP_);
-		}
-	}
-
-	private void transpileAggregates() {
-		IColumn[] arr = aggColumns.keySet().toArray(new IColumn[0]);
-		for (IColumn col : arr) {
-			sb.append(aggColumns.get(col).value()).append(OP_PARENTHESIS).append(col.transpile(false))
-					.append(CL_PARENTHESIS);
-			if (col.equals(arr[arr.length - 1]) && columns.isEmpty())
-				sb.append(EMPTY_STR);
-			else
-				sb.append(SEP_);
-		}
+		return selectTranspiler.transpile(this);
 	}
 
 	public void reset() {
-		columns = null;
-		resetBuilder();
+		this.columns = null;
 	}
 
 	public ISelect select(IColumn column) {
@@ -82,12 +45,16 @@ public class Select implements ISelect {
 	}
 
 	public ISelect select(AggregateOperator agg, IColumn column) {
-		aggColumns.put(column, agg);
+		this.aggColumns().put(column, agg);
 		return this;
 	}
 
-	private void resetBuilder() {
-		sb.setLength(0);
+	public List<IColumn> columns() {
+		return columns;
+	}
+
+	public Map<IColumn, AggregateOperator> aggColumns() {
+		return aggColumns;
 	}
 
 }

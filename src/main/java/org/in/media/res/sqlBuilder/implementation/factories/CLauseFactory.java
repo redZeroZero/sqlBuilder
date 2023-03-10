@@ -9,21 +9,23 @@ import org.in.media.res.sqlBuilder.interfaces.query.IFrom;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 
-public class SqlCLausesFactory {
+public class CLauseFactory {
+
+	private static final String DEFAULT_NAME = "org.in.media.res.sqlBuilder.implementation.";
 
 	public static ISelect instanciateSelect() {
-		return (ISelect) instanciateClause(getClazz("com.coface.corp.sqlBuilder.implementation.Select"));
+		return (ISelect) instanciateClause(getClazz(DEFAULT_NAME + "Select"));
 	}
 
 	public static IFrom instanciateFrom() {
-		return (IFrom) instanciateClause(getClazz("com.coface.corp.sqlBuilder.implementation.From"));
+		return (IFrom) instanciateClause(getClazz(DEFAULT_NAME + "From"));
 	}
 
 	public static IWhere instanciateWhere() {
-		return (IWhere) instanciateClause(getClazz("com.coface.corp.sqlBuilder.implementation.Where"));
+		return (IWhere) instanciateClause(getClazz(DEFAULT_NAME + "Where"));
 	}
 
-	public static IClause instanciateClause(Class<IClause> clazz) {
+	private static IClause instanciateClause(Class<? extends IClause> clazz) {
 		IClause instance = null;
 		if (IClause.class.isAssignableFrom(clazz)) {
 			try {
@@ -37,23 +39,12 @@ public class SqlCLausesFactory {
 		return instance;
 	}
 
-	public static ISelect instanciateSelect(String className) {
-		return (ISelect) instanciateClause(getClazz(className));
-	}
-
-	public static IFrom instanciateFrom(String className) {
-		return (IFrom) instanciateClause(getClazz(className));
-	}
-
-	public static IWhere instanciateWhere(String className) {
-		return (IWhere) instanciateClause(getClazz(className));
-	}
-
-	private static Class<IClause> getClazz(String className) {
+	private static Class<? extends IClause> getClazz(String className) {
 		try {
-			return (Class<IClause>) forName(className);
+			return forName(className).asSubclass(IClause.class);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
+
 }

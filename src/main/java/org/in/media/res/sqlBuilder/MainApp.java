@@ -5,6 +5,8 @@ import static org.in.media.res.sqlBuilder.constants.AggregateOperator.MIN;
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 import static org.in.media.res.sqlBuilder.example.Employee.C_FIRST_NAME;
 
+import java.util.Properties;
+
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -22,6 +24,10 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 public class MainApp {
 
 	public static void main(String[] args) {
+
+		String properties = System.getProperty("transpiler.class");
+		System.out.println(properties);
+		//properties.forEach((k, v) -> System.out.println(k + " - " + v));
 
 		EmployeeSchema schema = new EmployeeSchema();
 
@@ -67,14 +73,9 @@ public class MainApp {
 		System.out.println(where.transpile());
 
 		IQuery q = new Query();
-		q.select(e)
-		 .select(j)
-		 .from(e)
-		 .join(j)
-		 .on(e.get("ID"), j.get("EMPLOYEE_ID"))
-		 .where(e.get(C_FIRST_NAME))
-		 .eq("Alphonse");
-		
+		q.select(e).select(j).from(e).join(j).on(e.get("ID"), j.get("EMPLOYEE_ID")).where(e.get(C_FIRST_NAME))
+				.eq("Alphonse");
+
 		System.out.println(q.transpile());
 
 	}
