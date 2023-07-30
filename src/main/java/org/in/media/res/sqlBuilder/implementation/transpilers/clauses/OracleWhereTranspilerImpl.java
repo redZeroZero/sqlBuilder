@@ -7,7 +7,7 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhereTranspiler;
 public class OracleWhereTranspilerImpl implements IWhereTranspiler {
 
 	private String WHERE_ = " WHERE ";
-	
+
 	@Override
 	public String transpile(IWhere w) {
 		StringBuilder sb = new StringBuilder();
