@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.implementation.From.Joiner;
 import org.in.media.res.sqlBuilder.implementation.factories.CLauseFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
@@ -16,7 +17,12 @@ import org.in.media.res.sqlBuilder.interfaces.query.IComparator;
 import org.in.media.res.sqlBuilder.interfaces.query.ICondition;
 import org.in.media.res.sqlBuilder.interfaces.query.IConnector;
 import org.in.media.res.sqlBuilder.interfaces.query.IFrom;
+import org.in.media.res.sqlBuilder.interfaces.query.IGroupBy;
+import org.in.media.res.sqlBuilder.interfaces.query.IHaving;
+import org.in.media.res.sqlBuilder.interfaces.query.IHavingBuilder;
 import org.in.media.res.sqlBuilder.interfaces.query.IJoinable;
+import org.in.media.res.sqlBuilder.interfaces.query.ILimit;
+import org.in.media.res.sqlBuilder.interfaces.query.IOrderBy;
 import org.in.media.res.sqlBuilder.interfaces.query.IQuery;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
 import org.in.media.res.sqlBuilder.interfaces.query.ITranspilable;
@@ -24,23 +30,41 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 
 public class Query implements IQuery, ITranspilable, IJoinable {
 
-	private ISelect selectClause = CLauseFactory.instanciateSelect();
+ private ISelect selectClause = CLauseFactory.instanciateSelect();
 
-	private IFrom fromClause = CLauseFactory.instanciateFrom();
+ private IFrom fromClause = CLauseFactory.instanciateFrom();
 
-	private IWhere whereClause = CLauseFactory.instanciateWhere();
+ private IWhere whereClause = CLauseFactory.instanciateWhere();
+
+ private IGroupBy groupByClause = CLauseFactory.instanciateGroupBy();
+
+ private IOrderBy orderByClause = CLauseFactory.instanciateOrderBy();
+
+ private IHaving havingClause = CLauseFactory.instanciateHaving();
+
+ private ILimit limitClause = CLauseFactory.instanciateLimit();
 
 	public String transpile() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(selectClause.transpile());
 		sb.append(fromClause.transpile());
-		sb.append(whereClause.transpile());
-		return sb.toString();
-	}
+  sb.append(whereClause.transpile());
+  sb.append(groupByClause.transpile());
+  sb.append(havingClause.transpile());
+  sb.append(orderByClause.transpile());
+  sb.append(limitClause.transpile());
+  return sb.toString();
+ }
 
-	public void reset() {
-
-	}
+ public void reset() {
+  this.selectClause = CLauseFactory.instanciateSelect();
+  this.fromClause = CLauseFactory.instanciateFrom();
+  this.whereClause = CLauseFactory.instanciateWhere();
+  this.groupByClause = CLauseFactory.instanciateGroupBy();
+  this.orderByClause = CLauseFactory.instanciateOrderBy();
+  this.havingClause = CLauseFactory.instanciateHaving();
+  this.limitClause = CLauseFactory.instanciateLimit();
+ }
 
 	@Override
 	public IQuery select(IColumn column) {
@@ -80,7 +104,7 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 
 	@Override
 	public IQuery from(ITable... tables) {
-		this.from(tables);
+		this.fromClause.from(tables);
 		return this;
 	}
 
@@ -109,13 +133,17 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
-	public List<IClause> clauses() {
-		List<IClause> c = new ArrayList<>();
-		c.add(selectClause);
-		c.add(fromClause);
-		c.add(whereClause);
-		return c;
-	}
+ public List<IClause> clauses() {
+  List<IClause> c = new ArrayList<>();
+  c.add(selectClause);
+  c.add(fromClause);
+  c.add(whereClause);
+  c.add(groupByClause);
+  c.add(havingClause);
+  c.add(orderByClause);
+  c.add(limitClause);
+  return c;
+ }
 
 	@Override
 	public IWhere where(IColumn column) {
@@ -306,7 +334,7 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	@Override
 	public IWhere or(IColumn column) {
 		this.whereClause.or(column);
-		return null;
+		return this;
 	}
 
 	@Override
@@ -318,7 +346,7 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	@Override
 	public IWhere or() {
 		this.whereClause.or();
-		return null;
+		return this;
 	}
 
 	@Override
@@ -411,6 +439,108 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	@Override
 	public List<ICondition> conditions() {
 		return this.whereClause.conditions();
+	}
+
+	@Override
+	public Query groupBy(IColumn column) {
+		this.groupByClause.groupBy(column);
+		return this;
+	}
+
+	@Override
+	public Query groupBy(IColumn... columns) {
+		this.groupByClause.groupBy(columns);
+		return this;
+	}
+
+	@Override
+	public List<IColumn> groupByColumns() {
+		return this.groupByClause.groupByColumns();
+	}
+
+	@Override
+	public Query orderBy(IColumn column) {
+		this.orderByClause.orderBy(column);
+		return this;
+	}
+
+	@Override
+	public Query orderBy(IColumn column, SortDirection direction) {
+		this.orderByClause.orderBy(column, direction);
+		return this;
+	}
+
+	@Override
+	public Query asc(IColumn column) {
+		this.orderByClause.asc(column);
+		return this;
+	}
+
+	@Override
+	public Query desc(IColumn column) {
+		this.orderByClause.desc(column);
+		return this;
+	}
+
+	@Override
+	public List<IOrderBy.Ordering> orderings() {
+		return this.orderByClause.orderings();
+	}
+
+	@Override
+	public Query having(ICondition condition) {
+		this.havingClause.having(condition);
+		return this;
+	}
+
+	@Override
+	public Query and(ICondition condition) {
+		this.havingClause.and(condition);
+		return this;
+	}
+
+	@Override
+	public Query or(ICondition condition) {
+		this.havingClause.or(condition);
+		return this;
+	}
+
+	@Override
+	public IHavingBuilder having(IColumn column) {
+		return this.havingClause.having(column);
+	}
+
+	@Override
+	public List<ICondition> havingConditions() {
+		return this.havingClause.havingConditions();
+	}
+
+	@Override
+	public Query limit(int limit) {
+		this.limitClause.limit(limit);
+		return this;
+	}
+
+	@Override
+	public Query offset(int offset) {
+		this.limitClause.offset(offset);
+		return this;
+	}
+
+	@Override
+	public Query limitAndOffset(int limit, int offset) {
+		this.limitClause.limitAndOffset(limit, offset);
+		return this;
+	}
+
+	@Override
+	public Integer limitValue() {
+		return this.limitClause.limitValue();
+	}
+
+	@Override
+	public Integer offsetValue() {
+		return this.limitClause.offsetValue();
 	}
 
 }

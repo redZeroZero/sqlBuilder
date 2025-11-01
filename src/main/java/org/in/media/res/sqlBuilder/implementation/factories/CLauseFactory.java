@@ -6,6 +6,10 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.in.media.res.sqlBuilder.interfaces.query.IClause;
 import org.in.media.res.sqlBuilder.interfaces.query.IFrom;
+import org.in.media.res.sqlBuilder.interfaces.query.IGroupBy;
+import org.in.media.res.sqlBuilder.interfaces.query.IHaving;
+import org.in.media.res.sqlBuilder.interfaces.query.ILimit;
+import org.in.media.res.sqlBuilder.interfaces.query.IOrderBy;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 
@@ -23,6 +27,22 @@ public class CLauseFactory {
 
 	public static IWhere instanciateWhere() {
 		return (IWhere) instanciateClause(getClazz(DEFAULT_NAME + "Where"));
+	}
+
+	public static IGroupBy instanciateGroupBy() {
+		return (IGroupBy) instanciateClause(getClazz(DEFAULT_NAME + "GroupBy"));
+	}
+
+	public static IOrderBy instanciateOrderBy() {
+		return (IOrderBy) instanciateClause(getClazz(DEFAULT_NAME + "OrderBy"));
+	}
+
+	public static IHaving instanciateHaving() {
+		return (IHaving) instanciateClause(getClazz(DEFAULT_NAME + "Having"));
+	}
+
+	public static ILimit instanciateLimit() {
+		return (ILimit) instanciateClause(getClazz(DEFAULT_NAME + "Limit"));
 	}
 
 	private static IClause instanciateClause(Class<? extends IClause> clazz) {

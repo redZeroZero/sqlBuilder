@@ -42,31 +42,31 @@ public class Where implements IWhere {
 
 	@Override
 	public IWhere where(IColumn column) {
-		filters.add(Condition.builder().leftColumn(column).build());
+		filters.addLast(Condition.builder().leftColumn(column).build());
 		return this;
 	}
 
 	@Override
 	public IWhere and(IColumn column) {
-		filters.add(Condition.builder().and().leftColumn(column).build());
+		filters.addLast(Condition.builder().and().leftColumn(column).build());
 		return this;
 	}
 
 	@Override
 	public IWhere or(IColumn column) {
-		filters.add(Condition.builder().or().leftColumn(column).build());
+		filters.addLast(Condition.builder().or().leftColumn(column).build());
 		return this;
 	}
 
 	@Override
 	public IWhere and() {
-		filters.add(Condition.builder().and().build());
+		filters.addLast(Condition.builder().and().build());
 		return this;
 	}
 
 	@Override
 	public IWhere or() {
-		filters.add(Condition.builder().or().build());
+		filters.addLast(Condition.builder().or().build());
 		return this;
 	}
 
@@ -246,37 +246,37 @@ public class Where implements IWhere {
 
 	@Override
 	public IAggregator eq() {
-		filters.get(filters.size() - 1).setOperator(EQ);
+		lastCondition().setOperator(EQ);
 		return this;
 	}
 
 	@Override
 	public IAggregator supTo() {
-		filters.get(filters.size() - 1).setOperator(MORE);
+		lastCondition().setOperator(MORE);
 		return this;
 	}
 
 	@Override
 	public IAggregator infTo() {
-		filters.get(filters.size() - 1).setOperator(LESS);
+		lastCondition().setOperator(LESS);
 		return this;
 	}
 
 	@Override
 	public IAggregator supOrEqTo() {
-		filters.get(filters.size() - 1).setOperator(MORE_OR_EQ);
+		lastCondition().setOperator(MORE_OR_EQ);
 		return this;
 	}
 
 	@Override
 	public IAggregator infOrEqTo() {
-		filters.get(filters.size() - 1).setOperator(Operator.LESS_OR_EQ);
+		lastCondition().setOperator(LESS_OR_EQ);
 		return this;
 	}
 
 	@Override
 	public IAggregator in() {
-		filters.get(filters.size() - 1).setOperator(IN);
+		lastCondition().setOperator(IN);
 		return this;
 	}
 
@@ -306,60 +306,78 @@ public class Where implements IWhere {
 
 	@Override
 	public IComparator col(IColumn column) {
-		this.filters.get(filters.size() - 1).setLeft(column);
+		this.lastCondition().setLeft(column);
 		return this;
 	}
 
 	private void updateLastCondition(Operator op, String... value) {
-		filters.get(filters.size() - 1).setOperator(op);
-		for (String v : value)
-			filters.get(filters.size() - 1).addValue(v);
+		ICondition condition = lastCondition();
+		condition.setOperator(op);
+		for (String v : value) {
+			condition.addValue(v);
+		}
 	}
 
 	private void updateLastCondition(Operator op, Integer... value) {
-		filters.get(filters.size() - 1).setOperator(op);
-		for (Integer v : value)
-			filters.get(filters.size() - 1).addValue(v);
+		ICondition condition = lastCondition();
+		condition.setOperator(op);
+		for (Integer v : value) {
+			condition.addValue(v);
+		}
 	}
 
 	private void updateLastCondition(Operator op, Date... value) {
-		filters.get(filters.size() - 1).setOperator(op);
-		for (Date v : value)
-			filters.get(filters.size() - 1).addValue(v);
+		ICondition condition = lastCondition();
+		condition.setOperator(op);
+		for (Date v : value) {
+			condition.addValue(v);
+		}
 	}
 
 	private void updateLastCondition(Operator op, Double... value) {
-		filters.get(filters.size() - 1).setOperator(op);
-		for (Double v : value)
-			filters.get(filters.size() - 1).addValue(v);
+		ICondition condition = lastCondition();
+		condition.setOperator(op);
+		for (Double v : value) {
+			condition.addValue(v);
+		}
 	}
 
 	private void updateLastCondition(Operator op, AggregateOperator agg, IColumn value) {
-		if (op != null)
-			filters.get(filters.size() - 1).setOperator(op);
-		if (agg != null)
-			setAggAtRightPlace(agg);
-		setColumnAtRightPlace(value);
+		ICondition condition = lastCondition();
+		if (op != null) {
+			condition.setOperator(op);
+		}
+		if (agg != null) {
+			setAggAtRightPlace(condition, agg);
+		}
+		setColumnAtRightPlace(condition, value);
 	}
 
-	private void setAggAtRightPlace(AggregateOperator agg) {
-		if (filters.get(filters.size() - 1).getLeftAgg() == null)
-			filters.get(filters.size() - 1).setLeftAgg(agg);
-		else if (filters.get(filters.size() - 1).getRightAgg() == null)
-			filters.get(filters.size() - 1).setRightAgg(agg);
+	private void setAggAtRightPlace(ICondition condition, AggregateOperator agg) {
+		if (condition.getLeftAgg() == null)
+			condition.setLeftAgg(agg);
+		else if (condition.getRightAgg() == null)
+			condition.setRightAgg(agg);
 
 	}
 
-	private void setColumnAtRightPlace(IColumn value) {
-		if (filters.get(filters.size() - 1).getLeft() == null)
-			filters.get(filters.size() - 1).setLeft(value);
-		else if (filters.get(filters.size() - 1).getRight() == null)
-			filters.get(filters.size() - 1).setRight(value);
+	private void setColumnAtRightPlace(ICondition condition, IColumn value) {
+		if (condition.getLeft() == null)
+			condition.setLeft(value);
+		else if (condition.getRight() == null)
+			condition.setRight(value);
 	}
 
 	@Override
 	public IWhere condition(ICondition condition) {
-		this.filters.add(condition);
+		this.filters.addLast(condition);
 		return this;
+	}
+
+	private ICondition lastCondition() {
+		if (filters.isEmpty()) {
+			throw new IllegalStateException("Cannot apply operators without a starting condition. Call where(...) first.");
+		}
+		return filters.getLast();
 	}
 }

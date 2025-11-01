@@ -1,2 +1,95 @@
 # sqlBuilder
-A simple API to write SQL requests with a builder like API
+
+sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It provides composable builders for `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and `LIMIT / OFFSET` clauses so you can express queries without string concatenation.
+
+## Getting Started
+
+```java
+EmployeeSchema schema = new EmployeeSchema();
+ITable employee = schema.getTableBy(Employee.class);
+ITable job = schema.getTableBy(Job.class);
+
+Query query = new Query();
+
+String sql = query
+    .select(employee.get(Employee.C_FIRST_NAME))
+    .select(employee.get(Employee.C_LAST_NAME))
+    .from(employee)
+    .innerJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
+    .where(employee.get(Employee.C_FIRST_NAME)).eq("Alice")
+    .orderBy(employee.get(Employee.C_LAST_NAME))
+    .limitAndOffset(20, 0)
+    .transpile();
+
+// SELECT ... ORDER BY ... FETCH NEXT 20 ROWS ONLY
+```
+
+## Sample Queries to Try
+
+The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder.
+
+### 1. Simple Projection
+
+```java
+new Query()
+    .select(employee)
+    .from(employee)
+    .transpile();
+```
+
+Expected SQL:
+
+```
+SELECT Employee.ID, Employee.FIRST_NAME, ...
+ FROM Employee
+```
+
+### 2. Joins with Filters
+
+```java
+new Query()
+    .select(employee.get(Employee.C_FIRST_NAME), job.get(Job.C_DESCRIPTION))
+    .from(employee)
+    .leftJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
+    .where(job.get(Job.C_SALARY)).supOrEqTo(50000)
+    .transpile();
+```
+
+### 3. Aggregations with GROUP BY / HAVING
+
+```java
+new Query()
+    .select(employee.get(Employee.C_FIRST_NAME))
+    .select(AggregateOperator.AVG, job.get(Job.C_SALARY))
+    .from(employee)
+    .join(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
+    .groupBy(employee.get(Employee.C_FIRST_NAME))
+    .having(job.get(Job.C_SALARY)).avg(job.get(Job.C_SALARY)).supTo(60000)
+    .orderBy(employee.get(Employee.C_FIRST_NAME))
+    .transpile();
+```
+
+### 4. Pagination (Oracle-style)
+
+```java
+new Query()
+    .select(job.get(Job.C_DESCRIPTION))
+    .from(job)
+    .orderBy(job.get(Job.C_SALARY), SortDirection.DESC)
+    .limitAndOffset(10, 20)
+    .transpile();
+```
+
+## Notes
+
+- The builder creates SQL strings; execution is left to your JDBC or ORM layer.
+- Transpilers are pluggable. The default implementations target Oracle syntax (OFFSET/FETCH). Extend the transpiler factories to add other dialects.
+- Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
+
+## Running Tests
+
+```
+mvn -o test
+```
+
+This executes the regression suite in `src/test/java` that covers the examples above.
