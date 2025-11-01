@@ -6,19 +6,15 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhereTranspiler;
 
 public class OracleWhereTranspilerImpl implements IWhereTranspiler {
 
-	private String WHERE_ = " WHERE ";
+    private static final String WHERE = " WHERE ";
 
-	@Override
-	public String transpile(IWhere w) {
-		if (w.conditions().isEmpty()) {
-			return "";
-		}
-		StringBuilder sb = new StringBuilder();
-		sb.append(WHERE_);
-		for (ICondition c : w.conditions()) {
-			sb.append(c.transpile());
-		}
-		return sb.toString();
-	}
-
+    @Override
+    public String transpile(IWhere where) {
+        if (where.conditions().isEmpty()) {
+            return "";
+        }
+        SqlBuilder builder = SqlBuilder.from(WHERE);
+        where.conditions().forEach(condition -> builder.append(condition.transpile()));
+        return builder.toString();
+    }
 }

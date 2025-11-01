@@ -13,51 +13,55 @@ import org.in.media.res.sqlBuilder.interfaces.query.IFromTranspiler;
 
 public class OracleFromTranspilerImpl implements IFromTranspiler {
 
-	private String SEP_ = ", ";
+    private static final String SEP = ", ";
+    private static final String FROM = " FROM ";
+    private static final String ALIAS_SEP = " ";
 
-	private String FROM_ = " FROM ";
+    @Override
+    public String transpile(IFrom from) {
+        if (from.joins().isEmpty()) {
+            return "";
+        }
+        if (from.joins().values().stream().noneMatch(joiner -> joiner == null)) {
+            throw new IllegalStateException("FROM clause requires at least one base table before joins");
+        }
 
-	private final String ALIAS_SEP_ = " ";
+        SqlBuilder builder = SqlBuilder.from(FROM);
+        boolean baseTableEncountered = false;
 
-	@Override
-	public String transpile(IFrom f) {
-		if (f.joins().isEmpty()) {
-			return "";
-		}
-		if (f.joins().values().stream().noneMatch(joiner -> joiner == null)) {
-			throw new IllegalStateException("FROM clause requires at least one base table before joins");
-		}
-		StringBuilder sb = new StringBuilder();
-		sb.append(FROM_);
-		boolean firstBaseTableAppended = false;
-		for (Map.Entry<ITable, Joiner> entry : f.joins().entrySet()) {
-			ITable table = entry.getKey();
-			Joiner joiner = entry.getValue();
-			if (joiner == null) {
-				if (firstBaseTableAppended) {
-					sb.append(SEP_);
-				}
-				buildTableDetail(sb, table);
-				firstBaseTableAppended = true;
-			} else {
-				sb.append(joiner.getOp().value());
-				buildTableDetail(sb, table);
-				IColumn col1 = joiner.getCol1();
-				IColumn col2 = joiner.getCol2();
-				if (col1 == null || col2 == null) {
-					throw new IllegalStateException("JOIN on table " + table.getName()
-							+ " must define both columns via on(column1, column2)");
-				}
-				sb.append(ON.value()).append(col1.transpile(false)).append(EQ.value()).append(col2.transpile(false));
-			}
-		}
-		return sb.toString();
-	}
+        for (Map.Entry<ITable, Joiner> entry : from.joins().entrySet()) {
+            ITable table = entry.getKey();
+            Joiner joiner = entry.getValue();
+            if (joiner == null) {
+                if (baseTableEncountered) {
+                    builder.append(SEP);
+                }
+                appendTable(builder, table);
+                baseTableEncountered = true;
+            } else {
+                builder.append(joiner.getOp().value());
+                appendTable(builder, table);
+                appendJoinCondition(builder, table, joiner);
+            }
+        }
 
-	private void buildTableDetail(StringBuilder sb, ITable t) {
-		sb.append(t.getName());
-		if (t.hasAlias())
-			sb.append(ALIAS_SEP_).append(t.getAlias());
-	}
+        return builder.toString();
+    }
 
+    private void appendTable(SqlBuilder builder, ITable table) {
+        builder.appendTable(table);
+        if (table.hasAlias()) {
+            builder.append(ALIAS_SEP).append(table.getAlias());
+        }
+    }
+
+    private void appendJoinCondition(SqlBuilder builder, ITable table, Joiner joiner) {
+        IColumn left = joiner.getCol1();
+        IColumn right = joiner.getCol2();
+        if (left == null || right == null) {
+            throw new IllegalStateException(
+                    "JOIN on table " + table.getName() + " must define both columns via on(column1, column2)");
+        }
+        builder.append(ON.value()).appendColumn(left).append(EQ.value()).appendColumn(right);
+    }
 }

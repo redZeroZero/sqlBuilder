@@ -1,91 +1,104 @@
 package org.in.media.res.sqlBuilder.implementation;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.constants.ValueType;
 import org.in.media.res.sqlBuilder.implementation.factories.TranspilerFactory;
-import org.in.media.res.sqlBuilder.implementation.transpilers.clauses.OracleConditionTranspilerImpl;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.query.ICondition;
 import org.in.media.res.sqlBuilder.interfaces.query.IConditionTranspiler;
 
-public class Condition implements ICondition {
+/**
+ * Immutable representation of a boolean condition. Use {@link Builder} to
+ * create instances and the {@code with*} helpers to clone with tweaks.
+ */
+public final class Condition implements ICondition {
 
-	private IColumn left;
+	private static final IConditionTranspiler TRANSPILER = TranspilerFactory.instanciateConditionTranspiler();
 
-	private IColumn right;
+	private final Operator startOperator;
+	private final ConditionSide left;
+	private final ConditionSide right;
+	private final Operator operator;
+	private final List<ConditionValue> values;
 
-	private Operator startOperator;
-
-	private Operator operator;
-
-	private AggregateOperator leftAgg;
-
-	private AggregateOperator rightAgg;
-
-	private List<ConditionItem> values = new ArrayList<>();
-
-	private IConditionTranspiler transpiler = TranspilerFactory.instanciateConditionTranspiler();
-
-	@Override
-	public String transpile() {
-		return transpiler.transpile(this);
-	}
-
-	public List<ConditionItem> values() {
-		return this.values;
-	}
-
-	@Override
-	public void addValue(String value) {
-		this.addValue(new ConditionItem(value, ValueType.TY_STR));
-	}
-
-	@Override
-	public void addValue(Integer value) {
-		this.addValue(new ConditionItem(value, ValueType.TY_INT));
-	}
-
-	@Override
-	public void addValue(Double value) {
-		this.addValue(new ConditionItem(value, ValueType.TY_DBL));
-	}
-
-	@Override
-	public void addValue(Date value) {
-		this.addValue(new ConditionItem(value, ValueType.TY_DATE));
-	}
-
-	private void addValue(ConditionItem value) {
-		this.values.add(value);
+	private Condition(Operator startOperator, ConditionSide left, ConditionSide right, Operator operator,
+			List<ConditionValue> values) {
+		this.startOperator = startOperator;
+		this.left = left;
+		this.right = right;
+		this.operator = operator;
+		this.values = Collections.unmodifiableList(values);
 	}
 
 	public static Builder builder() {
 		return new Builder();
 	}
 
-	@Override
-	public IColumn getLeft() {
-		return left;
+	public Condition withStartOperator(Operator startOperator) {
+		return new Condition(startOperator, left, right, operator, values);
 	}
 
-	@Override
-	public void setLeft(IColumn left) {
-		this.left = left;
+	public Condition withOperator(Operator operator) {
+		return new Condition(startOperator, left, right, operator, values);
 	}
 
-	@Override
-	public IColumn getRight() {
-		return right;
+	public Condition withLeftColumn(IColumn column) {
+		return new Condition(startOperator, left.withColumn(column), right, operator, values);
 	}
 
-	@Override
-	public void setRight(IColumn right) {
-		this.right = right;
+	public Condition withRightColumn(IColumn column) {
+		return new Condition(startOperator, left, right.withColumn(column), operator, values);
+	}
+
+	public Condition withLeftAggregate(AggregateOperator aggregate) {
+		return new Condition(startOperator, left.withAggregate(aggregate), right, operator, values);
+	}
+
+	public Condition withRightAggregate(AggregateOperator aggregate) {
+		return new Condition(startOperator, left, right.withAggregate(aggregate), operator, values);
+	}
+
+	public Condition withNextAggregate(AggregateOperator aggregate) {
+		if (!left.hasAggregate()) {
+			return withLeftAggregate(aggregate);
+		}
+		if (!right.hasAggregate()) {
+			return withRightAggregate(aggregate);
+		}
+		throw new IllegalStateException("Both sides already have an aggregate assigned");
+	}
+
+	public Condition withNextColumn(IColumn column) {
+		if (!left.hasColumn()) {
+			return withLeftColumn(column);
+		}
+		if (!right.hasColumn()) {
+			return withRightColumn(column);
+		}
+		throw new IllegalStateException("Both sides already have a column assigned");
+	}
+
+	public Condition appendValue(ConditionValue value) {
+		List<ConditionValue> updated = new ArrayList<>(values.size() + 1);
+		updated.addAll(values);
+		updated.add(value);
+		return new Condition(startOperator, left, right, operator, updated);
+	}
+
+	public Condition appendValues(List<ConditionValue> additionalValues) {
+		if (additionalValues.isEmpty())
+			return this;
+		List<ConditionValue> updated = new ArrayList<>(values.size() + additionalValues.size());
+		updated.addAll(values);
+		updated.addAll(additionalValues);
+		return new Condition(startOperator, left, right, operator, updated);
 	}
 
 	@Override
@@ -94,8 +107,13 @@ public class Condition implements ICondition {
 	}
 
 	@Override
-	public void setStartOperator(Operator startOperator) {
-		this.startOperator = startOperator;
+	public IColumn getLeft() {
+		return left.column();
+	}
+
+	@Override
+	public IColumn getRight() {
+		return right.column();
 	}
 
 	@Override
@@ -104,205 +122,219 @@ public class Condition implements ICondition {
 	}
 
 	@Override
-	public void setOperator(Operator operator) {
-		this.operator = operator;
-	}
-
-	@Override
 	public AggregateOperator getLeftAgg() {
-		return leftAgg;
-	}
-
-	@Override
-	public void setLeftAgg(AggregateOperator leftAgg) {
-		this.leftAgg = leftAgg;
+		return left.aggregate();
 	}
 
 	@Override
 	public AggregateOperator getRightAgg() {
-		return rightAgg;
+		return right.aggregate();
 	}
 
 	@Override
-	public void setRightAgg(AggregateOperator rightAgg) {
-		this.rightAgg = rightAgg;
-	}
-
-	public List<ConditionItem> getValues() {
+	public List<ConditionValue> values() {
 		return values;
 	}
 
-	public void setValues(List<ConditionItem> values) {
-		this.values = values;
+	@Override
+	public String transpile() {
+		return TRANSPILER.transpile(this);
 	}
 
-	public static class ConditionItem {
+	public static final class Builder {
 
-		public Object value;
-
-		public ValueType type;
-
-		public ConditionItem(Object value, ValueType type) {
-			this.value = value;
-			this.type = type;
-		}
-	}
-
-	public static class Builder {
-
-		Condition c = null;
-
-		public Builder() {
-			c = new Condition();
-		}
-
-		public Builder newBuilder() {
-			return new Builder();
-		}
+		private Operator startOperator;
+		private ConditionSide left = ConditionSide.empty();
+		private ConditionSide right = ConditionSide.empty();
+		private Operator operator;
+		private final List<ConditionValue> values = new ArrayList<>();
 
 		public Builder startOp(Operator startOperator) {
-			this.c.startOperator = startOperator;
-			return this;
-		}
-
-		public Builder or() {
-			this.c.startOperator = Operator.OR;
+			this.startOperator = startOperator;
 			return this;
 		}
 
 		public Builder and() {
-			this.c.startOperator = Operator.AND;
+			return startOp(Operator.AND);
+		}
+
+		public Builder or() {
+			return startOp(Operator.OR);
+		}
+
+		public Builder leftColumn(IColumn column) {
+			this.left = left.withColumn(column);
+			return this;
+		}
+
+		public Builder leftColumn(AggregateOperator aggregate, IColumn column) {
+			this.left = left.withAggregate(aggregate).withColumn(column);
+			return this;
+		}
+
+		public Builder rightColumn(IColumn column) {
+			this.right = right.withColumn(column);
+			return this;
+		}
+
+		public Builder rightColumn(AggregateOperator aggregate, IColumn column) {
+			this.right = right.withAggregate(aggregate).withColumn(column);
 			return this;
 		}
 
 		public Builder comparisonOp(Operator operator) {
-			this.c.operator = operator;
+			this.operator = operator;
 			return this;
 		}
 
 		public Builder eq() {
-			this.c.operator = Operator.EQ;
-			return this;
+			return comparisonOp(Operator.EQ);
 		}
 
 		public Builder in() {
-			this.c.operator = Operator.IN;
-			return this;
+			return comparisonOp(Operator.IN);
 		}
 
 		public Builder less() {
-			this.c.operator = Operator.LESS;
-			return this;
+			return comparisonOp(Operator.LESS);
 		}
 
 		public Builder lessOrEq() {
-			this.c.operator = Operator.LESS_OR_EQ;
-			return this;
+			return comparisonOp(Operator.LESS_OR_EQ);
 		}
 
 		public Builder more() {
-			this.c.operator = Operator.MORE;
-			return this;
+			return comparisonOp(Operator.MORE);
 		}
 
 		public Builder moreOrEq() {
-			this.c.operator = Operator.MORE_OR_EQ;
-			return this;
+			return comparisonOp(Operator.MORE_OR_EQ);
 		}
 
 		public Builder value(String value) {
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_STR));
-			return this;
-		}
-
-		public Builder value(AggregateOperator agg, String value) {
-			this.c.rightAgg = agg;
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_STR));
-			return this;
-		}
-
-		public Builder values(String... values) {
-			for (String v : values)
-				c.values.add(new Condition.ConditionItem(v, ValueType.TY_STR));
+			this.values.add(ConditionValue.of(value));
 			return this;
 		}
 
 		public Builder value(Integer value) {
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_INT));
-			return this;
-		}
-
-		public Builder value(AggregateOperator agg, Integer value) {
-			this.c.rightAgg = agg;
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_INT));
-			return this;
-		}
-
-		public Builder values(Integer... values) {
-			for (Integer v : values)
-				this.c.values.add(new Condition.ConditionItem(v, ValueType.TY_INT));
-			return this;
-		}
-
-		public Builder value(Date value) {
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_DATE));
-			return this;
-		}
-
-		public Builder value(AggregateOperator agg, Date value) {
-			this.c.rightAgg = agg;
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_DATE));
-			return this;
-		}
-
-		public Builder values(Date... values) {
-			for (Date v : values)
-				this.c.values.add(new Condition.ConditionItem(v, ValueType.TY_DATE));
+			this.values.add(ConditionValue.of(value));
 			return this;
 		}
 
 		public Builder value(Double value) {
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_DBL));
+			this.values.add(ConditionValue.of(value));
 			return this;
 		}
 
-		public Builder value(AggregateOperator agg, Double value) {
-			this.c.rightAgg = agg;
-			this.c.values.add(new Condition.ConditionItem(value, ValueType.TY_DBL));
+		public Builder value(Date value) {
+			this.values.add(ConditionValue.of(value));
+			return this;
+		}
+
+		public Builder values(String... values) {
+			for (String value : values) {
+				this.values.add(ConditionValue.of(value));
+			}
+			return this;
+		}
+
+		public Builder values(Integer... values) {
+			for (Integer value : values) {
+				this.values.add(ConditionValue.of(value));
+			}
 			return this;
 		}
 
 		public Builder values(Double... values) {
-			for (Double v : values)
-				this.c.values.add(new Condition.ConditionItem(v, ValueType.TY_DBL));
+			for (Double value : values) {
+				this.values.add(ConditionValue.of(value));
+			}
 			return this;
 		}
 
-		public Builder leftColumn(AggregateOperator agg, IColumn col) {
-			this.c.leftAgg = agg;
-			this.c.left = col;
-			return this;
-		}
-
-		public Builder leftColumn(IColumn col) {
-			this.c.left = col;
-			return this;
-		}
-
-		public Builder rightColumn(AggregateOperator agg, IColumn col) {
-			this.c.rightAgg = agg;
-			this.c.right = col;
-			return this;
-		}
-
-		public Builder rightColumn(IColumn col) {
-			this.c.right = col;
+		public Builder values(Date... values) {
+			for (Date value : values) {
+				this.values.add(ConditionValue.of(value));
+			}
 			return this;
 		}
 
 		public Condition build() {
-			return c;
+			return new Condition(startOperator, left, right, operator, List.copyOf(values));
+		}
+	}
+
+	private static final class ConditionSide {
+		private static final ConditionSide EMPTY = new ConditionSide(null, null);
+
+		private final IColumn column;
+		private final AggregateOperator aggregate;
+
+		private ConditionSide(IColumn column, AggregateOperator aggregate) {
+			this.column = column;
+			this.aggregate = aggregate;
 		}
 
+		static ConditionSide empty() {
+			return EMPTY;
+		}
+
+		ConditionSide withColumn(IColumn column) {
+			return new ConditionSide(column, aggregate);
+		}
+
+		ConditionSide withAggregate(AggregateOperator aggregate) {
+			return new ConditionSide(column, aggregate);
+		}
+
+		boolean hasColumn() {
+			return column != null;
+		}
+
+		boolean hasAggregate() {
+			return aggregate != null;
+		}
+
+		IColumn column() {
+			return column;
+		}
+
+		AggregateOperator aggregate() {
+			return aggregate;
+		}
+	}
+
+	public static final class ConditionValue {
+		private final Object value;
+		private final ValueType type;
+
+		private ConditionValue(Object value, ValueType type) {
+			this.value = value;
+			this.type = type;
+		}
+
+		public static ConditionValue of(String value) {
+			return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_STR);
+		}
+
+		public static ConditionValue of(Integer value) {
+			return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_INT);
+		}
+
+		public static ConditionValue of(Double value) {
+			return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_DBL);
+		}
+
+		public static ConditionValue of(Date value) {
+			return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_DATE);
+		}
+
+		public Object value() {
+			return value;
+		}
+
+		public ValueType type() {
+			return type;
+		}
 	}
 }

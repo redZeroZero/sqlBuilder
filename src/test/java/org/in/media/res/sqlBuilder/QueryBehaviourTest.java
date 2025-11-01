@@ -222,4 +222,16 @@ class QueryBehaviourTest {
 		assertTrue(sql.contains(" OFFSET 5 ROWS"));
 		assertTrue(sql.contains(" FETCH NEXT 10 ROWS ONLY"));
 	}
+
+	@Test
+	void selectTranspilerKeepsAggregateFormatting() {
+		Query query = new Query();
+		String sql = query.select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
+				.select(Employee.C_LAST_NAME)
+				.transpile();
+
+		assertTrue(sql.startsWith("SELECT MAX("));
+		assertTrue(sql.contains("), "));
+		assertTrue(sql.contains(Employee.C_LAST_NAME.column().transpile(false)));
+	}
 }

@@ -12,11 +12,14 @@ import static org.in.media.res.sqlBuilder.constants.Operator.MORE;
 import static org.in.media.res.sqlBuilder.constants.Operator.MORE_OR_EQ;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.implementation.Condition.ConditionValue;
 import org.in.media.res.sqlBuilder.implementation.factories.WhereTranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.query.IAggregator;
@@ -28,33 +31,35 @@ import org.in.media.res.sqlBuilder.interfaces.query.IWhereTranspiler;
 
 public class Where implements IWhere {
 
-	private List<ICondition> filters = new ArrayList<>();
+	private final List<Condition> filters = new ArrayList<>();
 
-	private IWhereTranspiler whereTranspiler = WhereTranspilerFactory.instanciateWhereTranspiler();
+	private final IWhereTranspiler whereTranspiler = WhereTranspilerFactory.instanciateWhereTranspiler();
 
+	@Override
 	public String transpile() {
 		return this.whereTranspiler.transpile(this);
 	}
 
+	@Override
 	public List<ICondition> conditions() {
-		return filters;
+		return List.copyOf(filters);
 	}
 
 	@Override
 	public IWhere where(IColumn column) {
-		filters.addLast(Condition.builder().leftColumn(column).build());
+		filters.addLast(Condition.builder().leftColumn(requireColumn(column)).build());
 		return this;
 	}
 
 	@Override
 	public IWhere and(IColumn column) {
-		filters.addLast(Condition.builder().and().leftColumn(column).build());
+		filters.addLast(Condition.builder().and().leftColumn(requireColumn(column)).build());
 		return this;
 	}
 
 	@Override
 	public IWhere or(IColumn column) {
-		filters.addLast(Condition.builder().or().leftColumn(column).build());
+		filters.addLast(Condition.builder().or().leftColumn(requireColumn(column)).build());
 		return this;
 	}
 
@@ -72,31 +77,31 @@ public class Where implements IWhere {
 
 	@Override
 	public IConnector eq(IColumn column) {
-		this.updateLastCondition(EQ, null, column);
+		this.updateLastCondition(EQ, null, requireColumn(column));
 		return this;
 	}
 
 	@Override
 	public IConnector supTo(IColumn column) {
-		this.updateLastCondition(MORE, null, column);
+		this.updateLastCondition(MORE, null, requireColumn(column));
 		return this;
 	}
 
 	@Override
 	public IConnector infTo(IColumn column) {
-		this.updateLastCondition(LESS, null, column);
+		this.updateLastCondition(LESS, null, requireColumn(column));
 		return this;
 	}
 
 	@Override
 	public IConnector supOrEqTo(IColumn column) {
-		this.updateLastCondition(MORE_OR_EQ, null, column);
+		this.updateLastCondition(MORE_OR_EQ, null, requireColumn(column));
 		return this;
 	}
 
 	@Override
 	public IConnector infOrEqTo(IColumn column) {
-		this.updateLastCondition(LESS_OR_EQ, null, column);
+		this.updateLastCondition(LESS_OR_EQ, null, requireColumn(column));
 		return this;
 	}
 
@@ -246,37 +251,37 @@ public class Where implements IWhere {
 
 	@Override
 	public IAggregator eq() {
-		lastCondition().setOperator(EQ);
+		replaceLast(condition -> condition.withOperator(EQ));
 		return this;
 	}
 
 	@Override
 	public IAggregator supTo() {
-		lastCondition().setOperator(MORE);
+		replaceLast(condition -> condition.withOperator(MORE));
 		return this;
 	}
 
 	@Override
 	public IAggregator infTo() {
-		lastCondition().setOperator(LESS);
+		replaceLast(condition -> condition.withOperator(LESS));
 		return this;
 	}
 
 	@Override
 	public IAggregator supOrEqTo() {
-		lastCondition().setOperator(MORE_OR_EQ);
+		replaceLast(condition -> condition.withOperator(MORE_OR_EQ));
 		return this;
 	}
 
 	@Override
 	public IAggregator infOrEqTo() {
-		lastCondition().setOperator(LESS_OR_EQ);
+		replaceLast(condition -> condition.withOperator(LESS_OR_EQ));
 		return this;
 	}
 
 	@Override
 	public IAggregator in() {
-		lastCondition().setOperator(IN);
+		replaceLast(condition -> condition.withOperator(IN));
 		return this;
 	}
 
@@ -306,78 +311,122 @@ public class Where implements IWhere {
 
 	@Override
 	public IComparator col(IColumn column) {
-		this.lastCondition().setLeft(column);
+		replaceLast(condition -> condition.withLeftColumn(column));
 		return this;
-	}
-
-	private void updateLastCondition(Operator op, String... value) {
-		ICondition condition = lastCondition();
-		condition.setOperator(op);
-		for (String v : value) {
-			condition.addValue(v);
-		}
-	}
-
-	private void updateLastCondition(Operator op, Integer... value) {
-		ICondition condition = lastCondition();
-		condition.setOperator(op);
-		for (Integer v : value) {
-			condition.addValue(v);
-		}
-	}
-
-	private void updateLastCondition(Operator op, Date... value) {
-		ICondition condition = lastCondition();
-		condition.setOperator(op);
-		for (Date v : value) {
-			condition.addValue(v);
-		}
-	}
-
-	private void updateLastCondition(Operator op, Double... value) {
-		ICondition condition = lastCondition();
-		condition.setOperator(op);
-		for (Double v : value) {
-			condition.addValue(v);
-		}
-	}
-
-	private void updateLastCondition(Operator op, AggregateOperator agg, IColumn value) {
-		ICondition condition = lastCondition();
-		if (op != null) {
-			condition.setOperator(op);
-		}
-		if (agg != null) {
-			setAggAtRightPlace(condition, agg);
-		}
-		setColumnAtRightPlace(condition, value);
-	}
-
-	private void setAggAtRightPlace(ICondition condition, AggregateOperator agg) {
-		if (condition.getLeftAgg() == null)
-			condition.setLeftAgg(agg);
-		else if (condition.getRightAgg() == null)
-			condition.setRightAgg(agg);
-
-	}
-
-	private void setColumnAtRightPlace(ICondition condition, IColumn value) {
-		if (condition.getLeft() == null)
-			condition.setLeft(value);
-		else if (condition.getRight() == null)
-			condition.setRight(value);
 	}
 
 	@Override
 	public IWhere condition(ICondition condition) {
-		this.filters.addLast(condition);
+		filters.addLast(copyOf(condition));
 		return this;
 	}
 
-	private ICondition lastCondition() {
+	private void updateLastCondition(Operator operator, String... values) {
+		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList()));
+	}
+
+	private void updateLastCondition(Operator operator, Integer... values) {
+		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList()));
+	}
+
+	private void updateLastCondition(Operator operator, Double... values) {
+		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList()));
+	}
+
+	private void updateLastCondition(Operator operator, Date... values) {
+		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList()));
+	}
+
+	private Condition applyValues(Condition condition, Operator operator, List<ConditionValue> newValues) {
+		Condition updated = condition;
+		if (operator != null) {
+			updated = updated.withOperator(operator);
+		}
+		if (!newValues.isEmpty()) {
+			updated = updated.appendValues(newValues);
+		}
+		return updated;
+	}
+
+	private IColumn requireColumn(IColumn column) {
+		QueryValidation.requireTable(column, "Column must belong to a table for WHERE clause");
+		return column;
+	}
+
+	private void updateLastCondition(Operator operator, AggregateOperator aggregate, IColumn column) {
+		replaceLast(condition -> {
+			Condition updated = condition;
+			if (operator != null) {
+				updated = updated.withOperator(operator);
+			}
+			if (aggregate != null) {
+				updated = updated.withNextAggregate(aggregate);
+			}
+			if (column != null) {
+				updated = updated.withNextColumn(column);
+			}
+			return updated;
+		});
+	}
+
+	private Condition copyOf(ICondition condition) {
+		if (condition instanceof Condition concrete) {
+			return concrete;
+		}
+		Condition.Builder builder = Condition.builder();
+		if (condition.getStartOperator() != null) {
+			builder.startOp(condition.getStartOperator());
+		}
+		if (condition.getLeft() != null) {
+			if (condition.getLeftAgg() != null) {
+				builder.leftColumn(condition.getLeftAgg(), condition.getLeft());
+			} else {
+				builder.leftColumn(condition.getLeft());
+			}
+		}
+		if (condition.getRight() != null) {
+			if (condition.getRightAgg() != null) {
+				builder.rightColumn(condition.getRightAgg(), condition.getRight());
+			} else {
+				builder.rightColumn(condition.getRight());
+			}
+		}
+		if (condition.getOperator() != null) {
+			builder.comparisonOp(condition.getOperator());
+		}
+		condition.values().forEach(value -> {
+			switch (value.type()) {
+			case TY_STR -> builder.value((String) value.value());
+			case TY_INT -> builder.value((Integer) value.value());
+			case TY_DBL -> builder.value((Double) value.value());
+			case TY_DATE -> builder.value((Date) value.value());
+			default -> builder.value(String.valueOf(value.value()));
+			}
+		});
+		return builder.build();
+	}
+
+	private Condition lastCondition() {
 		if (filters.isEmpty()) {
 			throw new IllegalStateException("Cannot apply operators without a starting condition. Call where(...) first.");
 		}
 		return filters.getLast();
+	}
+
+	private void replaceLast(UnaryOperator<Condition> mutator) {
+		Condition current = lastCondition();
+		int lastIndex = filters.size() - 1;
+		filters.set(lastIndex, mutator.apply(current));
+	}
+
+	private Operator resolveOperator(Operator operator, int valueCount) {
+		if (operator == EQ && valueCount > 1) {
+			return IN;
+		}
+		return operator;
 	}
 }

@@ -6,22 +6,19 @@ import org.in.media.res.sqlBuilder.interfaces.query.IOrderByTranspiler;
 
 public class OracleOrderByTranspilerImpl implements IOrderByTranspiler {
 
- private static final String ORDER_BY_ = " ORDER BY ";
+    private static final String ORDER_BY = " ORDER BY ";
+    private static final String SEP = ", ";
 
- private static final String SEP_ = ", ";
-
- @Override
- public String transpile(IOrderBy orderBy) {
-  StringBuilder sb = new StringBuilder(ORDER_BY_);
-  var iterator = orderBy.orderings().iterator();
-  while (iterator.hasNext()) {
-   Ordering ordering = iterator.next();
-   sb.append(ordering.column().transpile(false)).append(' ').append(ordering.direction().value());
-   if (iterator.hasNext()) {
-    sb.append(SEP_);
-   }
-  }
-  return sb.toString();
- }
-
+    @Override
+    public String transpile(IOrderBy orderBy) {
+        if (orderBy.orderings().isEmpty()) {
+            return "";
+        }
+        SqlBuilder builder = SqlBuilder.from(ORDER_BY);
+        builder.join(orderBy.orderings(), SEP, item -> {
+            Ordering ordering = (Ordering) item;
+            builder.appendColumn(ordering.column()).append(' ').append(ordering.direction().value());
+        });
+        return builder.toString();
+    }
 }
