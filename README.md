@@ -12,9 +12,9 @@ ITable job = schema.getTableBy(Job.class);
 String sql = new Query()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
-    .innerJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
+    .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(Employee.C_FIRST_NAME).eq("Alice")
-    .orderBy(employee.get(Employee.C_LAST_NAME))
+    .orderBy(Employee.C_LAST_NAME)
     .limitAndOffset(20, 0)
     .transpile();
 
@@ -45,7 +45,7 @@ SELECT Employee.ID, Employee.FIRST_NAME, ...
 ```java
 new Query()
     .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
-    .leftJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
+    .leftJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(Job.C_SALARY).supOrEqTo(50000)
     .transpile();
 ```
@@ -56,10 +56,10 @@ new Query()
 new Query()
     .select(Employee.C_FIRST_NAME)
     .select(AggregateOperator.AVG, Job.C_SALARY)
-    .join(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
-    .groupBy(employee.get(Employee.C_FIRST_NAME))
+    .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .groupBy(Employee.C_FIRST_NAME)
     .having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000)
-    .orderBy(employee.get(Employee.C_FIRST_NAME))
+    .orderBy(Employee.C_FIRST_NAME)
     .transpile();
 ```
 
@@ -69,7 +69,7 @@ new Query()
 new Query()
     .select(Job.C_DESCRIPTION)
     .from(job)
-    .orderBy(job.get(Job.C_SALARY), SortDirection.DESC)
+    .orderBy(Job.C_SALARY, SortDirection.DESC)
     .limitAndOffset(10, 20)
     .transpile();
 ```

@@ -46,11 +46,8 @@ class QueryBehaviourTest {
 	@Test
 	void orConnectorReturnsSameQueryInstance() {
 		Query query = new Query();
-		IColumn firstName = employee.get(Employee.C_FIRST_NAME);
 
-		IColumn lastName = employee.get(Employee.C_LAST_NAME);
-
-		assertSame(query, query.where(firstName).eq("Alice").or(lastName));
+		assertSame(query, query.where(Employee.C_FIRST_NAME).eq("Alice").or(Employee.C_LAST_NAME));
 		assertSame(query, query.or());
 	}
 
@@ -106,6 +103,16 @@ class QueryBehaviourTest {
 	}
 
 	@Test
+	void joinSupportsDescriptorShortcut() {
+		Query query = new Query();
+		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).transpile();
+
+		assertTrue(sql.contains(" JOIN "));
+		assertTrue(sql.contains(Employee.C_ID.column().transpile(false)));
+		assertTrue(sql.contains(Job.C_EMPLOYEE_ID.column().transpile(false)));
+	}
+
+	@Test
 	void whereOperatorsRequireExistingCondition() {
 		Where where = new Where();
 		assertThrows(IllegalStateException.class, () -> where.eq("value"));
@@ -155,32 +162,32 @@ class QueryBehaviourTest {
 	@Test
 	void groupByClauseAppearsAfterWhere() {
 		Query query = new Query();
-		query.select(employee.get(Employee.C_FIRST_NAME)).from(employee).groupBy(employee.get(Employee.C_FIRST_NAME));
+		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME);
 
 		String sql = query.transpile();
 
 		assertTrue(sql.contains(" GROUP BY "));
-		assertTrue(sql.contains(employee.get(Employee.C_FIRST_NAME).transpile(false)));
+		assertTrue(sql.contains(Employee.C_FIRST_NAME.column().transpile(false)));
 	}
 
 	@Test
 	void orderBySupportsAscendingAndDescending() {
 		Query query = new Query();
-		query.select(employee.get(Employee.C_FIRST_NAME)).from(employee).orderBy(employee.get(Employee.C_LAST_NAME))
-				.orderBy(employee.get(Employee.C_ID), SortDirection.DESC);
+		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_LAST_NAME)
+				.orderBy(Employee.C_ID, SortDirection.DESC);
 
 		String sql = query.transpile();
 
 		assertTrue(sql.contains(" ORDER BY "));
-		assertTrue(sql.contains(employee.get(Employee.C_LAST_NAME).transpile(false) + " ASC"));
-		assertTrue(sql.contains(employee.get(Employee.C_ID).transpile(false) + " DESC"));
+		assertTrue(sql.contains(Employee.C_LAST_NAME.column().transpile(false) + " ASC"));
+		assertTrue(sql.contains(Employee.C_ID.column().transpile(false) + " DESC"));
 	}
 
 	@Test
 	void havingClauseFollowsGroupBy() {
 		Query query = new Query();
-		query.select(employee.get(Employee.C_FIRST_NAME)).from(employee).groupBy(employee.get(Employee.C_FIRST_NAME))
-				.having(employee.get(Employee.C_FIRST_NAME)).eq("Alice");
+		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME)
+				.having(Employee.C_FIRST_NAME).eq("Alice");
 
 		String sql = query.transpile();
 
@@ -193,21 +200,21 @@ class QueryBehaviourTest {
 	@Test
 	void havingBuilderSupportsAggregates() {
 		Query query = new Query();
-		query.select(job.get(Job.C_EMPLOYEE_ID)).select(AggregateOperator.AVG, job.get(Job.C_SALARY)).from(job)
-				.groupBy(job.get(Job.C_EMPLOYEE_ID)).having(job.get(Job.C_SALARY)).avg(job.get(Job.C_SALARY))
-				.supTo(50000);
+		query.select(Job.C_EMPLOYEE_ID).select(AggregateOperator.AVG, Job.C_SALARY)
+				.groupBy(Job.C_EMPLOYEE_ID)
+				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(50000);
 
 		String sql = query.transpile();
 
 		assertTrue(sql.contains(" HAVING AVG("));
-		assertTrue(sql.contains(job.get(Job.C_SALARY).transpile(false)));
+		assertTrue(sql.contains(Job.C_SALARY.column().transpile(false)));
 		assertTrue(sql.contains(" > 50000"));
 	}
 
 	@Test
 	void limitAndOffsetRenderWithOracleSyntax() {
 		Query query = new Query();
-		query.select(employee.get(Employee.C_FIRST_NAME)).from(employee).orderBy(employee.get(Employee.C_FIRST_NAME))
+		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_FIRST_NAME)
 				.limitAndOffset(10, 5);
 
 		String sql = query.transpile();

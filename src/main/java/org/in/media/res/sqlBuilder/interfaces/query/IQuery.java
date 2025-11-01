@@ -43,20 +43,32 @@ public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IO
 	@Override
 	IQuery groupBy(IColumn column);
 
+	IQuery groupBy(ITableDescriptor<?> descriptor);
+
 	@Override
 	IQuery groupBy(IColumn... columns);
+
+	IQuery groupBy(ITableDescriptor<?>... descriptors);
 
 	@Override
 	IQuery orderBy(IColumn column);
 
+	IQuery orderBy(ITableDescriptor<?> descriptor);
+
 	@Override
 	IQuery orderBy(IColumn column, SortDirection direction);
+
+	IQuery orderBy(ITableDescriptor<?> descriptor, SortDirection direction);
 
 	@Override
 	IQuery asc(IColumn column);
 
+	IQuery asc(ITableDescriptor<?> descriptor);
+
 	@Override
 	IQuery desc(IColumn column);
+
+	IQuery desc(ITableDescriptor<?> descriptor);
 
 	@Override
 	IQuery having(ICondition condition);

@@ -126,6 +126,11 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
+	public IQuery on(ITableDescriptor<?> left, ITableDescriptor<?> right) {
+		return this.on(left.column(), right.column());
+	}
+
+	@Override
 	public IQuery from(ITable table) {
 		this.fromClause.from(table);
 		return this;
@@ -477,8 +482,20 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
+	public Query groupBy(ITableDescriptor<?> descriptor) {
+		return this.groupBy(descriptor.column());
+	}
+
+	@Override
 	public Query groupBy(IColumn... columns) {
 		this.groupByClause.groupBy(columns);
+		return this;
+	}
+
+	@Override
+	public Query groupBy(ITableDescriptor<?>... descriptors) {
+		for (ITableDescriptor<?> descriptor : descriptors)
+			this.groupByClause.groupBy(descriptor.column());
 		return this;
 	}
 
@@ -494,9 +511,19 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
+	public Query orderBy(ITableDescriptor<?> descriptor) {
+		return this.orderBy(descriptor.column());
+	}
+
+	@Override
 	public Query orderBy(IColumn column, SortDirection direction) {
 		this.orderByClause.orderBy(column, direction);
 		return this;
+	}
+
+	@Override
+	public Query orderBy(ITableDescriptor<?> descriptor, SortDirection direction) {
+		return this.orderBy(descriptor.column(), direction);
 	}
 
 	@Override
@@ -506,9 +533,19 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
+	public Query asc(ITableDescriptor<?> descriptor) {
+		return this.asc(descriptor.column());
+	}
+
+	@Override
 	public Query desc(IColumn column) {
 		this.orderByClause.desc(column);
 		return this;
+	}
+
+	@Override
+	public Query desc(ITableDescriptor<?> descriptor) {
+		return this.desc(descriptor.column());
 	}
 
 	@Override
