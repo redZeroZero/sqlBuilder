@@ -1,7 +1,7 @@
 package org.in.media.res.sqlBuilder.implementation;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +16,7 @@ public class Select implements ISelect {
 
 	private List<IColumn> columns = new ArrayList<>();
 
-	private Map<IColumn, AggregateOperator> aggColumns = new HashMap<>();
+	private Map<IColumn, AggregateOperator> aggColumns = new LinkedHashMap<>();
 
 	ISelectTranspiler selectTranspiler = SelectTranspilerFactory.instanciateSelectTranspiler();
 
@@ -25,11 +25,12 @@ public class Select implements ISelect {
 	}
 
 	public void reset() {
-		this.columns = null;
+		this.columns.clear();
+		this.aggColumns.clear();
 	}
 
 	public ISelect select(IColumn column) {
-		this.columns.add(column);
+		this.columns.addLast(column);
 		return this;
 	}
 
