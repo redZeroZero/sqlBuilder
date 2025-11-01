@@ -11,6 +11,7 @@ import org.in.media.res.sqlBuilder.implementation.From.Joiner;
 import org.in.media.res.sqlBuilder.implementation.factories.CLauseFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
+import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
 import org.in.media.res.sqlBuilder.interfaces.query.IAggregator;
 import org.in.media.res.sqlBuilder.interfaces.query.IClause;
 import org.in.media.res.sqlBuilder.interfaces.query.IComparator;
@@ -73,8 +74,20 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
+	public IQuery select(ITableDescriptor<?> descriptor) {
+		this.selectClause.select(descriptor);
+		return this;
+	}
+
+	@Override
 	public IQuery select(IColumn... columns) {
 		this.selectClause.select(columns);
+		return this;
+	}
+
+	@Override
+	public IQuery select(ITableDescriptor<?>... descriptors) {
+		this.selectClause.select(descriptors);
 		return this;
 	}
 
@@ -87,6 +100,12 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	@Override
 	public IQuery select(AggregateOperator agg, IColumn column) {
 		this.selectClause.select(agg, column);
+		return this;
+	}
+
+	@Override
+	public IQuery select(AggregateOperator agg, ITableDescriptor<?> descriptor) {
+		this.selectClause.select(agg, descriptor);
 		return this;
 	}
 

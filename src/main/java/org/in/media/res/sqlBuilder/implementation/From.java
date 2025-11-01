@@ -1,6 +1,6 @@
 package org.in.media.res.sqlBuilder.implementation;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
@@ -14,7 +14,7 @@ import org.in.media.res.sqlBuilder.interfaces.query.IFromTranspiler;
 
 public class From implements IFrom {
 
-	private Map<ITable, Joiner> joins = new HashMap<>();
+	private Map<ITable, Joiner> joins = new LinkedHashMap<>();
 
 	private IFromTranspiler fromTranspiler = FromTranspilerFactory.instanciateFromTranspiler();
 

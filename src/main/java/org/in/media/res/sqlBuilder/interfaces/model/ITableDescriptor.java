@@ -1,11 +1,15 @@
 package org.in.media.res.sqlBuilder.interfaces.model;
 
 public interface ITableDescriptor<T> {
-	
-	public String value();
 
-	public String alias();
-	
-	public String fieldName();
-	
+	String value();
+
+	String alias();
+
+	String fieldName();
+
+	void bindColumn(IColumn column);
+
+	IColumn column();
+
 }

@@ -1,7 +1,7 @@
 package org.in.media.res.sqlBuilder.implementation;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
@@ -9,9 +9,9 @@ import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
 
 public class Table<T extends ITableDescriptor<T>> implements ITable {
 
-	private Map<String, IColumn> cols = new HashMap<>();
+	private Map<String, IColumn> cols = new LinkedHashMap<>();
 
-	private String DESC_RES_T_ALIAS = "T_ALIAS";
+	private static final String DESC_RES_T_ALIAS = "T_ALIAS";
 
 	private String name;
 
@@ -25,6 +25,7 @@ public class Table<T extends ITableDescriptor<T>> implements ITable {
 
 	public Table(T[] descriptor, String schema) {
 		this.name = descriptor[0].getClass().getSimpleName();
+		this.schema = schema;
 		for (T v : descriptor) {
 			fillValues(v);
 		}
@@ -33,8 +34,11 @@ public class Table<T extends ITableDescriptor<T>> implements ITable {
 	private void fillValues(T v) {
 		if (DESC_RES_T_ALIAS.equals(v.fieldName()))
 			this.alias = v.alias();
-		else
-			cols.put(v.value(), Column.builder().name(v.value()).alias(v.alias()).table(this).build());
+		else {
+			Column column = Column.builder().name(v.value()).alias(v.alias()).table(this).build();
+			cols.put(v.value(), column);
+			v.bindColumn(column);
+		}
 	}
 
 	public IColumn[] getColumns() {

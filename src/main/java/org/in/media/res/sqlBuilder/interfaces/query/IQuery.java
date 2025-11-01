@@ -6,6 +6,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
+import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
 
 public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IOrderBy, IHaving, ILimit {
 
@@ -13,11 +14,17 @@ public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IO
 
 	IQuery select(IColumn column);
 
+	IQuery select(ITableDescriptor<?> descriptor);
+
 	IQuery select(IColumn... columns);
+
+	IQuery select(ITableDescriptor<?>... descriptors);
 
 	IQuery select(ITable table);
 
 	IQuery select(AggregateOperator agg, IColumn column);
+
+	IQuery select(AggregateOperator agg, ITableDescriptor<?> descriptor);
 
 	IQuery on(IColumn c1, IColumn c2);
 

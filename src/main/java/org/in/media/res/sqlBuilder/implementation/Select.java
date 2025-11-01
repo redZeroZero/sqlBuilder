@@ -9,6 +9,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.implementation.factories.SelectTranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
+import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelectTranspiler;
 
@@ -34,9 +35,22 @@ public class Select implements ISelect {
 		return this;
 	}
 
+	@Override
+	public ISelect select(ITableDescriptor<?> descriptor) {
+		return this.select(descriptor.column());
+	}
+
 	public ISelect select(IColumn... columns) {
 		for (IColumn c : columns)
 			this.select(c);
+		return this;
+	}
+
+	@Override
+	public ISelect select(ITableDescriptor<?>... descriptors) {
+		for (ITableDescriptor<?> descriptor : descriptors) {
+			this.select(descriptor);
+		}
 		return this;
 	}
 
@@ -48,6 +62,11 @@ public class Select implements ISelect {
 	public ISelect select(AggregateOperator agg, IColumn column) {
 		this.aggColumns().put(column, agg);
 		return this;
+	}
+
+	@Override
+	public ISelect select(AggregateOperator agg, ITableDescriptor<?> descriptor) {
+		return this.select(agg, descriptor.column());
 	}
 
 	public List<IColumn> columns() {

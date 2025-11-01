@@ -64,24 +64,43 @@ class QueryBehaviourTest {
 	@Test
 	void selectResetClearsState() {
 		Select select = new Select();
-		IColumn firstName = employee.get(Employee.C_FIRST_NAME);
-
-		select.select(firstName);
-		select.select(AggregateOperator.MAX, firstName);
+		select.select(Employee.C_FIRST_NAME);
+		select.select(AggregateOperator.MAX, Employee.C_FIRST_NAME);
 
 		select.reset();
 
 		assertTrue(select.columns().isEmpty());
 		assertTrue(select.aggColumns().isEmpty());
 
-		select.select(firstName);
+		select.select(Employee.C_FIRST_NAME);
 		assertEquals(1, select.columns().size());
+	}
+
+	@Test
+	void selectSupportsDescriptorShortcut() {
+		Select select = new Select();
+		select.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME);
+
+		String sql = select.transpile();
+
+		assertTrue(sql.contains(employee.get(Employee.C_FIRST_NAME).transpile(false)));
+		assertTrue(sql.contains(employee.get(Employee.C_LAST_NAME).transpile(false)));
 	}
 
 	@Test
 	void whereOperatorsRequireExistingCondition() {
 		Where where = new Where();
 		assertThrows(IllegalStateException.class, () -> where.eq("value"));
+	}
+
+	@Test
+	void whereSupportsDescriptorShortcut() {
+		Query query = new Query();
+		query.where(Employee.C_FIRST_NAME).eq("Alice");
+
+		String sql = query.transpile();
+
+		assertTrue(sql.contains(employee.get(Employee.C_FIRST_NAME).transpile(false)));
 	}
 
 	@Test
@@ -96,6 +115,23 @@ class QueryBehaviourTest {
 	void fromTranspilerReturnsEmptyStringWhenNoTables() {
 		From from = new From();
 		assertEquals("", from.transpile());
+	}
+
+	@Test
+	void fromTranspilerFailsWhenJoinDefinedWithoutBaseTable() {
+		From from = new From();
+		from.join(job);
+
+		assertThrows(IllegalStateException.class, from::transpile);
+	}
+
+	@Test
+	void fromTranspilerFailsWhenJoinMissingJoinColumns() {
+		From from = new From();
+		from.from(employee);
+		from.join(job);
+
+		assertThrows(IllegalStateException.class, from::transpile);
 	}
 
 	@Test

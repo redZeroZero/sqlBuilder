@@ -10,11 +10,13 @@ public class OracleWhereTranspilerImpl implements IWhereTranspiler {
 
 	@Override
 	public String transpile(IWhere w) {
+		if (w.conditions().isEmpty()) {
+			return "";
+		}
 		StringBuilder sb = new StringBuilder();
 		sb.append(WHERE_);
-		if (!w.conditions().isEmpty()) {
-			for (ICondition c : w.conditions())
-				sb.append(c.transpile());
+		for (ICondition c : w.conditions()) {
+			sb.append(c.transpile());
 		}
 		return sb.toString();
 	}

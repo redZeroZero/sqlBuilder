@@ -50,7 +50,7 @@ public class Column implements IColumn, ITranspilable {
 	}
 
 	public boolean hasColumnAlias() {
-		return this.alias != null && !this.alias.isEmpty() && !this.alias.isEmpty();
+		return this.alias != null && !this.alias.isBlank();
 	}
 
 	public static class Builder {

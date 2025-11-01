@@ -9,14 +9,12 @@ EmployeeSchema schema = new EmployeeSchema();
 ITable employee = schema.getTableBy(Employee.class);
 ITable job = schema.getTableBy(Job.class);
 
-Query query = new Query();
-
-String sql = query
-    .select(employee.get(Employee.C_FIRST_NAME))
-    .select(employee.get(Employee.C_LAST_NAME))
+String sql = new Query()
+    .select(Employee.C_FIRST_NAME)
+    .select(Employee.C_LAST_NAME)
     .from(employee)
     .innerJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
-    .where(employee.get(Employee.C_FIRST_NAME)).eq("Alice")
+    .where(Employee.C_FIRST_NAME).eq("Alice")
     .orderBy(employee.get(Employee.C_LAST_NAME))
     .limitAndOffset(20, 0)
     .transpile();
@@ -32,7 +30,7 @@ The snippets below illustrate common patterns you can run in a REPL or unit test
 
 ```java
 new Query()
-    .select(employee)
+    .select(employee) // or .select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME, ...)
     .from(employee)
     .transpile();
 ```
@@ -48,10 +46,10 @@ SELECT Employee.ID, Employee.FIRST_NAME, ...
 
 ```java
 new Query()
-    .select(employee.get(Employee.C_FIRST_NAME), job.get(Job.C_DESCRIPTION))
+    .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
     .from(employee)
     .leftJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
-    .where(job.get(Job.C_SALARY)).supOrEqTo(50000)
+    .where(Job.C_SALARY).supOrEqTo(50000)
     .transpile();
 ```
 
@@ -59,12 +57,12 @@ new Query()
 
 ```java
 new Query()
-    .select(employee.get(Employee.C_FIRST_NAME))
-    .select(AggregateOperator.AVG, job.get(Job.C_SALARY))
+    .select(Employee.C_FIRST_NAME)
+    .select(AggregateOperator.AVG, Job.C_SALARY)
     .from(employee)
     .join(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
     .groupBy(employee.get(Employee.C_FIRST_NAME))
-    .having(job.get(Job.C_SALARY)).avg(job.get(Job.C_SALARY)).supTo(60000)
+    .having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000)
     .orderBy(employee.get(Employee.C_FIRST_NAME))
     .transpile();
 ```
@@ -73,7 +71,7 @@ new Query()
 
 ```java
 new Query()
-    .select(job.get(Job.C_DESCRIPTION))
+    .select(Job.C_DESCRIPTION)
     .from(job)
     .orderBy(job.get(Job.C_SALARY), SortDirection.DESC)
     .limitAndOffset(10, 20)
