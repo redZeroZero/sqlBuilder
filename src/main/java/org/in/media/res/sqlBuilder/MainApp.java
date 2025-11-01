@@ -38,7 +38,7 @@ public class MainApp {
 		ISelect s_clause = new Select();
 		s_clause.select(MAX, e.get("FIRST_NAME")).select(MIN, j.get("ID")).select(j.get("SALARY"));
 
-		IQuery query = new Query();
+        IQuery query = Query.newQuery();
 		query.select(MAX, e.get("FIRST_NAME")).select(MIN, j.get(Job.C_ID)).select(j.get(Job.C_SALARY));
 
 		System.out.println("SELECT OBJECT -> " + s_clause.transpile());
@@ -72,7 +72,7 @@ public class MainApp {
 				.max(e.get(C_FIRST_NAME)).eq().sum(j.get("ID")).condition(c);
 		System.out.println(where.transpile());
 
-		IQuery q = new Query();
+        IQuery q = Query.newQuery();
 		q.select(e).select(j).from(e).join(j).on(e.get("ID"), j.get("EMPLOYEE_ID")).where(e.get(C_FIRST_NAME))
 				.eq("Alphonse");
 

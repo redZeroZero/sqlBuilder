@@ -66,7 +66,7 @@ new Query()
 ### 4. Pagination (Oracle-style)
 
 ```java
-new Query()
+Query.newQuery()
     .select(Job.C_DESCRIPTION)
     .from(job)
     .orderBy(Job.C_SALARY, SortDirection.DESC)
@@ -74,9 +74,27 @@ new Query()
     .transpile();
 ```
 
+### 5. Quick Count / Pretty Print
+
+```java
+String sql = Query.countAll().transpile();             // SELECT COUNT(*)
+
+Query printable = Query.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee);
+printable.where(Employee.C_FIRST_NAME).eq("Alice");
+
+System.out.println(printable.prettyPrint());
+/*
+SELECT Employee.FIRST_NAME as firstName
+FROM Employee
+WHERE Employee.FIRST_NAME = 'Alice'
+*/
+```
+
 ## Notes
 
-- The builder creates SQL strings; execution is left to your JDBC or ORM layer.
+- The builder creates SQL strings; execution is left to your JDBC or ORM layer. Use `Query.prettyPrint()` when you need a clause-per-line view for debugging.
 - Transpilers are pluggable. The default implementations target Oracle syntax (OFFSET/FETCH). Extend the transpiler factories to add other dialects.
 - Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
 

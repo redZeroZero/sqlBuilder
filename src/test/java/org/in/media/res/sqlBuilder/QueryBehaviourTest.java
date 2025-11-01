@@ -34,7 +34,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromVarargsIncludesAllTables() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.from(employee, job);
 
 		String sql = query.transpile();
@@ -45,7 +45,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orConnectorReturnsSameQueryInstance() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 
 		assertSame(query, query.where(Employee.C_FIRST_NAME).eq("Alice").or(Employee.C_LAST_NAME));
 		assertSame(query, query.or());
@@ -86,7 +86,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectRegistersBaseTableAutomatically() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		String sql = query.select(employee).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -95,7 +95,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectColumnRegistersBaseTableAutomatically() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		String sql = query.select(Employee.C_FIRST_NAME).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -104,7 +104,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void joinSupportsDescriptorShortcut() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).transpile();
 
 		assertTrue(sql.contains(" JOIN "));
@@ -120,7 +120,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereSupportsDescriptorShortcut() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.where(Employee.C_FIRST_NAME).eq("Alice");
 
 		String sql = query.transpile();
@@ -161,7 +161,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void groupByClauseAppearsAfterWhere() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME);
 
 		String sql = query.transpile();
@@ -172,7 +172,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orderBySupportsAscendingAndDescending() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_LAST_NAME)
 				.orderBy(Employee.C_ID, SortDirection.DESC);
 
@@ -185,7 +185,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingClauseFollowsGroupBy() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME)
 				.having(Employee.C_FIRST_NAME).eq("Alice");
 
@@ -199,7 +199,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingBuilderSupportsAggregates() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.select(Job.C_EMPLOYEE_ID).select(AggregateOperator.AVG, Job.C_SALARY)
 				.groupBy(Job.C_EMPLOYEE_ID)
 				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(50000);
@@ -213,7 +213,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void limitAndOffsetRenderWithOracleSyntax() {
-		Query query = new Query();
+		Query query = Query.newQuery();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_FIRST_NAME)
 				.limitAndOffset(10, 5);
 
@@ -225,13 +225,40 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectTranspilerKeepsAggregateFormatting() {
-		Query query = new Query();
-		String sql = query.select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
-				.select(Employee.C_LAST_NAME)
-				.transpile();
+		String sql = Query.newQuery().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
+				.select(Employee.C_LAST_NAME).transpile();
 
 		assertTrue(sql.startsWith("SELECT MAX("));
 		assertTrue(sql.contains("), "));
 		assertTrue(sql.contains(Employee.C_LAST_NAME.column().transpile(false)));
+	}
+
+	@Test
+	void countAllProducesCountStar() {
+		String sql = Query.countAll().transpile();
+		assertTrue(sql.startsWith("SELECT COUNT(*)"));
+	}
+
+	@Test
+	void countColumnRegistersTable() {
+		Query query = Query.newQuery().count(Employee.C_ID);
+		String sql = query.transpile();
+		assertTrue(sql.contains("COUNT(" + Employee.C_ID.column().transpile(false) + ")"));
+		assertTrue(sql.contains(" FROM "));
+	}
+
+	@Test
+	void prettyPrintBreaksClausesAcrossLines() {
+		Query query = Query.newQuery();
+		query.select(Employee.C_FIRST_NAME);
+		query.from(employee);
+		query.where(Employee.C_FIRST_NAME);
+		query.eq("Alice");
+		query.orderBy(Employee.C_FIRST_NAME);
+
+		String pretty = query.prettyPrint();
+		assertTrue(pretty.contains("\nFROM "));
+		assertTrue(pretty.contains("\nWHERE "));
+		assertTrue(pretty.contains("\nORDER BY "));
 	}
 }

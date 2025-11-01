@@ -1,6 +1,7 @@
 package org.in.media.res.sqlBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.in.media.res.sqlBuilder.implementation.Having;
 import org.in.media.res.sqlBuilder.implementation.Where;
@@ -84,13 +85,17 @@ class QueryValidationTest {
 	@Test
 	void whereRejectsColumnsWithoutTable() {
 		Where where = new Where();
-		assertThrows(IllegalStateException.class, () -> where.where(new ColumnStub(null)));
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> where.where(new ColumnStub(null)));
+		assertTrue(ex.getMessage().contains("Column must belong to a table"));
 	}
 
 	@Test
 	void havingRejectsColumnsWithoutTable() {
 		Having having = new Having();
-		assertThrows(IllegalStateException.class, () -> having.having(new ColumnStub(null)));
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> having.having(new ColumnStub(null)));
+		assertTrue(ex.getMessage().contains("Column must belong to a table"));
 	}
 
 	@Test

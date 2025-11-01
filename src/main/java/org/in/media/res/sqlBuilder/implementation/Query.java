@@ -39,11 +39,37 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 
  private IGroupBy groupByClause = CLauseFactory.instanciateGroupBy();
 
- private IOrderBy orderByClause = CLauseFactory.instanciateOrderBy();
+	private IOrderBy orderByClause = CLauseFactory.instanciateOrderBy();
 
- private IHaving havingClause = CLauseFactory.instanciateHaving();
+	private IHaving havingClause = CLauseFactory.instanciateHaving();
 
- private ILimit limitClause = CLauseFactory.instanciateLimit();
+	private ILimit limitClause = CLauseFactory.instanciateLimit();
+
+	private static final IColumn STAR = StarColumn.INSTANCE;
+
+	public static Query newQuery() {
+		return new Query();
+	}
+
+	public static Query fromTable(ITable table) {
+		return newQuery().from(table);
+	}
+
+	public static Query selecting(IColumn... columns) {
+		Query query = newQuery();
+		query.select(columns);
+		return query;
+	}
+
+	public static Query selectingDescriptors(ITableDescriptor<?>... descriptors) {
+		Query query = newQuery();
+		query.select(descriptors);
+		return query;
+	}
+
+	public static Query countAll() {
+		return newQuery().count();
+	}
 
 	private void registerBaseTable(IColumn column) {
 		if (column != null && column.table() != null) {
@@ -52,16 +78,26 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	public String transpile() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(selectClause.transpile());
-		sb.append(fromClause.transpile());
-  sb.append(whereClause.transpile());
-  sb.append(groupByClause.transpile());
-  sb.append(havingClause.transpile());
-  sb.append(orderByClause.transpile());
-  sb.append(limitClause.transpile());
-  return sb.toString();
- }
+		return new StringBuilder()
+				.append(selectClause.transpile())
+				.append(fromClause.transpile())
+				.append(whereClause.transpile())
+				.append(groupByClause.transpile())
+				.append(havingClause.transpile())
+				.append(orderByClause.transpile())
+				.append(limitClause.transpile())
+				.toString();
+	}
+
+	public String prettyPrint() {
+		return transpile().replace(" FROM ", "\nFROM ")
+				.replace(" WHERE ", "\nWHERE ")
+				.replace(" GROUP BY ", "\nGROUP BY ")
+				.replace(" HAVING ", "\nHAVING ")
+				.replace(" ORDER BY ", "\nORDER BY ")
+				.replace(" OFFSET ", "\nOFFSET ")
+				.replace(" FETCH ", "\nFETCH ");
+	}
 
  public void reset() {
   this.selectClause = CLauseFactory.instanciateSelect();
@@ -117,6 +153,20 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	@Override
 	public IQuery select(AggregateOperator agg, ITableDescriptor<?> descriptor) {
 		return this.select(agg, descriptor.column());
+	}
+
+	public Query count() {
+		this.selectClause.select(AggregateOperator.COUNT, STAR);
+		return this;
+	}
+
+	public Query count(IColumn column) {
+		this.select(AggregateOperator.COUNT, column);
+		return this;
+	}
+
+	public Query count(ITableDescriptor<?> descriptor) {
+		return count(descriptor.column());
 	}
 
 	@Override
