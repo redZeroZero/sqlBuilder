@@ -4,9 +4,8 @@ import org.in.media.res.sqlBuilder.implementation.factories.TranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
 import org.in.media.res.sqlBuilder.interfaces.query.IColumnTranspiler;
-import org.in.media.res.sqlBuilder.interfaces.query.ITranspilable;
 
-public class Column implements IColumn, ITranspilable {
+public class Column implements IColumn {
 
 	private String name;
 

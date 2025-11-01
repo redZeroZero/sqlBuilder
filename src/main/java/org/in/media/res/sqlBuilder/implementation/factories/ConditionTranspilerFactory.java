@@ -4,7 +4,6 @@ import static java.lang.Class.forName;
 
 import java.lang.reflect.InvocationTargetException;
 
-import org.in.media.res.sqlBuilder.interfaces.query.IColumnTranspiler;
 import org.in.media.res.sqlBuilder.interfaces.query.IConditionTranspiler;
 
 public class ConditionTranspilerFactory {

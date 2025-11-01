@@ -21,23 +21,21 @@ import org.in.media.res.sqlBuilder.interfaces.query.IFrom;
 import org.in.media.res.sqlBuilder.interfaces.query.IGroupBy;
 import org.in.media.res.sqlBuilder.interfaces.query.IHaving;
 import org.in.media.res.sqlBuilder.interfaces.query.IHavingBuilder;
-import org.in.media.res.sqlBuilder.interfaces.query.IJoinable;
 import org.in.media.res.sqlBuilder.interfaces.query.ILimit;
 import org.in.media.res.sqlBuilder.interfaces.query.IOrderBy;
 import org.in.media.res.sqlBuilder.interfaces.query.IQuery;
 import org.in.media.res.sqlBuilder.interfaces.query.ISelect;
-import org.in.media.res.sqlBuilder.interfaces.query.ITranspilable;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 
-public class Query implements IQuery, ITranspilable, IJoinable {
+public class Query implements IQuery {
 
- private ISelect selectClause = CLauseFactory.instanciateSelect();
+	private ISelect selectClause = CLauseFactory.instanciateSelect();
 
- private IFrom fromClause = CLauseFactory.instanciateFrom();
+	private IFrom fromClause = CLauseFactory.instanciateFrom();
 
- private IWhere whereClause = CLauseFactory.instanciateWhere();
+	private IWhere whereClause = CLauseFactory.instanciateWhere();
 
- private IGroupBy groupByClause = CLauseFactory.instanciateGroupBy();
+	private IGroupBy groupByClause = CLauseFactory.instanciateGroupBy();
 
 	private IOrderBy orderByClause = CLauseFactory.instanciateOrderBy();
 
@@ -52,7 +50,7 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	public static Query fromTable(ITable table) {
-		return newQuery().from(table);
+		return (Query) newQuery().from(table);
 	}
 
 	public static Query selecting(IColumn... columns) {
@@ -99,15 +97,15 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 				.replace(" FETCH ", "\nFETCH ");
 	}
 
- public void reset() {
-  this.selectClause = CLauseFactory.instanciateSelect();
-  this.fromClause = CLauseFactory.instanciateFrom();
-  this.whereClause = CLauseFactory.instanciateWhere();
-  this.groupByClause = CLauseFactory.instanciateGroupBy();
-  this.orderByClause = CLauseFactory.instanciateOrderBy();
-  this.havingClause = CLauseFactory.instanciateHaving();
-  this.limitClause = CLauseFactory.instanciateLimit();
- }
+	public void reset() {
+		this.selectClause = CLauseFactory.instanciateSelect();
+		this.fromClause = CLauseFactory.instanciateFrom();
+		this.whereClause = CLauseFactory.instanciateWhere();
+		this.groupByClause = CLauseFactory.instanciateGroupBy();
+		this.orderByClause = CLauseFactory.instanciateOrderBy();
+		this.havingClause = CLauseFactory.instanciateHaving();
+		this.limitClause = CLauseFactory.instanciateLimit();
+	}
 
 	@Override
 	public IQuery select(IColumn column) {
@@ -217,17 +215,17 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 	}
 
 	@Override
- public List<IClause> clauses() {
-  List<IClause> c = new ArrayList<>();
-  c.add(selectClause);
-  c.add(fromClause);
-  c.add(whereClause);
-  c.add(groupByClause);
-  c.add(havingClause);
-  c.add(orderByClause);
-  c.add(limitClause);
-  return c;
- }
+	public List<IClause> clauses() {
+		List<IClause> c = new ArrayList<>();
+		c.add(selectClause);
+		c.add(fromClause);
+		c.add(whereClause);
+		c.add(groupByClause);
+		c.add(havingClause);
+		c.add(orderByClause);
+		c.add(limitClause);
+		return c;
+	}
 
 	@Override
 	public IWhere where(IColumn column) {

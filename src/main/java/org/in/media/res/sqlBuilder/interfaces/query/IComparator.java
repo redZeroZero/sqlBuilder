@@ -11,10 +11,6 @@ public interface IComparator {
 
 	public IComparator where(IColumn column);
 
-	default IComparator where(ITableDescriptor<?> descriptor) {
-		return where(descriptor.column());
-	}
-
 	public IAggregator eq();
 
 	public IAggregator supTo();
@@ -29,33 +25,13 @@ public interface IComparator {
 
 	public IConnector eq(IColumn column);
 
-	default IConnector eq(ITableDescriptor<?> descriptor) {
-		return eq(descriptor.column());
-	}
-
 	public IConnector supTo(IColumn column);
-
-	default IConnector supTo(ITableDescriptor<?> descriptor) {
-		return supTo(descriptor.column());
-	}
-
+	
 	public IConnector infTo(IColumn column);
-
-	default IConnector infTo(ITableDescriptor<?> descriptor) {
-		return infTo(descriptor.column());
-	}
 
 	public IConnector supOrEqTo(IColumn column);
 
-	default IConnector supOrEqTo(ITableDescriptor<?> descriptor) {
-		return supOrEqTo(descriptor.column());
-	}
-
 	public IConnector infOrEqTo(IColumn column);
-
-	default IConnector infOrEqTo(ITableDescriptor<?> descriptor) {
-		return infOrEqTo(descriptor.column());
-	}
 
 	public IConnector eq(String value);
 
@@ -104,4 +80,29 @@ public interface IComparator {
 	public IConnector infOrEqTo(Double value);
 
 	public IConnector in(Double... value);
+
+	default IComparator where(ITableDescriptor<?> descriptor) {
+		return where(descriptor.column());
+	}
+
+	default IConnector eq(ITableDescriptor<?> descriptor) {
+		return eq(descriptor.column());
+	}
+
+	default IConnector supTo(ITableDescriptor<?> descriptor) {
+		return supTo(descriptor.column());
+	}
+
+	default IConnector infTo(ITableDescriptor<?> descriptor) {
+		return infTo(descriptor.column());
+	}
+
+	default IConnector supOrEqTo(ITableDescriptor<?> descriptor) {
+		return supOrEqTo(descriptor.column());
+	}
+
+	default IConnector infOrEqTo(ITableDescriptor<?> descriptor) {
+		return infOrEqTo(descriptor.column());
+	}
+
 }

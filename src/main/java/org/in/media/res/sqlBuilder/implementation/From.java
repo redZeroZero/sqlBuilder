@@ -4,8 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
-import org.in.media.res.sqlBuilder.constants.Operator;
-import org.in.media.res.sqlBuilder.implementation.From.Joiner;
 import org.in.media.res.sqlBuilder.implementation.factories.FromTranspilerFactory;
 import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;

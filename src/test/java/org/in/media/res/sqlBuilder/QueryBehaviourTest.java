@@ -14,7 +14,6 @@ import org.in.media.res.sqlBuilder.implementation.From;
 import org.in.media.res.sqlBuilder.implementation.Query;
 import org.in.media.res.sqlBuilder.implementation.Select;
 import org.in.media.res.sqlBuilder.implementation.Where;
-import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

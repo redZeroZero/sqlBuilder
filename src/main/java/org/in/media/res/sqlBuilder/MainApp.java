@@ -5,8 +5,6 @@ import static org.in.media.res.sqlBuilder.constants.AggregateOperator.MIN;
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 import static org.in.media.res.sqlBuilder.example.Employee.C_FIRST_NAME;
 
-import java.util.Properties;
-
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -27,7 +25,7 @@ public class MainApp {
 
 		String properties = System.getProperty("transpiler.class");
 		System.out.println(properties);
-		//properties.forEach((k, v) -> System.out.println(k + " - " + v));
+		// properties.forEach((k, v) -> System.out.println(k + " - " + v));
 
 		EmployeeSchema schema = new EmployeeSchema();
 
@@ -38,7 +36,7 @@ public class MainApp {
 		ISelect s_clause = new Select();
 		s_clause.select(MAX, e.get("FIRST_NAME")).select(MIN, j.get("ID")).select(j.get("SALARY"));
 
-        IQuery query = Query.newQuery();
+		IQuery query = Query.newQuery();
 		query.select(MAX, e.get("FIRST_NAME")).select(MIN, j.get(Job.C_ID)).select(j.get(Job.C_SALARY));
 
 		System.out.println("SELECT OBJECT -> " + s_clause.transpile());
@@ -72,12 +70,20 @@ public class MainApp {
 				.max(e.get(C_FIRST_NAME)).eq().sum(j.get("ID")).condition(c);
 		System.out.println(where.transpile());
 
-        IQuery q = Query.newQuery();
+		IQuery q = Query.newQuery();
 		q.select(e).select(j).from(e).join(j).on(e.get("ID"), j.get("EMPLOYEE_ID")).where(e.get(C_FIRST_NAME))
 				.eq("Alphonse");
 
 		System.out.println(q.transpile());
 
+		System.out.println(new Query()
+				.select(e)
+				.join(j)
+				.on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+				.where(C_FIRST_NAME)
+				.eq("NAME"));
+				
+	 System.out.println(Query.countAll().from(e).transpile());
 	}
 
 }

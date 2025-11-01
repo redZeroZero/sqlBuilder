@@ -8,7 +8,7 @@ import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
 import org.in.media.res.sqlBuilder.interfaces.model.ITable;
 import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
 
-public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IOrderBy, IHaving, ILimit {
+public interface IQuery extends ISelect, IFrom, IWhere, IGroupBy, IOrderBy, IHaving, ILimit {
 
 	public List<IClause> clauses();
 
@@ -27,6 +27,8 @@ public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IO
 	IQuery select(AggregateOperator agg, ITableDescriptor<?> descriptor);
 
 	IQuery on(IColumn c1, IColumn c2);
+
+	IQuery on(ITableDescriptor<?> left, ITableDescriptor<?> right);
 
 	IQuery from(ITable table);
 
@@ -90,4 +92,5 @@ public interface IQuery extends IResetable, ISelect, IFrom, IWhere, IGroupBy, IO
 
 	@Override
 	IQuery limitAndOffset(int limit, int offset);
+
 }

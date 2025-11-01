@@ -1,6 +1,5 @@
 package org.in.media.res.sqlBuilder.implementation.transpilers.clauses;
 
-import org.in.media.res.sqlBuilder.interfaces.query.ICondition;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhere;
 import org.in.media.res.sqlBuilder.interfaces.query.IWhereTranspiler;
 
