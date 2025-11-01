@@ -45,6 +45,12 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 
  private ILimit limitClause = CLauseFactory.instanciateLimit();
 
+	private void registerBaseTable(IColumn column) {
+		if (column != null && column.table() != null) {
+			this.fromClause.from(column.table());
+		}
+	}
+
 	public String transpile() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(selectClause.transpile());
@@ -69,44 +75,48 @@ public class Query implements IQuery, ITranspilable, IJoinable {
 
 	@Override
 	public IQuery select(IColumn column) {
+		registerBaseTable(column);
 		this.selectClause.select(column);
 		return this;
 	}
 
 	@Override
 	public IQuery select(ITableDescriptor<?> descriptor) {
-		this.selectClause.select(descriptor);
-		return this;
+		return this.select(descriptor.column());
 	}
 
 	@Override
 	public IQuery select(IColumn... columns) {
 		this.selectClause.select(columns);
+		for (IColumn column : columns)
+			registerBaseTable(column);
 		return this;
 	}
 
 	@Override
 	public IQuery select(ITableDescriptor<?>... descriptors) {
-		this.selectClause.select(descriptors);
+		for (ITableDescriptor<?> descriptor : descriptors)
+			this.select(descriptor);
 		return this;
 	}
 
 	@Override
 	public IQuery select(ITable table) {
+		this.fromClause.from(table);
 		this.selectClause.select(table);
 		return this;
 	}
 
 	@Override
 	public IQuery select(AggregateOperator agg, IColumn column) {
+		registerBaseTable(column);
 		this.selectClause.select(agg, column);
 		return this;
 	}
 
 	@Override
 	public IQuery select(AggregateOperator agg, ITableDescriptor<?> descriptor) {
-		this.selectClause.select(agg, descriptor);
-		return this;
+		return this.select(agg, descriptor.column());
 	}
 
 	@Override

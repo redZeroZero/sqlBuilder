@@ -12,7 +12,6 @@ ITable job = schema.getTableBy(Job.class);
 String sql = new Query()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
-    .from(employee)
     .innerJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
     .where(Employee.C_FIRST_NAME).eq("Alice")
     .orderBy(employee.get(Employee.C_LAST_NAME))
@@ -30,8 +29,7 @@ The snippets below illustrate common patterns you can run in a REPL or unit test
 
 ```java
 new Query()
-    .select(employee) // or .select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME, ...)
-    .from(employee)
+    .select(employee) // or rely on descriptor shortcuts
     .transpile();
 ```
 
@@ -47,7 +45,6 @@ SELECT Employee.ID, Employee.FIRST_NAME, ...
 ```java
 new Query()
     .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
-    .from(employee)
     .leftJoin(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
     .where(Job.C_SALARY).supOrEqTo(50000)
     .transpile();
@@ -59,7 +56,6 @@ new Query()
 new Query()
     .select(Employee.C_FIRST_NAME)
     .select(AggregateOperator.AVG, Job.C_SALARY)
-    .from(employee)
     .join(job).on(employee.get(Employee.C_ID), job.get(Job.C_EMPLOYEE_ID))
     .groupBy(employee.get(Employee.C_FIRST_NAME))
     .having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000)

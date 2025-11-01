@@ -88,6 +88,24 @@ class QueryBehaviourTest {
 	}
 
 	@Test
+	void querySelectRegistersBaseTableAutomatically() {
+		Query query = new Query();
+		String sql = query.select(employee).transpile();
+
+		assertTrue(sql.contains(" FROM "));
+		assertTrue(sql.contains(employee.getName()));
+	}
+
+	@Test
+	void querySelectColumnRegistersBaseTableAutomatically() {
+		Query query = new Query();
+		String sql = query.select(Employee.C_FIRST_NAME).transpile();
+
+		assertTrue(sql.contains(" FROM "));
+		assertTrue(sql.contains(employee.getName()));
+	}
+
+	@Test
 	void whereOperatorsRequireExistingCondition() {
 		Where where = new Where();
 		assertThrows(IllegalStateException.class, () -> where.eq("value"));
