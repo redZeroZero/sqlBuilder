@@ -264,4 +264,53 @@ class QueryBehaviourTest {
 		assertTrue(pretty.contains("\nWHERE "));
 		assertTrue(pretty.contains("\nORDER BY "));
 	}
+
+	@Test
+	void unionCombinesQueries() {
+		Query left = QueryImpl.newQuery().select(employee);
+		Query right = QueryImpl.newQuery().select(job);
+
+		String sql = left.union(right).transpile();
+
+		String expected = "SELECT E.ID, E.FIRST_NAME as firstName, E.LAST_NAME as lastName, "
+				+ "E.MAIL as email, E.PASSWORD as passwd FROM Employee E UNION ("
+				+ "SELECT J.ID, J.SALARY as pay, J.DESCRIPTION as Intitule, J.EMPLOYEE_ID as employeeId FROM Job J)";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	void unionAllKeepsDuplicates() {
+		Query base = QueryImpl.newQuery().select(Employee.C_FIRST_NAME);
+		Query other = QueryImpl.newQuery().select(Employee.C_FIRST_NAME);
+
+		String sql = base.unionAll(other).transpile();
+
+		assertTrue(sql.contains("UNION ALL"));
+	}
+
+	@Test
+	void intersectProducesIntersection() {
+		Query left = QueryImpl.newQuery().select(Employee.C_ID);
+		Query right = QueryImpl.newQuery().select(Job.C_EMPLOYEE_ID);
+
+		String sql = left.intersect(right).transpile();
+		assertTrue(sql.contains("INTERSECT"));
+	}
+
+	@Test
+	void exceptUsesMinusForOracle() {
+		Query left = QueryImpl.newQuery().select(employee);
+		Query right = QueryImpl.newQuery().select(job);
+
+		String sql = left.except(right).transpile();
+		assertTrue(sql.contains("MINUS"));
+	}
+
+	@Test
+	void exceptAllThrowsUnsupported() {
+		Query left = QueryImpl.newQuery().select(employee);
+		Query right = QueryImpl.newQuery().select(job);
+
+		assertThrows(UnsupportedOperationException.class, () -> left.exceptAll(right).transpile());
+	}
 }

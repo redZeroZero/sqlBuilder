@@ -77,7 +77,7 @@ String sql = Query.newQuery()
 ```java
 String sql = QueryImpl.countAll().transpile();             // SELECT COUNT(*)
 
-Query printable = Query.newQuery()
+Query printable = QueryImpl.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee);
 printable.where(Employee.C_FIRST_NAME).eq("Alice");
@@ -89,6 +89,20 @@ FROM Employee
 WHERE Employee.FIRST_NAME = 'Alice'
 */
 ```
+
+### 6. Set Operations
+
+```java
+String sql = QueryImpl.newQuery()
+    .select(employee)
+    .union(
+        QueryImpl.newQuery()
+            .select(job)
+    )
+    .transpile();
+```
+
+This renders `UNION` between the two subqueries. Use `unionAll`, `intersect`, or `except` for the other set operators. The default Oracle-oriented dialect maps `except` to `MINUS`; `exceptAll` currently throws because `MINUS ALL` is not available.
 
 ## Notes
 

@@ -291,6 +291,18 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 		return having(descriptor.column());
 	}
 
+	Query union(Query other);
+
+	Query unionAll(Query other);
+
+	Query intersect(Query other);
+
+	Query intersectAll(Query other);
+
+	Query except(Query other);
+
+	Query exceptAll(Query other);
+
 	@Override
 	Query limit(int limit);
 
