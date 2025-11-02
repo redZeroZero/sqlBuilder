@@ -10,19 +10,23 @@ import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
-import org.in.media.res.sqlBuilder.implementation.From;
-import org.in.media.res.sqlBuilder.implementation.Query;
-import org.in.media.res.sqlBuilder.implementation.Select;
-import org.in.media.res.sqlBuilder.implementation.Where;
-import org.in.media.res.sqlBuilder.interfaces.model.ITable;
+import org.in.media.res.sqlBuilder.api.model.Table;
+import org.in.media.res.sqlBuilder.api.query.From;
+import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.Select;
+import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.core.query.FromImpl;
+import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.core.query.SelectImpl;
+import org.in.media.res.sqlBuilder.core.query.WhereImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class QueryBehaviourTest {
 
 	private EmployeeSchema schema;
-	private ITable employee;
-	private ITable job;
+	private Table employee;
+	private Table job;
 
 	@BeforeEach
 	void setUp() {
@@ -33,7 +37,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromVarargsIncludesAllTables() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.from(employee, job);
 
 		String sql = query.transpile();
@@ -44,7 +48,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orConnectorReturnsSameQueryInstance() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 
 		assertSame(query, query.where(Employee.C_FIRST_NAME).eq("Alice").or(Employee.C_LAST_NAME));
 		assertSame(query, query.or());
@@ -52,14 +56,14 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereTranspilerSkipsEmptyClauses() {
-		Where where = new Where();
+		Where where = new WhereImpl();
 
 		assertEquals("", where.transpile());
 	}
 
 	@Test
 	void selectResetClearsState() {
-		Select select = new Select();
+		Select select = new SelectImpl();
 		select.select(Employee.C_FIRST_NAME);
 		select.select(AggregateOperator.MAX, Employee.C_FIRST_NAME);
 
@@ -74,7 +78,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectSupportsDescriptorShortcut() {
-		Select select = new Select();
+		Select select = new SelectImpl();
 		select.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME);
 
 		String sql = select.transpile();
@@ -85,7 +89,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectRegistersBaseTableAutomatically() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		String sql = query.select(employee).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -94,7 +98,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectColumnRegistersBaseTableAutomatically() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		String sql = query.select(Employee.C_FIRST_NAME).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -103,7 +107,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void joinSupportsDescriptorShortcut() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).transpile();
 
 		assertTrue(sql.contains(" JOIN "));
@@ -113,13 +117,13 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereOperatorsRequireExistingCondition() {
-		Where where = new Where();
+		Where where = new WhereImpl();
 		assertThrows(IllegalStateException.class, () -> where.eq("value"));
 	}
 
 	@Test
 	void whereSupportsDescriptorShortcut() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.where(Employee.C_FIRST_NAME).eq("Alice");
 
 		String sql = query.transpile();
@@ -129,7 +133,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromTranspilerRendersBaseTables() {
-		From from = new From();
+		From from = new FromImpl();
 		from.from(employee);
 
 		assertTrue(from.transpile().contains("Employee"));
@@ -137,13 +141,13 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromTranspilerReturnsEmptyStringWhenNoTables() {
-		From from = new From();
+		From from = new FromImpl();
 		assertEquals("", from.transpile());
 	}
 
 	@Test
 	void fromTranspilerFailsWhenJoinDefinedWithoutBaseTable() {
-		From from = new From();
+		From from = new FromImpl();
 		from.join(job);
 
 		assertThrows(IllegalStateException.class, from::transpile);
@@ -151,7 +155,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromTranspilerFailsWhenJoinMissingJoinColumns() {
-		From from = new From();
+		From from = new FromImpl();
 		from.from(employee);
 		from.join(job);
 
@@ -160,7 +164,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void groupByClauseAppearsAfterWhere() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME);
 
 		String sql = query.transpile();
@@ -171,7 +175,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orderBySupportsAscendingAndDescending() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_LAST_NAME)
 				.orderBy(Employee.C_ID, SortDirection.DESC);
 
@@ -184,7 +188,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingClauseFollowsGroupBy() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME)
 				.having(Employee.C_FIRST_NAME).eq("Alice");
 
@@ -198,7 +202,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingBuilderSupportsAggregates() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Job.C_EMPLOYEE_ID).select(AggregateOperator.AVG, Job.C_SALARY)
 				.groupBy(Job.C_EMPLOYEE_ID)
 				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(50000);
@@ -212,7 +216,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void limitAndOffsetRenderWithOracleSyntax() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_FIRST_NAME)
 				.limitAndOffset(10, 5);
 
@@ -224,7 +228,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectTranspilerKeepsAggregateFormatting() {
-		String sql = Query.newQuery().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
+		String sql = QueryImpl.newQuery().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
 				.select(Employee.C_LAST_NAME).transpile();
 
 		assertTrue(sql.startsWith("SELECT MAX("));
@@ -234,13 +238,13 @@ class QueryBehaviourTest {
 
 	@Test
 	void countAllProducesCountStar() {
-		String sql = Query.countAll().transpile();
+		String sql = QueryImpl.countAll().transpile();
 		assertTrue(sql.startsWith("SELECT COUNT(*)"));
 	}
 
 	@Test
 	void countColumnRegistersTable() {
-		Query query = Query.newQuery().count(Employee.C_ID);
+		Query query = QueryImpl.newQuery().count(Employee.C_ID);
 		String sql = query.transpile();
 		assertTrue(sql.contains("COUNT(" + Employee.C_ID.column().transpile(false) + ")"));
 		assertTrue(sql.contains(" FROM "));
@@ -248,7 +252,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void prettyPrintBreaksClausesAcrossLines() {
-		Query query = Query.newQuery();
+		Query query = QueryImpl.newQuery();
 		query.select(Employee.C_FIRST_NAME);
 		query.from(employee);
 		query.where(Employee.C_FIRST_NAME);

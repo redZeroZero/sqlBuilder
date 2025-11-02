@@ -1,47 +1,27 @@
 package org.in.media.res.sqlBuilder.example;
 
-import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
-import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
+import org.in.media.res.sqlBuilder.api.model.annotation.SqlColumn;
+import org.in.media.res.sqlBuilder.api.model.annotation.SqlTable;
+import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 
-public enum Employee implements ITableDescriptor<Employee> {
+@SqlTable(name = "Employee", alias = "E")
+public final class Employee {
 
-	T_ALIAS("E"), 
-	C_ID(null), 
-	C_FIRST_NAME("firstName"), 
-	C_LAST_NAME("lastName"), 
-	C_MAIL("email"), 
-	C_PASSWORD("passwd");
+	@SqlColumn(name = "ID")
+	public static ColumnRef C_ID;
 
-	private String alias;
-	private IColumn column;
+	@SqlColumn(name = "FIRST_NAME", alias = "firstName")
+	public static ColumnRef C_FIRST_NAME;
 
-	private Employee(String alias) {
-		this.alias = alias;
+	@SqlColumn(name = "LAST_NAME", alias = "lastName")
+	public static ColumnRef C_LAST_NAME;
+
+	@SqlColumn(name = "MAIL", alias = "email")
+	public static ColumnRef C_MAIL;
+
+	@SqlColumn(name = "PASSWORD", alias = "passwd")
+	public static ColumnRef C_PASSWORD;
+
+	private Employee() {
 	}
-
-	public String value() {
-		return this.name().substring(2);
-	}
-
-	public String alias() {
-		return alias;
-	}
-
-	public String fieldName() {
-		return this.name();
-	}
-
-	@Override
-	public void bindColumn(IColumn column) {
-		this.column = column;
-	}
-
-	@Override
-	public IColumn column() {
-		if (column == null) {
-			throw new IllegalStateException("Column for descriptor " + name() + " is not bound to a table");
-		}
-		return column;
-	}
-
 }

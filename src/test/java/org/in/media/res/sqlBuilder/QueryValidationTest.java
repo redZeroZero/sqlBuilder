@@ -3,16 +3,18 @@ package org.in.media.res.sqlBuilder;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.in.media.res.sqlBuilder.implementation.Having;
-import org.in.media.res.sqlBuilder.implementation.Where;
-import org.in.media.res.sqlBuilder.interfaces.model.IColumn;
-import org.in.media.res.sqlBuilder.interfaces.model.ITable;
-import org.in.media.res.sqlBuilder.interfaces.model.ITableDescriptor;
+import org.in.media.res.sqlBuilder.api.model.Column;
+import org.in.media.res.sqlBuilder.api.model.Table;
+import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.query.Having;
+import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.core.query.HavingImpl;
+import org.in.media.res.sqlBuilder.core.query.WhereImpl;
 import org.junit.jupiter.api.Test;
 
 class QueryValidationTest {
 
-	private static final ITable TABLE = new ITable() {
+	private static final Table TABLE = new Table() {
 		@Override
 		public String getName() {
 			return "FAKE";
@@ -29,17 +31,17 @@ class QueryValidationTest {
 		}
 
 		@Override
-		public IColumn[] getColumns() {
-			return new IColumn[0];
+		public Column[] getColumns() {
+			return new Column[0];
 		}
 
 		@Override
-		public IColumn get(String columnName) {
+		public Column get(String columnName) {
 			return null;
 		}
 
 		@Override
-		public IColumn get(ITableDescriptor<?> descriptor) {
+		public Column get(TableDescriptor<?> descriptor) {
 			return null;
 		}
 
@@ -59,10 +61,10 @@ class QueryValidationTest {
 		}
 	};
 
-	private static final class ColumnStub implements IColumn {
-		private final ITable table;
+	private static final class ColumnStub implements Column {
+		private final Table table;
 
-		private ColumnStub(ITable table) {
+		private ColumnStub(Table table) {
 			this.table = table;
 		}
 
@@ -76,15 +78,30 @@ class QueryValidationTest {
 			return transpile(true);
 		}
 
-		@Override
-		public ITable table() {
-			return table;
-		}
+	@Override
+	public Table table() {
+		return table;
 	}
+
+	@Override
+	public String getName() {
+		return "COLUMN";
+	}
+
+	@Override
+	public String getAlias() {
+		return null;
+	}
+
+	@Override
+	public boolean hasColumnAlias() {
+		return false;
+	}
+}
 
 	@Test
 	void whereRejectsColumnsWithoutTable() {
-		Where where = new Where();
+		Where where = new WhereImpl();
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> where.where(new ColumnStub(null)));
 		assertTrue(ex.getMessage().contains("Column must belong to a table"));
@@ -92,7 +109,7 @@ class QueryValidationTest {
 
 	@Test
 	void havingRejectsColumnsWithoutTable() {
-		Having having = new Having();
+		Having having = new HavingImpl();
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> having.having(new ColumnStub(null)));
 		assertTrue(ex.getMessage().contains("Column must belong to a table"));
@@ -100,7 +117,7 @@ class QueryValidationTest {
 
 	@Test
 	void validationAcceptsColumnsWithTable() {
-		Where where = new Where();
+		Where where = new WhereImpl();
 		where.where(new ColumnStub(TABLE));
 	}
 }
