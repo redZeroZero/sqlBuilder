@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.constants.SetOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
 import org.in.media.res.sqlBuilder.core.query.factory.CLauseFactory;
@@ -41,6 +42,8 @@ public class QueryImpl implements Query {
 
 	private Limit limitClause = CLauseFactory.instanciateLimit();
 
+	private final List<SetOperation> setOperations = new ArrayList<>();
+
 	private static final Column STAR = StarColumn.INSTANCE;
 
 	public static Query newQuery() {
@@ -74,19 +77,27 @@ public class QueryImpl implements Query {
 	}
 
 	public String transpile() {
-		return new StringBuilder()
+		StringBuilder builder = new StringBuilder()
 				.append(selectClause.transpile())
 				.append(fromClause.transpile())
 				.append(whereClause.transpile())
 				.append(groupByClause.transpile())
 				.append(havingClause.transpile())
 				.append(orderByClause.transpile())
-				.append(limitClause.transpile())
-				.toString();
+				.append(limitClause.transpile());
+
+		for (SetOperation operation : setOperations) {
+			builder.append(' ') 
+				.append(resolveSetOperator(operation.operator()))
+				.append(' ')
+				.append(parenthesize(operation.query()));
+		}
+		return builder.toString();
 	}
 
 	public String prettyPrint() {
-		return transpile().replace(" FROM ", "\nFROM ")
+		String sql = transpile();
+		return sql.replace(" FROM ", "\nFROM ")
 				.replace(" WHERE ", "\nWHERE ")
 				.replace(" GROUP BY ", "\nGROUP BY ")
 				.replace(" HAVING ", "\nHAVING ")
@@ -103,6 +114,7 @@ public class QueryImpl implements Query {
 		this.orderByClause = CLauseFactory.instanciateOrderBy();
 		this.havingClause = CLauseFactory.instanciateHaving();
 		this.limitClause = CLauseFactory.instanciateLimit();
+		this.setOperations.clear();
 	}
 
 	@Override
@@ -163,6 +175,36 @@ public class QueryImpl implements Query {
 
 	public Query count(TableDescriptor<?> descriptor) {
 		return count(descriptor.column());
+	}
+
+	@Override
+	public Query union(Query other) {
+		return appendSetOperation(SetOperator.UNION, other);
+	}
+
+	@Override
+	public Query unionAll(Query other) {
+		return appendSetOperation(SetOperator.UNION_ALL, other);
+	}
+
+	@Override
+	public Query intersect(Query other) {
+		return appendSetOperation(SetOperator.INTERSECT, other);
+	}
+
+	@Override
+	public Query intersectAll(Query other) {
+		return appendSetOperation(SetOperator.INTERSECT_ALL, other);
+	}
+
+	@Override
+	public Query except(Query other) {
+		return appendSetOperation(SetOperator.EXCEPT, other);
+	}
+
+	@Override
+	public Query exceptAll(Query other) {
+		return appendSetOperation(SetOperator.EXCEPT_ALL, other);
 	}
 
 	@Override
@@ -653,6 +695,45 @@ public class QueryImpl implements Query {
 	@Override
 	public Integer offsetValue() {
 		return this.limitClause.offsetValue();
+	}
+
+	private Query appendSetOperation(SetOperator operator, Query other) {
+		if (!(other instanceof QueryImpl queryImpl)) {
+			throw new IllegalArgumentException("Unsupported Query implementation: " + other.getClass());
+		}
+		this.setOperations.add(new SetOperation(operator, queryImpl));
+		return this;
+	}
+
+	private String resolveSetOperator(SetOperator operator) {
+		return switch (operator) {
+		case UNION -> SetOperator.UNION.sql();
+		case UNION_ALL -> SetOperator.UNION_ALL.sql();
+		case INTERSECT -> SetOperator.INTERSECT.sql();
+		case INTERSECT_ALL -> SetOperator.INTERSECT_ALL.sql();
+		case EXCEPT -> supportsExcept() ? SetOperator.EXCEPT.sql() : "MINUS";
+		case EXCEPT_ALL -> {
+			if (supportsExceptAll()) {
+				yield SetOperator.EXCEPT_ALL.sql();
+			}
+			throw new UnsupportedOperationException("EXCEPT ALL/MINUS ALL is not supported by the default dialect");
+		}
+		};
+	}
+
+	private boolean supportsExcept() {
+		return false;
+	}
+
+	private boolean supportsExceptAll() {
+		return false;
+	}
+
+	private String parenthesize(QueryImpl query) {
+		return "(" + query.transpile() + ")";
+	}
+
+	private record SetOperation(SetOperator operator, QueryImpl query) {
 	}
 
 	private final class FluentHavingBuilder implements QueryHavingBuilder {
