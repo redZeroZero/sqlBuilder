@@ -6,19 +6,17 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 
 ```java
 EmployeeSchema schema = new EmployeeSchema();
-ITable employee = schema.getTableBy(Employee.class);
-ITable job = schema.getTableBy(Job.class);
+Table employee = schema.getTableBy(Employee.class);
+Table job = schema.getTableBy(Job.class);
 
-String sql = new Query()
+String sql = QueryImpl.newQuery()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
     .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(Employee.C_FIRST_NAME).eq("Alice")
     .orderBy(Employee.C_LAST_NAME)
     .limitAndOffset(20, 0)
-    .transpile();
-
-// SELECT ... ORDER BY ... FETCH NEXT 20 ROWS ONLY
+    .transpile(); // SELECT ... ORDER BY ... FETCH NEXT 20 ROWS ONLY
 ```
 
 ## Sample Queries to Try
@@ -28,7 +26,7 @@ The snippets below illustrate common patterns you can run in a REPL or unit test
 ### 1. Simple Projection
 
 ```java
-new Query()
+QueryImpl.newQuery()
     .select(employee) // or rely on descriptor shortcuts
     .transpile();
 ```
@@ -43,7 +41,7 @@ SELECT Employee.ID, Employee.FIRST_NAME, ...
 ### 2. Joins with Filters
 
 ```java
-new Query()
+String sql = Query.newQuery()
     .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
     .leftJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(Job.C_SALARY).supOrEqTo(50000)
@@ -53,7 +51,7 @@ new Query()
 ### 3. Aggregations with GROUP BY / HAVING
 
 ```java
-new Query()
+String sql = Query.newQuery()
     .select(Employee.C_FIRST_NAME)
     .select(AggregateOperator.AVG, Job.C_SALARY)
     .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -66,7 +64,7 @@ new Query()
 ### 4. Pagination (Oracle-style)
 
 ```java
-Query.newQuery()
+String sql = Query.newQuery()
     .select(Job.C_DESCRIPTION)
     .from(job)
     .orderBy(Job.C_SALARY, SortDirection.DESC)
@@ -77,7 +75,7 @@ Query.newQuery()
 ### 5. Quick Count / Pretty Print
 
 ```java
-String sql = Query.countAll().transpile();             // SELECT COUNT(*)
+String sql = QueryImpl.countAll().transpile();             // SELECT COUNT(*)
 
 Query printable = Query.newQuery()
     .select(Employee.C_FIRST_NAME)
@@ -97,6 +95,45 @@ WHERE Employee.FIRST_NAME = 'Alice'
 - The builder creates SQL strings; execution is left to your JDBC or ORM layer. Use `Query.prettyPrint()` when you need a clause-per-line view for debugging.
 - Transpilers are pluggable. The default implementations target Oracle syntax (OFFSET/FETCH). Extend the transpiler factories to add other dialects.
 - Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
+- `EmployeeSchema` auto-discovers tables in the `org.in.media.res.sqlBuilder.example` package. Pass a different base package to scan additional modules, or plug your own schema into `SchemaScanner.scan("com.acme.sales")`.
+
+## Defining Tables & Schemas
+
+Annotate plain Java classes to describe tables and their columns. `SchemaScanner` will discover them automatically and wire column descriptors back to the DSL.
+
+```java
+@SqlTable(name = "Customer", alias = "C")
+public final class Customer {
+
+    @SqlColumn(name = "ID")
+    public static ColumnRef ID;
+
+    @SqlColumn(name = "FIRST_NAME", alias = "firstName")
+    public static ColumnRef FIRST_NAME;
+
+    @SqlColumn(name = "LAST_NAME", alias = "lastName")
+    public static ColumnRef LAST_NAME;
+
+    private Customer() {} // prevent instantiation
+}
+```
+
+To build a schema from a package (auto-detects classes like `Customer` above):
+
+```java
+// Extend ScannedSchema for your application schema
+public class PayrollSchema extends ScannedSchema {
+    public PayrollSchema() {
+        super("com.example.payroll.tables");
+    }
+}
+
+Schema schema = new PayrollSchema();
+// or
+List<Table> tables = SchemaScanner.scan("com.example.payroll.tables");
+```
+
+Mix-and-match is supported: legacy enum descriptors are still discovered, so you can migrate tables gradually. Call `ScannedSchema.clearCache()` if you hot-reload descriptor classes.
 
 ## Running Tests
 
