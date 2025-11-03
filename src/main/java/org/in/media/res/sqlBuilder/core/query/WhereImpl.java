@@ -15,12 +15,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
-import org.in.media.res.sqlBuilder.core.query.factory.WhereTranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Aggregator;
 import org.in.media.res.sqlBuilder.api.query.Comparator;
@@ -28,12 +29,14 @@ import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.Connector;
 import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
+import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder.ConditionGroup;
 
 public class WhereImpl implements Where {
 
 	private final List<Condition> filters = new ArrayList<>();
 
-	private final WhereTranspiler whereTranspiler = WhereTranspilerFactory.instanciateWhereTranspiler();
+	private final WhereTranspiler whereTranspiler = TranspilerFactory.instanciateWhereTranspiler();
 
 	@Override
 	public String transpile() {
@@ -82,6 +85,12 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector notEq(Column column) {
+		this.updateLastCondition(Operator.NOT_EQ, null, requireColumn(column));
+		return this;
+	}
+
+	@Override
 	public Connector supTo(Column column) {
 		this.updateLastCondition(MORE, null, requireColumn(column));
 		return this;
@@ -108,6 +117,30 @@ public class WhereImpl implements Where {
 	@Override
 	public Connector eq(String value) {
 		this.updateLastCondition(EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector notEq(String value) {
+		this.updateLastCondition(Operator.NOT_EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector like(String value) {
+		this.updateLastCondition(Operator.LIKE, value);
+		return this;
+	}
+
+	@Override
+	public Connector notLike(String value) {
+		this.updateLastCondition(Operator.NOT_LIKE, value);
+		return this;
+	}
+
+	@Override
+	public Connector between(String lower, String upper) {
+		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}
 
@@ -142,8 +175,26 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector notIn(String... value) {
+		this.updateLastCondition(Operator.NOT_IN, value);
+		return this;
+	}
+
+	@Override
 	public Connector eq(Integer value) {
 		this.updateLastCondition(EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector notEq(Integer value) {
+		this.updateLastCondition(Operator.NOT_EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector between(Integer lower, Integer upper) {
+		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}
 
@@ -178,8 +229,26 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector notIn(Integer... value) {
+		this.updateLastCondition(Operator.NOT_IN, value);
+		return this;
+	}
+
+	@Override
 	public Connector eq(Date value) {
 		this.updateLastCondition(EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector notEq(Date value) {
+		this.updateLastCondition(Operator.NOT_EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector between(Date lower, Date upper) {
+		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}
 
@@ -214,8 +283,26 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector notIn(Date... value) {
+		this.updateLastCondition(Operator.NOT_IN, value);
+		return this;
+	}
+
+	@Override
 	public Connector eq(Double value) {
 		this.updateLastCondition(EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector notEq(Double value) {
+		this.updateLastCondition(Operator.NOT_EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector between(Double lower, Double upper) {
+		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}
 
@@ -246,6 +333,82 @@ public class WhereImpl implements Where {
 	@Override
 	public Connector in(Double... value) {
 		this.updateLastCondition(IN, value);
+		return this;
+	}
+
+	@Override
+	public Connector notIn(Double... value) {
+		this.updateLastCondition(Operator.NOT_IN, value);
+		return this;
+	}
+
+	@Override
+	public Connector eq(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE = subquery");
+		this.updateLastCondition(Operator.EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector notEq(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE <> subquery");
+		this.updateLastCondition(Operator.NOT_EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector in(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE IN (subquery)");
+		this.updateLastCondition(Operator.IN, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector notIn(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE NOT IN (subquery)");
+		this.updateLastCondition(Operator.NOT_IN, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector supTo(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE > subquery");
+		this.updateLastCondition(Operator.MORE, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector infTo(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE < subquery");
+		this.updateLastCondition(Operator.LESS, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector supOrEqTo(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE >= subquery");
+		this.updateLastCondition(Operator.MORE_OR_EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector infOrEqTo(Query subquery) {
+		QueryValidation.requireScalarSubquery(subquery, "WHERE <= subquery");
+		this.updateLastCondition(Operator.LESS_OR_EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector exists(Query subquery) {
+		QueryValidation.requireAnyProjection(subquery, "WHERE EXISTS (subquery)");
+		appendStandaloneCondition(Operator.EXISTS, ConditionValue.of(subquery));
+		return this;
+	}
+
+	@Override
+	public Connector notExists(Query subquery) {
+		QueryValidation.requireAnyProjection(subquery, "WHERE NOT EXISTS (subquery)");
+		appendStandaloneCondition(Operator.NOT_EXISTS, ConditionValue.of(subquery));
 		return this;
 	}
 
@@ -286,6 +449,18 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector isNull() {
+		updateLastCondition(Operator.IS_NULL);
+		return this;
+	}
+
+	@Override
+	public Connector isNotNull() {
+		updateLastCondition(Operator.IS_NOT_NULL);
+		return this;
+	}
+
+	@Override
 	public Comparator min(Column column) {
 		this.updateLastCondition(null, MIN, column);
 		return this;
@@ -317,7 +492,24 @@ public class WhereImpl implements Where {
 
 	@Override
 	public Where condition(Condition condition) {
-		filters.addLast(copyOf(condition));
+		addCondition(condition, null);
+		return this;
+	}
+
+	@Override
+	public Where and(Condition condition) {
+		addCondition(condition, Operator.AND);
+		return this;
+	}
+
+	@Override
+	public Where or(Condition condition) {
+		addCondition(condition, Operator.OR);
+		return this;
+	}
+
+	Where aggregate(AggregateOperator aggregate, Column column) {
+		replaceLast(condition -> condition.withLeftAggregate(aggregate).withLeftColumn(requireColumn(column)));
 		return this;
 	}
 
@@ -341,16 +533,43 @@ public class WhereImpl implements Where {
 				Arrays.stream(values).map(ConditionValue::of).toList()));
 	}
 
-private ConditionImpl applyValues(ConditionImpl condition, Operator operator, List<ConditionValue> newValues) {
-	ConditionImpl updated = condition;
-	if (operator != null) {
-		updated = updated.withOperator(operator);
+	private void updateLastCondition(Operator operator, ConditionValue value) {
+		replaceLast(condition -> applyValues(condition, resolveOperator(operator, 1), List.of(value)));
 	}
-	if (!newValues.isEmpty()) {
-		updated = updated.appendValues(newValues);
+
+	private void updateLastCondition(Operator operator) {
+		replaceLast(condition -> condition.withOperator(operator));
 	}
-	return updated;
-}
+
+	private void appendStandaloneCondition(Operator operator, ConditionValue value) {
+		if (filters.isEmpty()) {
+			filters.addLast(ConditionImpl.builder().comparisonOp(operator).value(value).build());
+			return;
+		}
+		ConditionImpl current = lastCondition();
+		if (current.getOperator() == null && current.getLeft() == null && current.values().isEmpty()) {
+			int lastIndex = filters.size() - 1;
+			filters.set(lastIndex, current.withOperator(operator).appendValue(value));
+		} else {
+			filters.addLast(ConditionImpl.builder().and().comparisonOp(operator).value(value).build());
+		}
+	}
+
+	private void updateBetween(ConditionValue lower, ConditionValue upper) {
+		replaceLast(condition -> condition.withOperator(Operator.BETWEEN)
+				.appendValues(List.of(lower, upper)));
+	}
+
+	private ConditionImpl applyValues(ConditionImpl condition, Operator operator, List<ConditionValue> newValues) {
+		ConditionImpl updated = condition;
+		if (operator != null) {
+			updated = updated.withOperator(operator);
+		}
+		if (!newValues.isEmpty()) {
+			updated = updated.appendValues(newValues);
+		}
+		return updated;
+	}
 
 	private Column requireColumn(Column column) {
 		QueryValidation.requireTable(column, "Column must belong to a table for WHERE clause");
@@ -373,48 +592,24 @@ private ConditionImpl applyValues(ConditionImpl condition, Operator operator, Li
 		});
 	}
 
-	private ConditionImpl copyOf(Condition condition) {
-		if (condition instanceof ConditionImpl concrete) {
-			return concrete;
+	private Condition normalize(Condition condition, Operator startOperator) {
+		Objects.requireNonNull(condition, "condition");
+		if (condition instanceof ConditionGroup group) {
+			return startOperator != null ? group.withStartOperator(startOperator) : group;
 		}
-		ConditionImpl.Builder builder = ConditionImpl.builder();
-		if (condition.getStartOperator() != null) {
-			builder.startOp(condition.getStartOperator());
-		}
-		if (condition.getLeft() != null) {
-			if (condition.getLeftAgg() != null) {
-				builder.leftColumn(condition.getLeftAgg(), condition.getLeft());
-			} else {
-				builder.leftColumn(condition.getLeft());
-			}
-		}
-		if (condition.getRight() != null) {
-			if (condition.getRightAgg() != null) {
-				builder.rightColumn(condition.getRightAgg(), condition.getRight());
-			} else {
-				builder.rightColumn(condition.getRight());
-			}
-		}
-		if (condition.getOperator() != null) {
-			builder.comparisonOp(condition.getOperator());
-		}
-		condition.values().forEach(value -> {
-			switch (value.type()) {
-			case TY_STR -> builder.value((String) value.value());
-			case TY_INT -> builder.value((Integer) value.value());
-			case TY_DBL -> builder.value((Double) value.value());
-			case TY_DATE -> builder.value((Date) value.value());
-			default -> builder.value(String.valueOf(value.value()));
-			}
-		});
-		return builder.build();
+		ConditionImpl normalized = condition instanceof ConditionImpl concrete ? concrete : ConditionImpl.copyOf(condition);
+		return startOperator != null ? normalized.withStartOperator(startOperator) : normalized;
+	}
+
+	private void addCondition(Condition condition, Operator startOperator) {
+		filters.addLast(normalize(condition, startOperator));
 	}
 
 	private ConditionImpl lastCondition() {
-		if (filters.isEmpty()) {
+		if (filters.isEmpty() || !(filters.getLast() instanceof ConditionImpl condition)) {
 			throw new IllegalStateException("Cannot apply operators without a starting condition. Call where(...) first.");
 		}
-		return (ConditionImpl) filters.getLast();
+		return condition;
 	}
 
 	private void replaceLast(UnaryOperator<ConditionImpl> mutator) {
@@ -426,6 +621,9 @@ private ConditionImpl applyValues(ConditionImpl condition, Operator operator, Li
 	private Operator resolveOperator(Operator operator, int valueCount) {
 		if (operator == EQ && valueCount > 1) {
 			return IN;
+		}
+		if (operator == Operator.EXISTS || operator == Operator.NOT_EXISTS) {
+			return operator;
 		}
 		return operator;
 	}

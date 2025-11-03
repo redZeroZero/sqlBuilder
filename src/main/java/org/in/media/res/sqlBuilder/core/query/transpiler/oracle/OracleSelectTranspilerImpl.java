@@ -15,7 +15,8 @@ public class OracleSelectTranspilerImpl implements SelectTranspiler {
 
     @Override
     public String transpile(Select select) {
-        SqlBuilder builder = SqlBuilder.from(SELECT_KEYWORD);
+        String keyword = select.isDistinct() ? "SELECT DISTINCT " : SELECT_KEYWORD;
+        SqlBuilder builder = SqlBuilder.from(keyword);
 
         Iterator<Map.Entry<Column, AggregateOperator>> aggregates = select.aggColumns().entrySet().iterator();
         while (aggregates.hasNext()) {

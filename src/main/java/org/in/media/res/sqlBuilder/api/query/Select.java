@@ -12,6 +12,8 @@ public interface Select extends Clause, Resetable, Transpilable {
 
 	Select select(Column column);
 
+	Select distinct();
+
 	Select select(TableDescriptor<?> descriptor);
 
 	Select select(Column... columns);
@@ -27,5 +29,7 @@ public interface Select extends Clause, Resetable, Transpilable {
 	List<Column> columns();
 
 	Map<Column, AggregateOperator> aggColumns();
+
+	boolean isDistinct();
 	
 }

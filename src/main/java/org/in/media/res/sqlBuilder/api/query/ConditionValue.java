@@ -30,6 +30,10 @@ public final class ConditionValue {
 		return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_DATE);
 	}
 
+	public static ConditionValue of(Query value) {
+		return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_SUBQUERY);
+	}
+
 	public Object value() {
 		return value;
 	}

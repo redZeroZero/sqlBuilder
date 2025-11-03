@@ -1,0 +1,34 @@
+Select Projection
+- Selecting single columns, whole tables, descriptor shortcuts, and COUNT/MIN/MAX/SUM/AVG aggregates is built in; selecting columns auto-registers their base tables in FROM (src/main/java/org/in/media/res/sqlBuilder/core/query/SelectImpl.java:18, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:120, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:154).
+- DISTINCT projections are supported via fluent `distinct()` and render through the Oracle select transpiler (src/main/java/org/in/media/res/sqlBuilder/core/query/SelectImpl.java:18, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:166, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleSelectTranspilerImpl.java:17, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:326).
+- Oracle transpiler renders aggregate expressions ahead of raw columns and respects aliases (src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleSelectTranspilerImpl.java:17, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleColumnTranspilerImpl.java:18).
+- Convenience helpers wrap common flows such as Query.countAll() and pretty printing (src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:166, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:98).
+
+FROM & Joins
+- Fluent builders cover base tables plus JOIN, INNER JOIN, LEFT JOIN, RIGHT JOIN, CROSS JOIN, and FULL OUTER JOIN; joins needing a predicate require `on(column, column)` and at least one base table (src/main/java/org/in/media/res/sqlBuilder/core/query/FromImpl.java:34, src/main/java/org/in/media/res/sqlBuilder/constants/JoinOperator.java:3, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleFromTranspilerImpl.java:21, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:120).
+- Derived tables wrap subqueries via `Query.as(alias, columns...)` or the static helper `QueryImpl.toTable(...)`, and participate in any FROM/JOIN position (src/main/java/org/in/media/res/sqlBuilder/core/model/DerivedTableImpl.java:15, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:112, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:142).
+- Oracle rendering enforces aliases where present and validates join columns before emitting SQL, skipping ON clauses for CROSS JOIN automatically (src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleFromTranspilerImpl.java:33).
+
+Filtering
+- WHERE chains support column-to-value and column-to-column comparisons with =, <>, >, <, >=, <=, LIKE/NOT LIKE, BETWEEN, IN/NOT IN, null checks, and subquery-driven variants (scalar comparisons, IN (subquery), EXISTS/NOT EXISTS) (src/main/java/org/in/media/res/sqlBuilder/core/query/WhereImpl.java:79, src/main/java/org/in_media/res/sqlBuilder/core/query/WhereImpl.java:324, src/main/java/org/in_media/res/sqlBuilder/core/query/transpiler/oracle/OracleConditionTranspilerImpl.java:24, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:158).
+- Aggregated predicates (MIN/MAX/SUM/AVG) and column-on-column comparisons are supported on either side of the operator, with column ownership validated up front (src/main/java/org/in/media/res/sqlBuilder/core/query/WhereImpl.java:289, src/main/java/org/in/media/res/sqlBuilder/core/query/WhereImpl.java:352, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryValidation.java:13).
+
+Grouping & Aggregation
+- Grouping simply collects ordered columns and is skipped when empty (src/main/java/org/in/media/res/sqlBuilder/core/query/GroupByImpl.java:18).
+- HAVING mirrors WHERE but focuses on aggregates and numeric thresholds, now including NOT/LIKE/BETWEEN/NOT IN support with AND/OR chaining and reuse of Condition objects (src/main/java/org/in/media/res/sqlBuilder/core/query/HavingImpl.java:31, src/main/java/org/in/media/res/sqlBuilder/core/query/HavingImpl.java:76).
+- Behaviour tests cover aggregate HAVING clauses, range filters, and grouped projections in end-to-end scenarios (src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:268, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:282, src/test/java/org/in/media/res/sqlBuilder/QueryReadmeExamplesTest.java:76).
+
+Ordering & Pagination
+- ORDER BY accepts ASC/DESC per column and renders via Oracle-specific transpiler (src/main/java/org/in/media/res/sqlBuilder/core/query/OrderByImpl.java:29, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleOrderByTranspilerImpl.java:14).
+- LIMIT/OFFSET is emitted as Oracle OFFSET ... ROWS FETCH NEXT ... ROWS ONLY, with null-safe omission when unset (src/main/java/org/in/media/res/sqlBuilder/core/query/LimitImpl.java:29, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleLimitTranspilerImpl.java:8).
+
+Set Operations
+- UNION/UNION ALL/INTERSECT/INTERSECT ALL compose queries by parenthesising the right-hand side; EXCEPT maps to Oracle MINUS, while EXCEPT ALL raises UnsupportedOperationException (src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:181, src/main/java/org/in/media/res/sqlBuilder/core/query/QueryImpl.java:708, src/test/java/org/in/media/res/sqlBuilder/QueryBehaviourTest.java:269).
+
+Dialect & Factories
+- All clause factories default to the Oracle transpiler package; extending coverage means supplying alternative implementations and wiring new factories (src/main/java/org/in/media/res/sqlBuilder/core/query/factory/SelectTranspilerFactory.java:11, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/SqlBuilder.java:12).
+- A lightweight throughput harness (`QueryBenchmark`) lives under `src/main/java/org/in/media/res/sqlBuilder/tools/QueryBenchmark.java` for quick transpilation timing.
+
+Notable Gaps
+- Window functions, correlated subqueries in predicates, CASE handling, expression builders, and dialect-specific pagination strategies beyond Oracle remain open areas; implementing them would require new clause abstractions or transpilers (src/main/java/org/in/media/res/sqlBuilder/core/query/SelectImpl.java:33, src/main/java/org/in/media/res/sqlBuilder/core/query/transpiler/oracle/OracleLimitTranspilerImpl.java:8).
+- Tighten validation around subquery usage (e.g., enforcing single-column projections for scalar comparisons) and add lightweight benchmarks to track transpiler performance as features grow.

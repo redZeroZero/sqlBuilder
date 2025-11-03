@@ -4,6 +4,33 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 
 ## Getting Started
 
+### Installation
+
+1. Clone this repository (or add it as a Git submodule) and run `mvn -q -DskipTests package` to install it to your local Maven cache.
+2. Add the dependency to your application:
+
+   **Maven**
+
+   ```xml
+   <dependency>
+     <groupId>org.in.media.res</groupId>
+     <artifactId>sqlBuilder</artifactId>
+     <version>0.0.1-SNAPSHOT</version>
+   </dependency>
+   ```
+
+   **Gradle (Kotlin DSL)**
+
+   ```kotlin
+   implementation("org.in.media.res:sqlBuilder:0.0.1-SNAPSHOT")
+   ```
+
+   Adjust the version to match the coordinate published in your artifact repository (the examples assume a local install).
+
+3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.core.query.QueryImpl` for fluent query construction and the generated table descriptors from your schema package.
+
+Once the dependency is available, you can start composing queries immediately:
+
 ```java
 EmployeeSchema schema = new EmployeeSchema();
 Table employee = schema.getTableBy(Employee.class);
@@ -104,12 +131,87 @@ String sql = QueryImpl.newQuery()
 
 This renders `UNION` between the two subqueries. Use `unionAll`, `intersect`, or `except` for the other set operators. The default Oracle-oriented dialect maps `except` to `MINUS`; `exceptAll` currently throws because `MINUS ALL` is not available.
 
+### 7. Derived Tables (FROM Subqueries)
+
+Build a subquery once, expose its columns, and reuse it as a table source:
+
+```java
+Query salarySummary = QueryImpl.newQuery()
+    .select(Employee.C_ID)
+    .select(AggregateOperator.AVG, Job.C_SALARY)
+    .from(employee)
+    .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .groupBy(Employee.C_ID);
+
+Table salaryAvg = QueryImpl.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
+
+String sql = QueryImpl.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .join(salaryAvg).on(employee.get(Employee.C_ID), salaryAvg.get("EMPLOYEE_ID"))
+    .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(60000)
+    .transpile();
+```
+
+Call `QueryImpl.toTable(query)` to auto-generate aliases (or supply your own as above). Each column alias you provide or that is inferred is available via `salaryAvg.get("ALIAS")`, so subsequent clauses can reference the derived table just like any other.
+
+### 8. Filtering with Subqueries
+
+```java
+Query highSalaryIds = QueryImpl.newQuery()
+    .select(Job.C_EMPLOYEE_ID)
+    .from(job)
+    .where(Job.C_SALARY).supOrEqTo(60000);
+
+String sql = QueryImpl.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .where(Employee.C_ID).in(highSalaryIds)
+    .exists(QueryImpl.newQuery().select(Job.C_ID).from(job))
+    .transpile();
+```
+
+Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the query builder, and the DSL will emit `WHERE EXISTS (...)` without requiring a placeholder column.
+
+### 9. Grouped Filters (Nested AND / OR Trees)
+
+Use `QueryHelper.group` to build parenthesised predicates that mirror SQL's boolean syntax. `and(...)` / `or(...)` automatically target the active clause (WHERE vs. HAVING), so you can chain grouped expressions fluently:
+
+```java
+var stateGroup = QueryHelper.group(group -> group
+    .where(Employee.C_STATE).eq("CA")
+    .or(Employee.C_STATE).eq("OR"));
+
+var salaryGroup = QueryHelper.group(group -> group
+    .where(Job.C_SALARY).supOrEqTo(120_000)
+    .or(sub -> sub.where(Job.C_SALARY).between(80_000, 90_000)));
+
+String sql = QueryImpl.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .where(stateGroup)          // WHERE (E.STATE = 'CA' OR E.STATE = 'OR')
+    .and(salaryGroup)           //   AND (J.SALARY >= 120000 OR (J.SALARY BETWEEN 80000 AND 90000))
+    .transpile();
+```
+
+The same helper works for HAVING clauses: call `query.having(QueryHelper.group(...)).and(...)` to keep aggregates nested under a single `HAVING` block without hand-written parentheses.
+
 ## Notes
 
 - The builder creates SQL strings; execution is left to your JDBC or ORM layer. Use `Query.prettyPrint()` when you need a clause-per-line view for debugging.
 - Transpilers are pluggable. The default implementations target Oracle syntax (OFFSET/FETCH). Extend the transpiler factories to add other dialects.
 - Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
+- WHERE / HAVING now support the full comparator set: `<>`, `LIKE`, `NOT LIKE`, `BETWEEN`, `IN` / `NOT IN`, `IS (NOT) NULL`, plus scalar and set subqueries (`eq`, `in`, `exists`).
+- Subqueries can be wrapped into derived tables with `Query.as(alias, columns...)` and reused in any `FROM` / `JOIN` position.
 - `EmployeeSchema` auto-discovers tables in the `org.in.media.res.sqlBuilder.example` package. Pass a different base package to scan additional modules, or plug your own schema into `SchemaScanner.scan("com.acme.sales")`.
+
+## Configuration & Integration Tips
+
+- **Dialect selection**: the factory layer bootstraps Oracle-oriented transpilers by default (OFFSET/FETCH pagination, `MINUS` for `EXCEPT`). To use a different dialect, supply custom implementations via `SelectTranspilerFactory`, `WhereTranspilerFactory`, etc., before constructing queries.
+- **Schema wiring**: for quick starts, re-use `EmployeeSchema` as a template—create a `ScannedSchema` subclass pointing to your table descriptor package and pass it to application code that needs column handles.
+- **Runtime logging**: the DSL produces plain SQL strings. Use your preferred logging framework (or `Query.prettyPrint()`) to emit the final SQL before executing it with JDBC/ORM tooling.
+- **Performance baseline**: run `org.in.media.res.sqlBuilder.tools.QueryBenchmark` (`java ... QueryBenchmark <iterations>`) to get a quick feel for transpilation throughput in your environment.
 
 ## Defining Tables & Schemas
 
@@ -148,6 +250,35 @@ List<Table> tables = SchemaScanner.scan("com.example.payroll.tables");
 ```
 
 Mix-and-match is supported: legacy enum descriptors are still discovered, so you can migrate tables gradually. Call `ScannedSchema.clearCache()` if you hot-reload descriptor classes.
+
+### Custom Schema Quick Start
+
+1. **Model your tables** using `@SqlTable` / `@SqlColumn` annotations. Static `ColumnRef` fields become the handles used throughout the DSL.
+2. **Expose a schema** by extending `ScannedSchema` (or instantiating `SchemaScanner` directly) with the package that contains those annotated classes.
+3. **Bundle the schema** with your application so callers can ask for a `Table` or `ColumnRef` by descriptor class. Example:
+
+```java
+public final class SalesSchema extends ScannedSchema {
+    public SalesSchema() {
+        super("com.acme.sales.schema");
+    }
+}
+
+SalesSchema schema = new SalesSchema();
+Table customer = schema.getTableBy(Customer.class);
+```
+
+4. **Use the descriptors** in queries:
+
+```java
+String sql = QueryImpl.newQuery()
+    .select(Customer.C_ID, Customer.C_FIRST_NAME)
+    .from(customer)
+    .where(Customer.C_LAST_NAME).like("%son")
+    .transpile();
+```
+
+If you prefer manual wiring, you can instantiate `TableImpl` and `ColumnImpl` directly—just ensure each column is linked to its owning table before you pass it to the fluent APIs.
 
 ## Running Tests
 

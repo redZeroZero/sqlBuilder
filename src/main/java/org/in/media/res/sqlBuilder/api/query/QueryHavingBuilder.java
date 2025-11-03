@@ -17,10 +17,79 @@ public interface QueryHavingBuilder extends HavingBuilder {
 	Query eq(Date value);
 
 	@Override
+	Query notEq(String value);
+
+	@Override
+	Query notEq(Number value);
+
+	@Override
+	Query notEq(Date value);
+
+	@Override
 	Query in(String... values);
 
 	@Override
 	Query in(Number... values);
+
+	@Override
+	Query in(Date... values);
+
+	@Override
+	Query notIn(String... values);
+
+	@Override
+	Query notIn(Number... values);
+
+	@Override
+	Query notIn(Date... values);
+
+	@Override
+	Query like(String value);
+
+	@Override
+	Query notLike(String value);
+
+	@Override
+	Query between(Number lower, Number upper);
+
+	@Override
+	Query between(Date lower, Date upper);
+
+	@Override
+	Query isNull();
+
+	@Override
+	Query isNotNull();
+
+	@Override
+	Query eq(Query subquery);
+
+	@Override
+	Query notEq(Query subquery);
+
+	@Override
+	Query in(Query subquery);
+
+	@Override
+	Query notIn(Query subquery);
+
+	@Override
+	Query supTo(Query subquery);
+
+	@Override
+	Query supOrEqTo(Query subquery);
+
+	@Override
+	Query infTo(Query subquery);
+
+	@Override
+	Query infOrEqTo(Query subquery);
+
+	@Override
+	Query exists(Query subquery);
+
+	@Override
+	Query notExists(Query subquery);
 
 	@Override
 	Query supTo(Number value);
@@ -80,6 +149,14 @@ public interface QueryHavingBuilder extends HavingBuilder {
 	@Override
 	default QueryHavingBuilder or(TableDescriptor<?> descriptor) {
 		return or(descriptor.column());
+	}
+
+	@Override
+	Query notEq(Column column);
+
+	@Override
+	default Query notEq(TableDescriptor<?> descriptor) {
+		return notEq(descriptor.column());
 	}
 
 	@Override

@@ -17,7 +17,11 @@ public interface Connector {
 		return or(descriptor.column());
 	}
 
+	public Comparator and(Condition condition);
+
 	public Aggregator and();
+
+	public Comparator or(Condition condition);
 
 	public Aggregator or();
 }

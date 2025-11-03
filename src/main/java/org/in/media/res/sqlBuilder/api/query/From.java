@@ -12,12 +12,11 @@ public interface From extends Joinable, Clause, Transpilable {
 	From from(Table... tables);
 
 	Joinable join(Table t);
-
 	Joinable innerJoin(Table t);
-
 	Joinable leftJoin(Table t);
-
 	Joinable rightJoin(Table t);
+	Joinable crossJoin(Table t);
+	Joinable fullOuterJoin(Table t);
 
 	public Map<Table, Joiner> joins();
 

@@ -1,10 +1,5 @@
 package org.in.media.res.sqlBuilder.core.query.factory;
 
-import static java.lang.Class.forName;
-
-import java.lang.reflect.InvocationTargetException;
-
-import org.in.media.res.sqlBuilder.api.query.Clause;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.GroupBy;
 import org.in.media.res.sqlBuilder.api.query.Having;
@@ -13,58 +8,46 @@ import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.Where;
 
-public class CLauseFactory {
+public final class CLauseFactory {
 
-	private static final String DEFAULT_NAME = "org.in.media.res.sqlBuilder.core.query.";
+    private static final String DEFAULT_PACKAGE = "org.in.media.res.sqlBuilder.core.query.";
 
-	public static Select instanciateSelect() {
-		return (Select) instanciateClause(getClazz(DEFAULT_NAME + "SelectImpl"));
-	}
+    private CLauseFactory() {
+    }
 
-	public static From instanciateFrom() {
-		return (From) instanciateClause(getClazz(DEFAULT_NAME + "FromImpl"));
-	}
+    public static Select instanciateSelect() {
+        return instantiate(DEFAULT_PACKAGE + "SelectImpl", Select.class);
+    }
 
-	public static Where instanciateWhere() {
-		return (Where) instanciateClause(getClazz(DEFAULT_NAME + "WhereImpl"));
-	}
+    public static From instanciateFrom() {
+        return instantiate(DEFAULT_PACKAGE + "FromImpl", From.class);
+    }
 
-	public static GroupBy instanciateGroupBy() {
-		return (GroupBy) instanciateClause(getClazz(DEFAULT_NAME + "GroupByImpl"));
-	}
+    public static Where instanciateWhere() {
+        return instantiate(DEFAULT_PACKAGE + "WhereImpl", Where.class);
+    }
 
-	public static OrderBy instanciateOrderBy() {
-		return (OrderBy) instanciateClause(getClazz(DEFAULT_NAME + "OrderByImpl"));
-	}
+    public static GroupBy instanciateGroupBy() {
+        return instantiate(DEFAULT_PACKAGE + "GroupByImpl", GroupBy.class);
+    }
 
-	public static Having instanciateHaving() {
-		return (Having) instanciateClause(getClazz(DEFAULT_NAME + "HavingImpl"));
-	}
+    public static OrderBy instanciateOrderBy() {
+        return instantiate(DEFAULT_PACKAGE + "OrderByImpl", OrderBy.class);
+    }
 
-	public static Limit instanciateLimit() {
-		return (Limit) instanciateClause(getClazz(DEFAULT_NAME + "LimitImpl"));
-	}
+    public static Having instanciateHaving() {
+        return instantiate(DEFAULT_PACKAGE + "HavingImpl", Having.class);
+    }
 
-	private static Clause instanciateClause(Class<? extends Clause> clazz) {
-		Clause instance = null;
-		if (Clause.class.isAssignableFrom(clazz)) {
-			try {
-				instance = (Clause) Class.forName(clazz.getName()).getDeclaredConstructor((Class<?>[]) null)
-						.newInstance((Object[]) null);
-			} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException
-					| InvocationTargetException | NoSuchMethodException | SecurityException e) {
-				return null;
-			}
-		}
-		return instance;
-	}
+    public static Limit instanciateLimit() {
+        return instantiate(DEFAULT_PACKAGE + "LimitImpl", Limit.class);
+    }
 
-	private static Class<? extends Clause> getClazz(String className) {
-		try {
-			return forName(className).asSubclass(Clause.class);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
+    private static <T> T instantiate(String className, Class<T> type) {
+        try {
+            return Class.forName(className).asSubclass(type).getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Cannot instantiate " + className, e);
+        }
+    }
 }

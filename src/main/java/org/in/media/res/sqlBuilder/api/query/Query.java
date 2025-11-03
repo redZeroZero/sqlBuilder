@@ -13,6 +13,8 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 
 	public List<Clause> clauses();
 
+	Table as(String alias, String... columnAliases);
+
 	Query select(Column column);
 
 	Query select(TableDescriptor<?> descriptor);
@@ -26,6 +28,11 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query select(AggregateOperator agg, Column column);
 
 	Query select(AggregateOperator agg, TableDescriptor<?> descriptor);
+
+	Query where(Condition condition);
+
+	@Override
+	Query distinct();
 
 	Query count();
 
@@ -41,15 +48,41 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 
 	Query from(Table table);
 
-	Query from(Table... tables);
+Query from(Table... tables);
+Query join(Table t);
+Query innerJoin(Table t);
+Query leftJoin(Table t);
+Query rightJoin(Table t);
+Query crossJoin(Table t);
+Query fullOuterJoin(Table t);
 
-	Query join(Table t);
+default Query from(Query subquery, String alias, String... columnAliases) {
+    return from(subquery.as(alias, columnAliases));
+}
 
-	Query innerJoin(Table t);
+default Query join(Query subquery, String alias, String... columnAliases) {
+    return join(subquery.as(alias, columnAliases));
+}
 
-	Query leftJoin(Table t);
+default Query innerJoin(Query subquery, String alias, String... columnAliases) {
+    return innerJoin(subquery.as(alias, columnAliases));
+}
 
-	Query rightJoin(Table t);
+default Query leftJoin(Query subquery, String alias, String... columnAliases) {
+    return leftJoin(subquery.as(alias, columnAliases));
+}
+
+default Query rightJoin(Query subquery, String alias, String... columnAliases) {
+    return rightJoin(subquery.as(alias, columnAliases));
+}
+
+default Query crossJoin(Query subquery, String alias, String... columnAliases) {
+    return crossJoin(subquery.as(alias, columnAliases));
+}
+
+default Query fullOuterJoin(Query subquery, String alias, String... columnAliases) {
+    return fullOuterJoin(subquery.as(alias, columnAliases));
+}
 
 	@Override
 	Query condition(Condition condition);
@@ -61,6 +94,7 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	default Query where(TableDescriptor<?> descriptor) {
 		return where(descriptor.column());
 	}
+
 
 	@Override
 	Query eq();
@@ -84,6 +118,9 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query eq(Column column);
 
 	@Override
+	Query notEq(Column column);
+
+	@Override
 	Query supTo(Column column);
 
 	@Override
@@ -97,6 +134,18 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 
 	@Override
 	Query eq(String value);
+
+	@Override
+	Query notEq(String value);
+
+	@Override
+	Query like(String value);
+
+	@Override
+	Query notLike(String value);
+
+	@Override
+	Query between(String lower, String upper);
 
 	@Override
 	Query supTo(String value);
@@ -114,7 +163,16 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query in(String... value);
 
 	@Override
+	Query notIn(String... value);
+
+	@Override
 	Query eq(Integer value);
+
+	@Override
+	Query notEq(Integer value);
+
+	@Override
+	Query between(Integer lower, Integer upper);
 
 	@Override
 	Query supTo(Integer value);
@@ -132,7 +190,16 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query in(Integer... value);
 
 	@Override
+	Query notIn(Integer... value);
+
+	@Override
 	Query eq(Date value);
+
+	@Override
+	Query notEq(Date value);
+
+	@Override
+	Query between(Date lower, Date upper);
 
 	@Override
 	Query supTo(Date value);
@@ -150,7 +217,16 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query in(Date... value);
 
 	@Override
+	Query notIn(Date... value);
+
+	@Override
 	Query eq(Double value);
+
+	@Override
+	Query notEq(Double value);
+
+	@Override
+	Query between(Double lower, Double upper);
 
 	@Override
 	Query supTo(Double value);
@@ -168,8 +244,52 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 	Query in(Double... value);
 
 	@Override
+	Query notIn(Double... value);
+
+	@Override
+	Query isNull();
+
+	@Override
+	Query isNotNull();
+
+	@Override
+	Query eq(Query subquery);
+
+	@Override
+	Query notEq(Query subquery);
+
+	@Override
+	Query in(Query subquery);
+
+	@Override
+	Query notIn(Query subquery);
+
+	@Override
+	Query supTo(Query subquery);
+
+	@Override
+	Query infTo(Query subquery);
+
+	@Override
+	Query supOrEqTo(Query subquery);
+
+	@Override
+	Query infOrEqTo(Query subquery);
+
+	@Override
+	Query exists(Query subquery);
+
+	@Override
+	Query notExists(Query subquery);
+
+	@Override
 	default Query eq(TableDescriptor<?> descriptor) {
 		return eq(descriptor.column());
+	}
+
+	@Override
+	default Query notEq(TableDescriptor<?> descriptor) {
+		return notEq(descriptor.column());
 	}
 
 	@Override
@@ -203,6 +323,7 @@ public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Li
 
 	@Override
 	Query or();
+
 
 	@Override
 	Query min(Column column);

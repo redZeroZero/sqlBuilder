@@ -3,11 +3,13 @@ package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 import static org.in.media.res.sqlBuilder.constants.Operator.IN;
 
-import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionTranspiler;
+import org.in.media.res.sqlBuilder.api.query.ConditionValue;
+import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.constants.Operator;
 
 public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 
@@ -20,22 +22,40 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 	private final String SEP_ = ", ";
 
 	public String transpile(Condition co) {
+		if (isGroupedCondition(co)) {
+			return renderGroupedCondition(co);
+		}
 		final StringBuilder sb = new StringBuilder();
 		Operator resolvedOperator = resolveOperator(co);
 		if (co.getStartOperator() != null)
 			sb.append(co.getStartOperator().value());
-		transpileColumn(sb, co.getLeft(), co.getLeftAgg());
-		sb.append(resolvedOperator.value());
-		if (co.getRight() != null)
-			transpileColumn(sb, co.getRight(), co.getRightAgg());
-		else
+		Column left = co.getLeft();
+		String operatorSql = resolvedOperator.value();
+		if (left != null) {
+			transpileColumn(sb, left, co.getLeftAgg());
+			sb.append(operatorSql);
+			if (co.getRight() != null)
+				transpileColumn(sb, co.getRight(), co.getRightAgg());
+			else
+				transpileValues(sb, co);
+		} else {
+			sb.append(operatorSql.stripLeading());
 			transpileValues(sb, co);
+		}
 		return sb.toString();
 	}
 
 	private Operator resolveOperator(Condition co) {
-		if (co.values().size() > 1 && EQ.equals(co.getOperator())) {
-			return IN;
+		if (co.getOperator() == Operator.EXISTS || co.getOperator() == Operator.NOT_EXISTS) {
+			return co.getOperator();
+		}
+		if (co.values().size() > 1) {
+			if (EQ.equals(co.getOperator())) {
+				return IN;
+			}
+			if (Operator.NOT_EQ.equals(co.getOperator())) {
+				return Operator.NOT_IN;
+			}
 		}
 		return co.getOperator();
 	}
@@ -49,8 +69,24 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 	}
 
 	private void transpileValues(StringBuilder sb, Condition co) {
+		if (co.values().isEmpty()) {
+			return;
+		}
+		if (Operator.BETWEEN.equals(co.getOperator())) {
+			if (co.values().size() != 2) {
+				throw new IllegalStateException("BETWEEN operator requires exactly two values");
+			}
+			appendLiteral(sb, co.values().get(0));
+			sb.append(" AND ");
+			appendLiteral(sb, co.values().get(1));
+			return;
+		}
 		if (co.values().size() == 1) {
-			switchOnOpType(sb, 0, true, co);
+			if (Operator.EXISTS.equals(co.getOperator()) || Operator.NOT_EXISTS.equals(co.getOperator())) {
+				appendSubquery(sb, co.values().get(0));
+				return;
+			}
+			appendLiteral(sb, co.values().get(0));
 		} else {
 			sb.append(OPENING_PARENTHESIS);
 			for (int i = 0; i < co.values().size(); i++)
@@ -60,18 +96,9 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 	}
 
 	private void switchOnOpType(StringBuilder sb, int index, boolean isLast, Condition co) {
-		switch (co.values().get(index).type()) {
-		case TY_DATE:
-		case TY_STR:
-			this.builStringItem(sb, index, isLast, co);
-			break;
-		case TY_DBL:
-		case TY_INT:
-			this.builIntItem(sb, index, isLast, co);
-			break;
-		default:
-			this.builStringItem(sb, index, isLast, co);
-			break;
+		appendLiteral(sb, co.values().get(index));
+		if (!isLast) {
+			sb.append(SEP_);
 		}
 	}
 
@@ -79,15 +106,42 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 		return co.values().size() - 1 == i;
 	}
 
-	private void builStringItem(StringBuilder sb, int index, boolean last, Condition co) {
-		sb.append(POUIC).append(co.values().get(index).value()).append(POUIC);
-		if (!last)
-			sb.append(SEP_);
+	private void appendLiteral(StringBuilder sb, ConditionValue value) {
+		switch (value.type()) {
+		case TY_DATE:
+		case TY_STR:
+			sb.append(POUIC).append(value.value()).append(POUIC);
+			break;
+		case TY_DBL:
+		case TY_INT:
+			sb.append(value.value());
+			break;
+		case TY_SUBQUERY:
+			appendSubquery(sb, value);
+			break;
+		default:
+			sb.append(POUIC).append(value.value()).append(POUIC);
+			break;
+		}
 	}
 
-	private void builIntItem(StringBuilder sb, int index, boolean last, Condition co) {
-		sb.append(co.values().get(index).value());
-		if (!last)
-			sb.append(SEP_);
+	private void appendSubquery(StringBuilder sb, ConditionValue value) {
+		Query query = (Query) value.value();
+		sb.append(OPENING_PARENTHESIS).append(query.transpile()).append(CLOSING_PARENTHESIS);
+	}
+
+	private boolean isGroupedCondition(Condition condition) {
+		return condition.getLeft() == null
+				&& condition.getOperator() == null
+				&& condition.values().isEmpty();
+	}
+
+	private String renderGroupedCondition(Condition condition) {
+		StringBuilder sb = new StringBuilder();
+		if (condition.getStartOperator() != null) {
+			sb.append(condition.getStartOperator().value());
+		}
+		sb.append(condition.transpile());
+		return sb.toString();
 	}
 }

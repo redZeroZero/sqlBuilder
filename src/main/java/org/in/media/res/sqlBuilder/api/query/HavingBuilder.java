@@ -13,9 +13,55 @@ public interface HavingBuilder {
 
 	Having eq(Date value);
 
+	Having notEq(String value);
+
+	Having notEq(Number value);
+
+	Having notEq(Date value);
+
 	Having in(String... values);
 
 	Having in(Number... values);
+
+	Having in(Date... values);
+
+	Having notIn(String... values);
+
+	Having notIn(Number... values);
+
+	Having notIn(Date... values);
+
+	Having like(String value);
+
+	Having notLike(String value);
+
+	Having between(Number lower, Number upper);
+
+	Having between(Date lower, Date upper);
+
+	Having isNull();
+
+	Having isNotNull();
+
+	Having eq(Query subquery);
+
+	Having notEq(Query subquery);
+
+	Having in(Query subquery);
+
+	Having notIn(Query subquery);
+
+	Having supTo(Query subquery);
+
+	Having supOrEqTo(Query subquery);
+
+	Having infTo(Query subquery);
+
+	Having infOrEqTo(Query subquery);
+
+	Having exists(Query subquery);
+
+	Having notExists(Query subquery);
 
 	Having supTo(Number value);
 
@@ -47,6 +93,12 @@ public interface HavingBuilder {
 
 	default Having infOrEqTo(TableDescriptor<?> descriptor) {
 		return infOrEqTo(descriptor.column());
+	}
+
+	Having notEq(Column column);
+
+	default Having notEq(TableDescriptor<?> descriptor) {
+		return notEq(descriptor.column());
 	}
 
 	HavingBuilder and(Column column);

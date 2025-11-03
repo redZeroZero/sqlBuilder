@@ -4,10 +4,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SetOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
+import org.in.media.res.sqlBuilder.core.model.DerivedTableImpl;
 import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
 import org.in.media.res.sqlBuilder.core.query.factory.CLauseFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
@@ -44,6 +46,8 @@ public class QueryImpl implements Query {
 
 	private final List<SetOperation> setOperations = new ArrayList<>();
 
+	private PredicateContext activePredicateContext = PredicateContext.WHERE;
+
 	private static final Column STAR = StarColumn.INSTANCE;
 
 	public static Query newQuery() {
@@ -68,6 +72,18 @@ public class QueryImpl implements Query {
 
 	public static Query countAll() {
 		return newQuery().count();
+	}
+
+	public static Table toTable(Query query, String alias, String... columnAliases) {
+		return deriveTable(query, alias, columnAliases);
+	}
+
+	public static Table toTable(Query query) {
+		return deriveTable(query, null);
+	}
+
+	private static Table deriveTable(Query query, String alias, String... columnAliases) {
+		return new DerivedTableImpl(Objects.requireNonNull(query, "query"), alias, columnAliases);
 	}
 
 	private void registerBaseTable(Column column) {
@@ -163,6 +179,12 @@ public class QueryImpl implements Query {
 		return this.select(agg, descriptor.column());
 	}
 
+	@Override
+	public Query distinct() {
+		this.selectClause.distinct();
+		return this;
+	}
+
 	public Query count() {
 		this.selectClause.select(AggregateOperator.COUNT, STAR);
 		return this;
@@ -255,6 +277,18 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query crossJoin(Table t) {
+		this.fromClause.crossJoin(t);
+		return this;
+	}
+
+	@Override
+	public Query fullOuterJoin(Table t) {
+		this.fromClause.fullOuterJoin(t);
+		return this;
+	}
+
+	@Override
 	public List<Clause> clauses() {
 		List<Clause> c = new ArrayList<>();
 		c.add(selectClause);
@@ -268,7 +302,20 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Table as(String alias, String... columnAliases) {
+		return deriveTable(this, alias, columnAliases);
+	}
+
+	@Override
+	public Query where(Condition condition) {
+		activateWhere();
+		this.whereClause.condition(condition);
+		return this;
+	}
+
+	@Override
 	public Query where(Column column) {
+		activateWhere();
 		this.whereClause.where(column);
 		return this;
 	}
@@ -276,6 +323,12 @@ public class QueryImpl implements Query {
 	@Override
 	public Query eq(Column column) {
 		this.whereClause.eq(column);
+		return this;
+	}
+
+	@Override
+	public Query notEq(Column column) {
+		this.whereClause.notEq(column);
 		return this;
 	}
 
@@ -310,6 +363,30 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query notEq(String value) {
+		this.whereClause.notEq(value);
+		return this;
+	}
+
+	@Override
+	public Query like(String value) {
+		this.whereClause.like(value);
+		return this;
+	}
+
+	@Override
+	public Query notLike(String value) {
+		this.whereClause.notLike(value);
+		return this;
+	}
+
+	@Override
+	public Query between(String lower, String upper) {
+		this.whereClause.between(lower, upper);
+		return this;
+	}
+
+	@Override
 	public Query supTo(String value) {
 		this.whereClause.supTo(value);
 		return this;
@@ -340,8 +417,26 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query notIn(String... value) {
+		this.whereClause.notIn(value);
+		return this;
+	}
+
+	@Override
 	public Query eq(Integer value) {
 		this.whereClause.eq(value);
+		return this;
+	}
+
+	@Override
+	public Query notEq(Integer value) {
+		this.whereClause.notEq(value);
+		return this;
+	}
+
+	@Override
+	public Query between(Integer lower, Integer upper) {
+		this.whereClause.between(lower, upper);
 		return this;
 	}
 
@@ -376,8 +471,26 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query notIn(Integer... value) {
+		this.whereClause.notIn(value);
+		return this;
+	}
+
+	@Override
 	public Query eq(Date value) {
 		this.whereClause.eq(value);
+		return this;
+	}
+
+	@Override
+	public Query notEq(Date value) {
+		this.whereClause.notEq(value);
+		return this;
+	}
+
+	@Override
+	public Query between(Date lower, Date upper) {
+		this.whereClause.between(lower, upper);
 		return this;
 	}
 
@@ -412,8 +525,26 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query notIn(Date... value) {
+		this.whereClause.notIn(value);
+		return this;
+	}
+
+	@Override
 	public Query eq(Double value) {
 		this.whereClause.eq(value);
+		return this;
+	}
+
+	@Override
+	public Query notEq(Double value) {
+		this.whereClause.notEq(value);
+		return this;
+	}
+
+	@Override
+	public Query between(Double lower, Double upper) {
+		this.whereClause.between(lower, upper);
 		return this;
 	}
 
@@ -448,99 +579,193 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query notIn(Double... value) {
+		this.whereClause.notIn(value);
+		return this;
+	}
+
+	@Override
+	public Query isNull() {
+		this.whereClause.isNull();
+		return this;
+	}
+
+	@Override
+	public Query isNotNull() {
+		this.whereClause.isNotNull();
+		return this;
+	}
+
+	@Override
+	public Query eq(Query subquery) {
+		this.whereClause.eq(subquery);
+		return this;
+	}
+
+	@Override
+	public Query notEq(Query subquery) {
+		this.whereClause.notEq(subquery);
+		return this;
+	}
+
+	@Override
+	public Query in(Query subquery) {
+		this.whereClause.in(subquery);
+		return this;
+	}
+
+	@Override
+	public Query notIn(Query subquery) {
+		this.whereClause.notIn(subquery);
+		return this;
+	}
+
+	@Override
+	public Query supTo(Query subquery) {
+		this.whereClause.supTo(subquery);
+		return this;
+	}
+
+	@Override
+	public Query infTo(Query subquery) {
+		this.whereClause.infTo(subquery);
+		return this;
+	}
+
+	@Override
+	public Query supOrEqTo(Query subquery) {
+		this.whereClause.supOrEqTo(subquery);
+		return this;
+	}
+
+	@Override
+	public Query infOrEqTo(Query subquery) {
+		this.whereClause.infOrEqTo(subquery);
+		return this;
+	}
+
+	@Override
+	public Query exists(Query subquery) {
+		activateWhere();
+		this.whereClause.exists(subquery);
+		return this;
+	}
+
+	@Override
+	public Query notExists(Query subquery) {
+		activateWhere();
+		this.whereClause.notExists(subquery);
+		return this;
+	}
+
+	@Override
 	public Query and(Column column) {
+		activateWhere();
 		this.whereClause.and(column);
 		return this;
 	}
 
 	@Override
 	public Query or(Column column) {
+		activateWhere();
 		this.whereClause.or(column);
 		return this;
 	}
 
 	@Override
 	public Query and() {
+		activateWhere();
 		this.whereClause.and();
 		return this;
 	}
 
 	@Override
 	public Query or() {
+		activateWhere();
 		this.whereClause.or();
 		return this;
 	}
 
 	@Override
 	public Query eq() {
+		activateWhere();
 		this.whereClause.eq();
 		return this;
 	}
 
 	@Override
 	public Query supTo() {
+		activateWhere();
 		this.whereClause.supTo();
 		return this;
 	}
 
 	@Override
 	public Query infTo() {
+		activateWhere();
 		this.whereClause.infTo();
 		return this;
 	}
 
 	@Override
 	public Query supOrEqTo() {
+		activateWhere();
 		this.whereClause.supOrEqTo();
 		return this;
 	}
 
 	@Override
 	public Query infOrEqTo() {
+		activateWhere();
 		this.whereClause.infOrEqTo();
 		return this;
 	}
 
 	@Override
 	public Query in() {
+		activateWhere();
 		this.whereClause.in();
 		return this;
 	}
 
 	@Override
 	public Query min(Column column) {
+		activateWhere();
 		this.whereClause.min(column);
 		return this;
 	}
 
 	@Override
 	public Query max(Column column) {
+		activateWhere();
 		this.whereClause.max(column);
 		return this;
 	}
 
 	@Override
 	public Query sum(Column column) {
+		activateWhere();
 		this.whereClause.sum(column);
 		return this;
 	}
 
 	@Override
 	public Query avg(Column column) {
+		activateWhere();
 		this.whereClause.avg(column);
 		return this;
 	}
 
 	@Override
 	public Query col(Column column) {
+		activateWhere();
 		this.whereClause.col(column);
 		return this;
 	}
 
 	@Override
 	public Query condition(Condition condition) {
-		this.whereClause.condition(condition);
-		return this;
+		return where(condition);
 	}
 
 	@Override
@@ -551,6 +776,11 @@ public class QueryImpl implements Query {
 	@Override
 	public Map<Column, AggregateOperator> aggColumns() {
 		return this.selectClause.aggColumns();
+	}
+
+	@Override
+	public boolean isDistinct() {
+		return this.selectClause.isDistinct();
 	}
 
 	@Override
@@ -643,24 +873,38 @@ public class QueryImpl implements Query {
 
 	@Override
 	public Query having(Condition condition) {
+		activateHaving();
 		this.havingClause.having(condition);
 		return this;
 	}
 
 	@Override
 	public Query and(Condition condition) {
-		this.havingClause.and(condition);
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.and(condition);
+			activateHaving();
+			return this;
+		}
+		activateWhere();
+		this.whereClause.and(condition);
 		return this;
 	}
 
 	@Override
 	public Query or(Condition condition) {
-		this.havingClause.or(condition);
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.or(condition);
+			activateHaving();
+			return this;
+		}
+		activateWhere();
+		this.whereClause.or(condition);
 		return this;
 	}
 
 	@Override
 	public QueryHavingBuilder having(Column column) {
+		activateHaving();
 		return new FluentHavingBuilder(this.havingClause.having(column));
 	}
 
@@ -705,6 +949,14 @@ public class QueryImpl implements Query {
 		return this;
 	}
 
+	private void activateWhere() {
+		this.activePredicateContext = PredicateContext.WHERE;
+	}
+
+	private void activateHaving() {
+		this.activePredicateContext = PredicateContext.HAVING;
+	}
+
 	private String resolveSetOperator(SetOperator operator) {
 		return switch (operator) {
 		case UNION -> SetOperator.UNION.sql();
@@ -736,6 +988,10 @@ public class QueryImpl implements Query {
 	private record SetOperation(SetOperator operator, QueryImpl query) {
 	}
 
+	private enum PredicateContext {
+		WHERE, HAVING
+	}
+
 	private final class FluentHavingBuilder implements QueryHavingBuilder {
 
 		private HavingBuilder delegate;
@@ -763,6 +1019,24 @@ public class QueryImpl implements Query {
 		}
 
 		@Override
+		public Query notEq(String value) {
+			this.delegate.notEq(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notEq(Number value) {
+			this.delegate.notEq(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notEq(Date value) {
+			this.delegate.notEq(value);
+			return QueryImpl.this;
+		}
+
+		@Override
 		public Query in(String... values) {
 			this.delegate.in(values);
 			return QueryImpl.this;
@@ -771,6 +1045,126 @@ public class QueryImpl implements Query {
 		@Override
 		public Query in(Number... values) {
 			this.delegate.in(values);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query in(Date... values) {
+			this.delegate.in(values);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notIn(String... values) {
+			this.delegate.notIn(values);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notIn(Number... values) {
+			this.delegate.notIn(values);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notIn(Date... values) {
+			this.delegate.notIn(values);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query like(String value) {
+			this.delegate.like(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notLike(String value) {
+			this.delegate.notLike(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query between(Number lower, Number upper) {
+			this.delegate.between(lower, upper);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query between(Date lower, Date upper) {
+			this.delegate.between(lower, upper);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query isNull() {
+			this.delegate.isNull();
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query isNotNull() {
+			this.delegate.isNotNull();
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query eq(Query subquery) {
+			this.delegate.eq(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notEq(Query subquery) {
+			this.delegate.notEq(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query in(Query subquery) {
+			this.delegate.in(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notIn(Query subquery) {
+			this.delegate.notIn(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query supTo(Query subquery) {
+			this.delegate.supTo(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query supOrEqTo(Query subquery) {
+			this.delegate.supOrEqTo(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query infTo(Query subquery) {
+			this.delegate.infTo(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query infOrEqTo(Query subquery) {
+			this.delegate.infOrEqTo(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query exists(Query subquery) {
+			this.delegate.exists(subquery);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notExists(Query subquery) {
+			this.delegate.notExists(subquery);
 			return QueryImpl.this;
 		}
 
@@ -819,6 +1213,12 @@ public class QueryImpl implements Query {
 		@Override
 		public Query infOrEqTo(Column column) {
 			this.delegate.infOrEqTo(column);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notEq(Column column) {
+			this.delegate.notEq(column);
 			return QueryImpl.this;
 		}
 

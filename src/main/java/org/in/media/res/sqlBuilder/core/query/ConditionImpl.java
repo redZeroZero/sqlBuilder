@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
@@ -12,6 +13,7 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionTranspiler;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
+import org.in.media.res.sqlBuilder.api.query.Query;
 
 /**
  * Immutable representation of a boolean condition. Use {@link Builder} to
@@ -230,6 +232,16 @@ public final class ConditionImpl implements Condition {
 			return this;
 		}
 
+		public Builder value(Query value) {
+			this.values.add(ConditionValue.of(value));
+			return this;
+		}
+
+		public Builder value(ConditionValue value) {
+			this.values.add(Objects.requireNonNull(value, "value"));
+			return this;
+		}
+
 		public Builder values(String... values) {
 			for (String value : values) {
 				this.values.add(ConditionValue.of(value));
@@ -301,6 +313,44 @@ public final class ConditionImpl implements Condition {
 		AggregateOperator aggregate() {
 			return aggregate;
 		}
+	}
+
+	static ConditionImpl copyOf(Condition condition) {
+		if (condition instanceof ConditionImpl concrete) {
+			return concrete;
+		}
+		ConditionImpl.Builder builder = ConditionImpl.builder();
+		if (condition.getStartOperator() != null) {
+			builder.startOp(condition.getStartOperator());
+		}
+		if (condition.getLeft() != null) {
+			if (condition.getLeftAgg() != null) {
+				builder.leftColumn(condition.getLeftAgg(), condition.getLeft());
+			} else {
+				builder.leftColumn(condition.getLeft());
+			}
+		}
+		if (condition.getRight() != null) {
+			if (condition.getRightAgg() != null) {
+				builder.rightColumn(condition.getRightAgg(), condition.getRight());
+			} else {
+				builder.rightColumn(condition.getRight());
+			}
+		}
+		if (condition.getOperator() != null) {
+			builder.comparisonOp(condition.getOperator());
+		}
+		condition.values().forEach(value -> {
+			switch (value.type()) {
+			case TY_STR -> builder.value((String) value.value());
+			case TY_INT -> builder.value((Integer) value.value());
+			case TY_DBL -> builder.value((Double) value.value());
+			case TY_DATE -> builder.value((Date) value.value());
+			case TY_SUBQUERY -> builder.value((Query) value.value());
+			default -> builder.value(String.valueOf(value.value()));
+			}
+		});
+		return builder.build();
 	}
 
 }

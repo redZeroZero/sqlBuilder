@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.core.query.factory.SelectTranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
@@ -19,7 +19,9 @@ public class SelectImpl implements Select {
 
 	private Map<Column, AggregateOperator> aggColumns = new LinkedHashMap<>();
 
-	SelectTranspiler selectTranspiler = SelectTranspilerFactory.instanciateSelectTranspiler();
+	private boolean distinct;
+
+	SelectTranspiler selectTranspiler = TranspilerFactory.instanciateSelectTranspiler();
 
 	public String transpile() {
 		return selectTranspiler.transpile(this);
@@ -28,6 +30,7 @@ public class SelectImpl implements Select {
 	public void reset() {
 		this.columns.clear();
 		this.aggColumns.clear();
+		this.distinct = false;
 	}
 
 	public Select select(Column column) {
@@ -75,6 +78,17 @@ public class SelectImpl implements Select {
 
 	public Map<Column, AggregateOperator> aggColumns() {
 		return aggColumns;
+	}
+
+	@Override
+	public Select distinct() {
+		this.distinct = true;
+		return this;
+	}
+
+	@Override
+	public boolean isDistinct() {
+		return distinct;
 	}
 
 }

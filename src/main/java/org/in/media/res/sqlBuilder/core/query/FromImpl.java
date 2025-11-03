@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
-import org.in.media.res.sqlBuilder.core.query.factory.FromTranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
@@ -14,7 +14,7 @@ public class FromImpl implements From {
 
 	private Map<Table, Joiner> joins = new LinkedHashMap<>();
 
-	private FromTranspiler fromTranspiler = FromTranspilerFactory.instanciateFromTranspiler();
+    private FromTranspiler fromTranspiler = TranspilerFactory.instanciateFromTranspiler();
 
     public Map<Table, Joiner> joins() {
         return joins;
@@ -52,6 +52,18 @@ public class FromImpl implements From {
 	public From rightJoin(Table t) {
 		this.from(t);
 		joins.put(t, new Joiner(JoinOperator.RIGHT_JOIN));
+		return this;
+	}
+
+	public From crossJoin(Table t) {
+		this.from(t);
+		joins.put(t, new Joiner(JoinOperator.CROSS_JOIN));
+		return this;
+	}
+
+	public From fullOuterJoin(Table t) {
+		this.from(t);
+		joins.put(t, new Joiner(JoinOperator.FULL_OUTER_JOIN));
 		return this;
 	}
 

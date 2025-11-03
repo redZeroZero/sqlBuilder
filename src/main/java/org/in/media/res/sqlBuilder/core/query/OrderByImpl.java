@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.in.media.res.sqlBuilder.constants.SortDirection;
-import org.in.media.res.sqlBuilder.core.query.factory.OrderByTranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.OrderByTranspiler;
@@ -13,7 +13,7 @@ public class OrderByImpl implements OrderBy {
 
 	private final List<Ordering> orderings = new ArrayList<>();
 
-	private final OrderByTranspiler orderByTranspiler = OrderByTranspilerFactory.instanciateOrderByTranspiler();
+	private final OrderByTranspiler orderByTranspiler = TranspilerFactory.instanciateOrderByTranspiler();
 
 	@Override
 	public String transpile() {

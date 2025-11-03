@@ -25,6 +25,8 @@ public interface Comparator {
 
 	public Connector eq(Column column);
 
+	public Connector notEq(Column column);
+
 	public Connector supTo(Column column);
 	
 	public Connector infTo(Column column);
@@ -34,6 +36,14 @@ public interface Comparator {
 	public Connector infOrEqTo(Column column);
 
 	public Connector eq(String value);
+
+	public Connector notEq(String value);
+
+	public Connector like(String value);
+
+	public Connector notLike(String value);
+
+	public Connector between(String lower, String upper);
 
 	public Connector supTo(String value);
 
@@ -45,7 +55,13 @@ public interface Comparator {
 
 	public Connector in(String... value);
 
+	public Connector notIn(String... value);
+
 	public Connector eq(Integer value);
+
+	public Connector notEq(Integer value);
+
+	public Connector between(Integer lower, Integer upper);
 
 	public Connector supTo(Integer value);
 
@@ -57,7 +73,13 @@ public interface Comparator {
 
 	public Connector in(Integer... value);
 
+	public Connector notIn(Integer... value);
+
 	public Connector eq(Date value);
+
+	public Connector notEq(Date value);
+
+	public Connector between(Date lower, Date upper);
 
 	public Connector supTo(Date value);
 
@@ -69,7 +91,13 @@ public interface Comparator {
 
 	public Connector in(Date... value);
 
+	public Connector notIn(Date... value);
+
 	public Connector eq(Double value);
+
+	public Connector notEq(Double value);
+
+	public Connector between(Double lower, Double upper);
 
 	public Connector supTo(Double value);
 
@@ -81,12 +109,42 @@ public interface Comparator {
 
 	public Connector in(Double... value);
 
+	public Connector notIn(Double... value);
+
+	public Connector isNull();
+
+	public Connector isNotNull();
+
+	public Connector eq(Query subquery);
+
+	public Connector notEq(Query subquery);
+
+	public Connector in(Query subquery);
+
+	public Connector notIn(Query subquery);
+
+	public Connector supTo(Query subquery);
+
+	public Connector infTo(Query subquery);
+
+	public Connector supOrEqTo(Query subquery);
+
+	public Connector infOrEqTo(Query subquery);
+
+	public Connector exists(Query subquery);
+
+	public Connector notExists(Query subquery);
+
 	default Comparator where(TableDescriptor<?> descriptor) {
 		return where(descriptor.column());
 	}
 
 	default Connector eq(TableDescriptor<?> descriptor) {
 		return eq(descriptor.column());
+	}
+
+	default Connector notEq(TableDescriptor<?> descriptor) {
+		return notEq(descriptor.column());
 	}
 
 	default Connector supTo(TableDescriptor<?> descriptor) {

@@ -10,6 +10,7 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
+import org.in.media.res.sqlBuilder.constants.JoinOperator;
 
 public class OracleFromTranspilerImpl implements FromTranspiler {
 
@@ -55,12 +56,15 @@ public class OracleFromTranspilerImpl implements FromTranspiler {
         }
     }
 
-    private void appendJoinCondition(SqlBuilder builder, Table table, Joiner joiner) {
-        Column left = joiner.getCol1();
-        Column right = joiner.getCol2();
-        if (left == null || right == null) {
-            throw new IllegalStateException(
-                    "JOIN on table " + table.getName() + " must define both columns via on(column1, column2)");
+	private void appendJoinCondition(SqlBuilder builder, Table table, Joiner joiner) {
+		if (joiner.getOp() == JoinOperator.CROSS_JOIN) {
+			return;
+		}
+		Column left = joiner.getCol1();
+		Column right = joiner.getCol2();
+		if (left == null || right == null) {
+			throw new IllegalStateException(
+					"JOIN on table " + table.getName() + " must define both columns via on(column1, column2)");
         }
         builder.append(ON.value()).appendColumn(left).append(EQ.value()).appendColumn(right);
     }

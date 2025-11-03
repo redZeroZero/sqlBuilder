@@ -4,23 +4,26 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
-import org.in.media.res.sqlBuilder.core.query.factory.HavingTranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
+import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder.ConditionGroup;
 
 public class HavingImpl implements Having {
 
     private final List<Condition> conditions = new ArrayList<>();
 
-    private final HavingTranspiler havingTranspiler = HavingTranspilerFactory.instanciateHavingTranspiler();
+	private final HavingTranspiler havingTranspiler = TranspilerFactory.instanciateHavingTranspiler();
 
     @Override
     public String transpile() {
@@ -34,19 +37,19 @@ public class HavingImpl implements Having {
 
     @Override
     public Having having(Condition condition) {
-        conditions.addLast(copyOf(condition));
+        conditions.addLast(normalize(condition, null));
         return this;
     }
 
     @Override
     public Having and(Condition condition) {
-        conditions.addLast(copyOf(condition));
+        conditions.addLast(normalize(condition, Operator.AND));
         return this;
     }
 
     @Override
     public Having or(Condition condition) {
-        conditions.addLast(copyOf(condition));
+        conditions.addLast(normalize(condition, Operator.OR));
         return this;
     }
 
@@ -61,55 +64,41 @@ public class HavingImpl implements Having {
         return List.copyOf(conditions);
     }
 
-    private ConditionImpl copyOf(Condition condition) {
-        if (condition instanceof ConditionImpl concrete) {
-            return concrete;
-        }
-        ConditionImpl.Builder builder = ConditionImpl.builder();
-        if (condition.getStartOperator() != null) {
-            builder.startOp(condition.getStartOperator());
-        }
-        if (condition.getLeft() != null) {
-            if (condition.getLeftAgg() != null) {
-                builder.leftColumn(condition.getLeftAgg(), condition.getLeft());
-            } else {
-                builder.leftColumn(condition.getLeft());
-            }
-        }
-        if (condition.getRight() != null) {
-            if (condition.getRightAgg() != null) {
-                builder.rightColumn(condition.getRightAgg(), condition.getRight());
-            } else {
-                builder.rightColumn(condition.getRight());
-            }
-        }
-        if (condition.getOperator() != null) {
-            builder.comparisonOp(condition.getOperator());
-        }
-        condition.values().forEach(value -> {
-            switch (value.type()) {
-            case TY_STR -> builder.value((String) value.value());
-            case TY_INT -> builder.value((Integer) value.value());
-            case TY_DBL -> builder.value((Double) value.value());
-            case TY_DATE -> builder.value((Date) value.value());
-            default -> builder.value(String.valueOf(value.value()));
-            }
-        });
-        return builder.build();
-    }
+	private Condition normalize(Condition condition, Operator startOperator) {
+		Objects.requireNonNull(condition, "condition");
+		if (condition instanceof ConditionGroup group) {
+			return startOperator != null ? group.withStartOperator(startOperator) : group;
+		}
+		ConditionImpl normalized = condition instanceof ConditionImpl concrete ? concrete : ConditionImpl.copyOf(condition);
+		return startOperator != null ? normalized.withStartOperator(startOperator) : normalized;
+	}
 
     private ConditionImpl lastCondition() {
-        if (conditions.isEmpty()) {
+        if (conditions.isEmpty() || !(conditions.getLast() instanceof ConditionImpl condition)) {
             throw new IllegalStateException("Cannot apply operators without a HAVING condition. Call having(...) first.");
         }
-        return (ConditionImpl) conditions.getLast();
+        return condition;
     }
 
-    private void replaceLast(UnaryOperator<ConditionImpl> mutator) {
-        ConditionImpl current = lastCondition();
-        int lastIndex = conditions.size() - 1;
-        conditions.set(lastIndex, mutator.apply(current));
-    }
+	private void replaceLast(UnaryOperator<ConditionImpl> mutator) {
+		ConditionImpl current = lastCondition();
+		int lastIndex = conditions.size() - 1;
+		conditions.set(lastIndex, mutator.apply(current));
+	}
+
+	private void appendStandaloneCondition(Operator operator, ConditionValue value) {
+		if (conditions.isEmpty()) {
+			conditions.addLast(ConditionImpl.builder().comparisonOp(operator).value(value).build());
+			return;
+		}
+		ConditionImpl current = lastCondition();
+		if (current.getOperator() == null && current.getLeft() == null && current.values().isEmpty()) {
+			int lastIndex = conditions.size() - 1;
+			conditions.set(lastIndex, current.withOperator(operator).appendValue(value));
+		} else {
+			conditions.addLast(ConditionImpl.builder().and().comparisonOp(operator).value(value).build());
+		}
+	}
 
     private ConditionValue numericValue(Number value) {
         return (value instanceof Double || value instanceof Float)
@@ -121,7 +110,7 @@ public class HavingImpl implements Having {
         replaceLast(condition -> condition.withLeftAggregate(aggregate).withLeftColumn(requireColumn(column)));
     }
 
-    private class BuilderDelegate implements HavingBuilder {
+	private class BuilderDelegate implements HavingBuilder {
 
         @Override
         public Having eq(String value) {
@@ -145,6 +134,27 @@ public class HavingImpl implements Having {
         }
 
         @Override
+        public Having notEq(String value) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_EQ)
+                    .appendValue(ConditionValue.of(value)));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notEq(Number value) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_EQ)
+                    .appendValue(numericValue(value)));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notEq(Date value) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_EQ)
+                    .appendValue(ConditionValue.of(value)));
+            return HavingImpl.this;
+        }
+
+        @Override
         public Having in(String... values) {
             replaceLast(condition -> condition.withOperator(Operator.IN)
                     .appendValues(Arrays.stream(values).map(ConditionValue::of).toList()));
@@ -155,6 +165,152 @@ public class HavingImpl implements Having {
         public Having in(Number... values) {
             replaceLast(condition -> condition.withOperator(Operator.IN)
                     .appendValues(Arrays.stream(values).map(HavingImpl.this::numericValue).toList()));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having in(Date... values) {
+            replaceLast(condition -> condition.withOperator(Operator.IN)
+                    .appendValues(Arrays.stream(values).map(ConditionValue::of).toList()));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notIn(String... values) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_IN)
+                    .appendValues(Arrays.stream(values).map(ConditionValue::of).toList()));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notIn(Number... values) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_IN)
+                    .appendValues(Arrays.stream(values).map(HavingImpl.this::numericValue).toList()));
+            return HavingImpl.this;
+        }
+
+        @Override
+		public Having notIn(Date... values) {
+			replaceLast(condition -> condition.withOperator(Operator.NOT_IN)
+				.appendValues(Arrays.stream(values).map(ConditionValue::of).toList()));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having eq(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING = subquery");
+			replaceLast(condition -> condition.withOperator(Operator.EQ)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having notEq(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING <> subquery");
+			replaceLast(condition -> condition.withOperator(Operator.NOT_EQ)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having in(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING IN (subquery)");
+			replaceLast(condition -> condition.withOperator(Operator.IN)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having notIn(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING NOT IN (subquery)");
+			replaceLast(condition -> condition.withOperator(Operator.NOT_IN)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having supTo(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING > subquery");
+			replaceLast(condition -> condition.withOperator(Operator.MORE)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having supOrEqTo(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING >= subquery");
+			replaceLast(condition -> condition.withOperator(Operator.MORE_OR_EQ)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having infTo(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING < subquery");
+			replaceLast(condition -> condition.withOperator(Operator.LESS)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having infOrEqTo(Query subquery) {
+			QueryValidation.requireScalarSubquery(subquery, "HAVING <= subquery");
+			replaceLast(condition -> condition.withOperator(Operator.LESS_OR_EQ)
+				.appendValue(ConditionValue.of(subquery)));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having exists(Query subquery) {
+			QueryValidation.requireAnyProjection(subquery, "HAVING EXISTS (subquery)");
+			appendStandaloneCondition(Operator.EXISTS, ConditionValue.of(subquery));
+			return HavingImpl.this;
+		}
+
+		@Override
+		public Having notExists(Query subquery) {
+			QueryValidation.requireAnyProjection(subquery, "HAVING NOT EXISTS (subquery)");
+			appendStandaloneCondition(Operator.NOT_EXISTS, ConditionValue.of(subquery));
+			return HavingImpl.this;
+		}
+
+        @Override
+        public Having like(String value) {
+            replaceLast(condition -> condition.withOperator(Operator.LIKE)
+                    .appendValue(ConditionValue.of(value)));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notLike(String value) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_LIKE)
+                    .appendValue(ConditionValue.of(value)));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having between(Number lower, Number upper) {
+            replaceLast(condition -> condition.withOperator(Operator.BETWEEN)
+                    .appendValues(Arrays.asList(numericValue(lower), numericValue(upper))));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having between(Date lower, Date upper) {
+            replaceLast(condition -> condition.withOperator(Operator.BETWEEN)
+                    .appendValues(Arrays.asList(ConditionValue.of(lower), ConditionValue.of(upper))));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having isNull() {
+            replaceLast(condition -> condition.withOperator(Operator.IS_NULL));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having isNotNull() {
+            replaceLast(condition -> condition.withOperator(Operator.IS_NOT_NULL));
             return HavingImpl.this;
         }
 
@@ -210,6 +366,13 @@ public class HavingImpl implements Having {
         @Override
         public Having infOrEqTo(Column column) {
             replaceLast(condition -> condition.withOperator(Operator.LESS_OR_EQ)
+                    .withRightColumn(requireColumn(column)));
+            return HavingImpl.this;
+        }
+
+        @Override
+        public Having notEq(Column column) {
+            replaceLast(condition -> condition.withOperator(Operator.NOT_EQ)
                     .withRightColumn(requireColumn(column)));
             return HavingImpl.this;
         }
