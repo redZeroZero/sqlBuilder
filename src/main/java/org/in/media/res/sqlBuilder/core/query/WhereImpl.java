@@ -15,26 +15,27 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.UnaryOperator;
 
-import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.constants.Operator;
-import org.in.media.res.sqlBuilder.api.query.ConditionValue;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Aggregator;
 import org.in.media.res.sqlBuilder.api.query.Comparator;
 import org.in.media.res.sqlBuilder.api.query.Condition;
+import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Connector;
 import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 import org.in.media.res.sqlBuilder.api.query.Query;
-import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder.ConditionGroup;
+import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
 
 public class WhereImpl implements Where {
 
 	private final List<Condition> filters = new ArrayList<>();
+
+	private final ClauseConditionBuffer buffer = new ClauseConditionBuffer(filters,
+			"Cannot apply operators without a starting condition. Call where(...) first.");
 
 	private final WhereTranspiler whereTranspiler = TranspilerFactory.instanciateWhereTranspiler();
 
@@ -45,36 +46,36 @@ public class WhereImpl implements Where {
 
 	@Override
 	public List<Condition> conditions() {
-		return List.copyOf(filters);
+		return buffer.snapshot();
 	}
 
 	@Override
 	public Where where(Column column) {
-		filters.addLast(ConditionImpl.builder().leftColumn(requireColumn(column)).build());
+		buffer.add(ConditionImpl.builder().leftColumn(requireColumn(column)).build(), null);
 		return this;
 	}
 
 	@Override
 	public Where and(Column column) {
-		filters.addLast(ConditionImpl.builder().and().leftColumn(requireColumn(column)).build());
+		buffer.add(ConditionImpl.builder().and().leftColumn(requireColumn(column)).build(), null);
 		return this;
 	}
 
 	@Override
 	public Where or(Column column) {
-		filters.addLast(ConditionImpl.builder().or().leftColumn(requireColumn(column)).build());
+		buffer.add(ConditionImpl.builder().or().leftColumn(requireColumn(column)).build(), null);
 		return this;
 	}
 
 	@Override
 	public Where and() {
-		filters.addLast(ConditionImpl.builder().and().build());
+		buffer.add(ConditionImpl.builder().and().build(), null);
 		return this;
 	}
 
 	@Override
 	public Where or() {
-		filters.addLast(ConditionImpl.builder().or().build());
+		buffer.add(ConditionImpl.builder().or().build(), null);
 		return this;
 	}
 
@@ -414,37 +415,37 @@ public class WhereImpl implements Where {
 
 	@Override
 	public Aggregator eq() {
-		replaceLast(condition -> condition.withOperator(EQ));
+		buffer.setOperator(EQ);
 		return this;
 	}
 
 	@Override
 	public Aggregator supTo() {
-		replaceLast(condition -> condition.withOperator(MORE));
+		buffer.setOperator(MORE);
 		return this;
 	}
 
 	@Override
 	public Aggregator infTo() {
-		replaceLast(condition -> condition.withOperator(LESS));
+		buffer.setOperator(LESS);
 		return this;
 	}
 
 	@Override
 	public Aggregator supOrEqTo() {
-		replaceLast(condition -> condition.withOperator(MORE_OR_EQ));
+		buffer.setOperator(MORE_OR_EQ);
 		return this;
 	}
 
 	@Override
 	public Aggregator infOrEqTo() {
-		replaceLast(condition -> condition.withOperator(LESS_OR_EQ));
+		buffer.setOperator(LESS_OR_EQ);
 		return this;
 	}
 
 	@Override
 	public Aggregator in() {
-		replaceLast(condition -> condition.withOperator(IN));
+		buffer.setOperator(IN);
 		return this;
 	}
 
@@ -486,89 +487,71 @@ public class WhereImpl implements Where {
 
 	@Override
 	public Comparator col(Column column) {
-		replaceLast(condition -> condition.withLeftColumn(column));
+		buffer.replaceLast(condition -> condition.withLeftColumn(column));
 		return this;
 	}
 
 	@Override
 	public Where condition(Condition condition) {
-		addCondition(condition, null);
+		buffer.add(condition, null);
 		return this;
 	}
 
 	@Override
 	public Where and(Condition condition) {
-		addCondition(condition, Operator.AND);
+		buffer.add(condition, Operator.AND);
 		return this;
 	}
 
 	@Override
 	public Where or(Condition condition) {
-		addCondition(condition, Operator.OR);
+		buffer.add(condition, Operator.OR);
 		return this;
 	}
 
 	Where aggregate(AggregateOperator aggregate, Column column) {
-		replaceLast(condition -> condition.withLeftAggregate(aggregate).withLeftColumn(requireColumn(column)));
+		buffer.replaceLast(condition -> condition.withLeftAggregate(aggregate).withLeftColumn(requireColumn(column)));
 		return this;
 	}
 
 	private void updateLastCondition(Operator operator, String... values) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		requireValues(operator, values.length);
+		buffer.updateLast(resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList());
 	}
 
 	private void updateLastCondition(Operator operator, Integer... values) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		requireValues(operator, values.length);
+		buffer.updateLast(resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList());
 	}
 
 	private void updateLastCondition(Operator operator, Double... values) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		requireValues(operator, values.length);
+		buffer.updateLast(resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList());
 	}
 
 	private void updateLastCondition(Operator operator, Date... values) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		requireValues(operator, values.length);
+		buffer.updateLast(resolveOperator(operator, values.length),
+				Arrays.stream(values).map(ConditionValue::of).toList());
 	}
 
 	private void updateLastCondition(Operator operator, ConditionValue value) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, 1), List.of(value)));
+		buffer.updateLast(resolveOperator(operator, 1), List.of(value));
 	}
 
 	private void updateLastCondition(Operator operator) {
-		replaceLast(condition -> condition.withOperator(operator));
+		buffer.setOperator(operator);
 	}
 
 	private void appendStandaloneCondition(Operator operator, ConditionValue value) {
-		if (filters.isEmpty()) {
-			filters.addLast(ConditionImpl.builder().comparisonOp(operator).value(value).build());
-			return;
-		}
-		ConditionImpl current = lastCondition();
-		if (current.getOperator() == null && current.getLeft() == null && current.values().isEmpty()) {
-			int lastIndex = filters.size() - 1;
-			filters.set(lastIndex, current.withOperator(operator).appendValue(value));
-		} else {
-			filters.addLast(ConditionImpl.builder().and().comparisonOp(operator).value(value).build());
-		}
+		buffer.appendStandalone(operator, value);
 	}
 
 	private void updateBetween(ConditionValue lower, ConditionValue upper) {
-		replaceLast(condition -> condition.withOperator(Operator.BETWEEN)
-				.appendValues(List.of(lower, upper)));
-	}
-
-	private ConditionImpl applyValues(ConditionImpl condition, Operator operator, List<ConditionValue> newValues) {
-		ConditionImpl updated = condition;
-		if (operator != null) {
-			updated = updated.withOperator(operator);
-		}
-		if (!newValues.isEmpty()) {
-			updated = updated.appendValues(newValues);
-		}
-		return updated;
+		buffer.updateLast(Operator.BETWEEN, List.of(lower, upper));
 	}
 
 	private Column requireColumn(Column column) {
@@ -576,8 +559,15 @@ public class WhereImpl implements Where {
 		return column;
 	}
 
+	private void requireValues(Operator operator, int valueCount) {
+		if (valueCount == 0) {
+			String label = operator != null ? operator.name() : "condition";
+			throw new IllegalArgumentException(label + " requires at least one value");
+		}
+	}
+
 	private void updateLastCondition(Operator operator, AggregateOperator aggregate, Column column) {
-		replaceLast(condition -> {
+		buffer.replaceLast(condition -> {
 			ConditionImpl updated = condition;
 			if (operator != null) {
 				updated = updated.withOperator(operator);
@@ -590,32 +580,6 @@ public class WhereImpl implements Where {
 			}
 			return updated;
 		});
-	}
-
-	private Condition normalize(Condition condition, Operator startOperator) {
-		Objects.requireNonNull(condition, "condition");
-		if (condition instanceof ConditionGroup group) {
-			return startOperator != null ? group.withStartOperator(startOperator) : group;
-		}
-		ConditionImpl normalized = condition instanceof ConditionImpl concrete ? concrete : ConditionImpl.copyOf(condition);
-		return startOperator != null ? normalized.withStartOperator(startOperator) : normalized;
-	}
-
-	private void addCondition(Condition condition, Operator startOperator) {
-		filters.addLast(normalize(condition, startOperator));
-	}
-
-	private ConditionImpl lastCondition() {
-		if (filters.isEmpty() || !(filters.getLast() instanceof ConditionImpl condition)) {
-			throw new IllegalStateException("Cannot apply operators without a starting condition. Call where(...) first.");
-		}
-		return condition;
-	}
-
-	private void replaceLast(UnaryOperator<ConditionImpl> mutator) {
-		ConditionImpl current = lastCondition();
-		int lastIndex = filters.size() - 1;
-		filters.set(lastIndex, mutator.apply(current));
 	}
 
 	private Operator resolveOperator(Operator operator, int valueCount) {

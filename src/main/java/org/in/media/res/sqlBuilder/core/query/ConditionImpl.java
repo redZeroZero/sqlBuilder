@@ -315,7 +315,7 @@ public final class ConditionImpl implements Condition {
 		}
 	}
 
-	static ConditionImpl copyOf(Condition condition) {
+	public static ConditionImpl copyOf(Condition condition) {
 		if (condition instanceof ConditionImpl concrete) {
 			return concrete;
 		}

@@ -7,7 +7,9 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Having;
+import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder;
 import org.in.media.res.sqlBuilder.core.query.HavingImpl;
 import org.in.media.res.sqlBuilder.core.query.WhereImpl;
 import org.junit.jupiter.api.Test;
@@ -119,5 +121,29 @@ class QueryValidationTest {
 	void validationAcceptsColumnsWithTable() {
 		Where where = new WhereImpl();
 		where.where(new ColumnStub(TABLE));
+	}
+
+	@Test
+	void whereInRejectsEmptyValueLists() {
+		Where where = new WhereImpl();
+		where.where(new ColumnStub(TABLE));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> where.in(new String[0]));
+		assertTrue(ex.getMessage().contains("at least one value"));
+	}
+
+	@Test
+	void havingInRejectsEmptyValueLists() {
+		Having having = new HavingImpl();
+		HavingBuilder builder = having.having(new ColumnStub(TABLE));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> builder.in(new Number[0]));
+		assertTrue(ex.getMessage().contains("at least one value"));
+	}
+
+	@Test
+	void conditionGroupInRejectsEmptyValueLists() {
+		ConditionGroupBuilder builder = new ConditionGroupBuilder();
+		builder.where(new ColumnStub(TABLE));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> builder.in(new String[0]));
+		assertTrue(ex.getMessage().contains("at least one value"));
 	}
 }

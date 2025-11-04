@@ -27,7 +27,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 
    Adjust the version to match the coordinate published in your artifact repository (the examples assume a local install).
 
-3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.core.query.QueryImpl` for fluent query construction and the generated table descriptors from your schema package.
+3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.api.query.SqlQuery` for fluent query construction and the generated table descriptors from your schema package.
 
 Once the dependency is available, you can start composing queries immediately:
 
@@ -36,7 +36,7 @@ EmployeeSchema schema = new EmployeeSchema();
 Table employee = schema.getTableBy(Employee.class);
 Table job = schema.getTableBy(Job.class);
 
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
     .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -53,7 +53,7 @@ The snippets below illustrate common patterns you can run in a REPL or unit test
 ### 1. Simple Projection
 
 ```java
-QueryImpl.newQuery()
+SqlQuery.newQuery()
     .select(employee) // or rely on descriptor shortcuts
     .transpile();
 ```
@@ -102,9 +102,9 @@ String sql = Query.newQuery()
 ### 5. Quick Count / Pretty Print
 
 ```java
-String sql = QueryImpl.countAll().transpile();             // SELECT COUNT(*)
+String sql = SqlQuery.countAll().transpile();             // SELECT COUNT(*)
 
-Query printable = QueryImpl.newQuery()
+Query printable = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee);
 printable.where(Employee.C_FIRST_NAME).eq("Alice");
@@ -120,10 +120,10 @@ WHERE Employee.FIRST_NAME = 'Alice'
 ### 6. Set Operations
 
 ```java
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(employee)
     .union(
-        QueryImpl.newQuery()
+        SqlQuery.newQuery()
             .select(job)
     )
     .transpile();
@@ -136,16 +136,16 @@ This renders `UNION` between the two subqueries. Use `unionAll`, `intersect`, or
 Build a subquery once, expose its columns, and reuse it as a table source:
 
 ```java
-Query salarySummary = QueryImpl.newQuery()
+Query salarySummary = SqlQuery.newQuery()
     .select(Employee.C_ID)
     .select(AggregateOperator.AVG, Job.C_SALARY)
     .from(employee)
     .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .groupBy(Employee.C_ID);
 
-Table salaryAvg = QueryImpl.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
+Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
 
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee)
     .join(salaryAvg).on(employee.get(Employee.C_ID), salaryAvg.get("EMPLOYEE_ID"))
@@ -153,21 +153,21 @@ String sql = QueryImpl.newQuery()
     .transpile();
 ```
 
-Call `QueryImpl.toTable(query)` to auto-generate aliases (or supply your own as above). Each column alias you provide or that is inferred is available via `salaryAvg.get("ALIAS")`, so subsequent clauses can reference the derived table just like any other.
+Call `SqlQuery.toTable(query)` to auto-generate aliases (or supply your own as above). Each column alias you provide or that is inferred is available via `salaryAvg.get("ALIAS")`, so subsequent clauses can reference the derived table just like any other.
 
 ### 8. Filtering with Subqueries
 
 ```java
-Query highSalaryIds = QueryImpl.newQuery()
+Query highSalaryIds = SqlQuery.newQuery()
     .select(Job.C_EMPLOYEE_ID)
     .from(job)
     .where(Job.C_SALARY).supOrEqTo(60000);
 
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee)
     .where(Employee.C_ID).in(highSalaryIds)
-    .exists(QueryImpl.newQuery().select(Job.C_ID).from(job))
+    .exists(SqlQuery.newQuery().select(Job.C_ID).from(job))
     .transpile();
 ```
 
@@ -186,7 +186,7 @@ var salaryGroup = QueryHelper.group(group -> group
     .where(Job.C_SALARY).supOrEqTo(120_000)
     .or(sub -> sub.where(Job.C_SALARY).between(80_000, 90_000)));
 
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee)
     .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -271,7 +271,7 @@ Table customer = schema.getTableBy(Customer.class);
 4. **Use the descriptors** in queries:
 
 ```java
-String sql = QueryImpl.newQuery()
+String sql = SqlQuery.newQuery()
     .select(Customer.C_ID, Customer.C_FIRST_NAME)
     .from(customer)
     .where(Customer.C_LAST_NAME).like("%son")
