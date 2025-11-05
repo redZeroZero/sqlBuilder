@@ -15,6 +15,7 @@ import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 
 /**
@@ -291,6 +292,10 @@ public final class ConditionGroupBuilder {
 		return this;
 	}
 
+	public <T extends Comparable<? super T>> ConditionGroupBuilder min(ColumnRef<T> descriptor) {
+		return min(descriptor.column());
+	}
+
 	public ConditionGroupBuilder min(TableDescriptor<?> descriptor) {
 		return min(descriptor.column());
 	}
@@ -298,6 +303,10 @@ public final class ConditionGroupBuilder {
 	public ConditionGroupBuilder max(Column column) {
 		applyAggregate(AggregateOperator.MAX, requireColumn(column));
 		return this;
+	}
+
+	public <T extends Comparable<? super T>> ConditionGroupBuilder max(ColumnRef<T> descriptor) {
+		return max(descriptor.column());
 	}
 
 	public ConditionGroupBuilder max(TableDescriptor<?> descriptor) {
@@ -309,6 +318,10 @@ public final class ConditionGroupBuilder {
 		return this;
 	}
 
+	public <N extends Number> ConditionGroupBuilder sum(ColumnRef<N> descriptor) {
+		return sum(descriptor.column());
+	}
+
 	public ConditionGroupBuilder sum(TableDescriptor<?> descriptor) {
 		return sum(descriptor.column());
 	}
@@ -316,6 +329,10 @@ public final class ConditionGroupBuilder {
 	public ConditionGroupBuilder avg(Column column) {
 		applyAggregate(AggregateOperator.AVG, requireColumn(column));
 		return this;
+	}
+
+	public <N extends Number> ConditionGroupBuilder avg(ColumnRef<N> descriptor) {
+		return avg(descriptor.column());
 	}
 
 	public ConditionGroupBuilder avg(TableDescriptor<?> descriptor) {

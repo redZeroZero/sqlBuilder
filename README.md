@@ -106,7 +106,8 @@ String sql = SqlQuery.countAll().transpile();             // SELECT COUNT(*)
 
 Query printable = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
-    .from(employee);
+    .from(employee)
+    .asQuery();
 printable.where(Employee.C_FIRST_NAME).eq("Alice");
 
 System.out.println(printable.prettyPrint());
@@ -125,6 +126,7 @@ String sql = SqlQuery.newQuery()
     .union(
         SqlQuery.newQuery()
             .select(job)
+            .asQuery()
     )
     .transpile();
 ```
@@ -141,7 +143,8 @@ Query salarySummary = SqlQuery.newQuery()
     .select(AggregateOperator.AVG, Job.C_SALARY)
     .from(employee)
     .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-    .groupBy(Employee.C_ID);
+    .groupBy(Employee.C_ID)
+    .asQuery();
 
 Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
 
@@ -161,13 +164,14 @@ Call `SqlQuery.toTable(query)` to auto-generate aliases (or supply your own as a
 Query highSalaryIds = SqlQuery.newQuery()
     .select(Job.C_EMPLOYEE_ID)
     .from(job)
-    .where(Job.C_SALARY).supOrEqTo(60000);
+    .where(Job.C_SALARY).supOrEqTo(60000)
+    .asQuery();
 
 String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee)
     .where(Employee.C_ID).in(highSalaryIds)
-    .exists(SqlQuery.newQuery().select(Job.C_ID).from(job))
+    .exists(SqlQuery.newQuery().select(Job.C_ID).from(job).asQuery())
     .transpile();
 ```
 
@@ -204,6 +208,7 @@ The same helper works for HAVING clauses: call `query.having(QueryHelper.group(.
 - Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
 - WHERE / HAVING now support the full comparator set: `<>`, `LIKE`, `NOT LIKE`, `BETWEEN`, `IN` / `NOT IN`, `IS (NOT) NULL`, plus scalar and set subqueries (`eq`, `in`, `exists`).
 - Subqueries can be wrapped into derived tables with `Query.as(alias, columns...)` and reused in any `FROM` / `JOIN` position.
+- Prefer typed column descriptors when you need compile-time guards: `ColumnRef<BigDecimal> SALARY = ColumnRef.of("SALARY", BigDecimal.class);` lets the DSL accept `avg(SALARY)` while preventing you from applying numeric aggregates to non-numeric fields. Existing raw descriptors continue to work unchanged.
 - `EmployeeSchema` auto-discovers tables in the `org.in.media.res.sqlBuilder.example` package. Pass a different base package to scan additional modules, or plug your own schema into `SchemaScanner.scan("com.acme.sales")`.
 
 ## Configuration & Integration Tips

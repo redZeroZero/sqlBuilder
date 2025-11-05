@@ -18,28 +18,28 @@ public final class SqlQuery {
 		// no instances
 	}
 
-	public static Query newQuery() {
-		return QueryImpl.newQuery();
+	public static SelectStage newQuery() {
+		return (SelectStage) QueryImpl.newQuery();
 	}
 
-	public static Query fromTable(Table table) {
-		return QueryImpl.fromTable(Objects.requireNonNull(table, "table"));
+	public static FromStage fromTable(Table table) {
+		return (FromStage) QueryImpl.fromTable(Objects.requireNonNull(table, "table"));
 	}
 
-	public static Query selecting(Column... columns) {
-		return QueryImpl.selecting(columns);
+	public static SelectStage selecting(Column... columns) {
+		return (SelectStage) QueryImpl.selecting(columns);
 	}
 
-	public static Query selectingDescriptors(TableDescriptor<?>... descriptors) {
-		return QueryImpl.selectingDescriptors(descriptors);
+	public static SelectStage selectingDescriptors(TableDescriptor<?>... descriptors) {
+		return (SelectStage) QueryImpl.selectingDescriptors(descriptors);
 	}
 
-	public static Query countAll() {
-		return QueryImpl.countAll();
+	public static SelectStage countAll() {
+		return (SelectStage) QueryImpl.countAll();
 	}
 
-	public static Query selecting(AggregateOperator agg, Column column) {
-		return QueryImpl.newQuery().select(agg, column);
+	public static SelectStage selecting(AggregateOperator agg, Column column) {
+		return (SelectStage) QueryImpl.newQuery().select(agg, column);
 	}
 
 	public static Table toTable(Query query, String alias, String... columnAliases) {

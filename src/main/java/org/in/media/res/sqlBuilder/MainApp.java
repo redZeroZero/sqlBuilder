@@ -24,7 +24,8 @@ public final class MainApp {
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)
 				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-				.groupBy(Employee.C_ID);
+				.groupBy(Employee.C_ID)
+				.asQuery();
 
 		Table salaryAverages = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
 
@@ -39,6 +40,7 @@ public final class MainApp {
 						.where(Employee.C_LAST_NAME).like("M%")
 						.or(Employee.C_MAIL).like("%@acme.com")))
 				.orderBy(Employee.C_LAST_NAME)
+				.asQuery()
 				.prettyPrint();
 
 		System.out.println(sql);

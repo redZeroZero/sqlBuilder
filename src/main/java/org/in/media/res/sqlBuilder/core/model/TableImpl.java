@@ -121,7 +121,7 @@ public class TableImpl<T extends TableDescriptor<T>> implements Table {
             return this;
         }
 
-		public Builder column(ColumnRef descriptor) {
+		public Builder column(ColumnRef<?> descriptor) {
 			table.createColumn(descriptor.value(), descriptor.alias(), column -> {
 				table.cols.put(descriptor.value(), column);
 				descriptor.bindColumn(column);

@@ -52,14 +52,14 @@ public final class SchemaScanner {
 				SqlColumn columnAnnotation = field.getAnnotation(SqlColumn.class);
 				String columnName = columnAnnotation.name().isBlank() ? field.getName() : columnAnnotation.name();
 				String columnAlias = columnAnnotation.alias().isBlank() ? null : columnAnnotation.alias();
-				ColumnRef descriptor = ColumnRef.of(columnName, columnAlias);
+				ColumnRef<?> descriptor = ColumnRef.of(columnName, columnAlias);
 				builder.column(descriptor);
 				bindFieldIfNecessary(candidate, field, descriptor);
 			}
 		});
 	}
 
-	private static void bindFieldIfNecessary(Class<?> candidate, Field field, ColumnRef descriptor) {
+	private static void bindFieldIfNecessary(Class<?> candidate, Field field, ColumnRef<?> descriptor) {
 		if (!ColumnRef.class.isAssignableFrom(field.getType())) {
 			return;
 		}

@@ -9,7 +9,7 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 
-public interface Query extends Select, From, Where, GroupBy, OrderBy, Having, Limit {
+public interface Query extends SelectStage, FromStage {
 
 	public List<Clause> clauses();
 
