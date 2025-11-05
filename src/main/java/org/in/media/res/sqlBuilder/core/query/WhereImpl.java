@@ -23,12 +23,13 @@ import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Connector;
 import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
+import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 public class WhereImpl implements Where {
 
@@ -129,13 +130,13 @@ public class WhereImpl implements Where {
 
 	@Override
 	public Connector like(String value) {
-		this.updateLastCondition(Operator.LIKE, value);
+		this.updateLastCondition(Operator.LIKE, SqlEscapers.escapeLikePattern(value));
 		return this;
 	}
 
 	@Override
 	public Connector notLike(String value) {
-		this.updateLastCondition(Operator.NOT_LIKE, value);
+		this.updateLastCondition(Operator.NOT_LIKE, SqlEscapers.escapeLikePattern(value));
 		return this;
 	}
 

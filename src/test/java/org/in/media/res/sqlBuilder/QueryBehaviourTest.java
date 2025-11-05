@@ -277,7 +277,7 @@ class QueryBehaviourTest {
 				.where(Employee.C_FIRST_NAME).like("%ice%")
 				.transpile();
 
-		assertTrue(sql.contains(" LIKE '%ice%'"));
+		assertTrue(sql.contains(" LIKE '\\%ice\\%' ESCAPE '\\'"), () -> sql);
 	}
 
 	@Test

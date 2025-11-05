@@ -3,6 +3,7 @@ package org.in.media.res.sqlBuilder.core.query;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
@@ -14,6 +15,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
+import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 public class HavingImpl implements Having {
 
@@ -243,15 +245,15 @@ public class HavingImpl implements Having {
 			return HavingImpl.this;
 		}
 
-        @Override
-        public Having like(String value) {
-            return applyOperator(Operator.LIKE, ConditionValue.of(value));
-        }
+		@Override
+		public Having like(String value) {
+			return applyOperator(Operator.LIKE, ConditionValue.of(SqlEscapers.escapeLikePattern(value)));
+		}
 
-        @Override
-        public Having notLike(String value) {
-            return applyOperator(Operator.NOT_LIKE, ConditionValue.of(value));
-        }
+		@Override
+		public Having notLike(String value) {
+			return applyOperator(Operator.NOT_LIKE, ConditionValue.of(SqlEscapers.escapeLikePattern(value)));
+		}
 
         @Override
         public Having between(Number lower, Number upper) {

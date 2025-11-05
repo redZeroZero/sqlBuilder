@@ -17,6 +17,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
+import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 /**
  * Builder for grouped boolean expressions that can be used inside WHERE / HAVING clauses.
@@ -256,12 +257,12 @@ public final class ConditionGroupBuilder {
 	}
 
 	public ConditionGroupBuilder like(String value) {
-		updateLastCondition(Operator.LIKE, value);
+		updateLastCondition(Operator.LIKE, SqlEscapers.escapeLikePattern(value));
 		return this;
 	}
 
 	public ConditionGroupBuilder notLike(String value) {
-		updateLastCondition(Operator.NOT_LIKE, value);
+		updateLastCondition(Operator.NOT_LIKE, SqlEscapers.escapeLikePattern(value));
 		return this;
 	}
 

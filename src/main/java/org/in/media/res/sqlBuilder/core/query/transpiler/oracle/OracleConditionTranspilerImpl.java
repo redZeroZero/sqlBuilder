@@ -10,6 +10,7 @@ import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 
@@ -87,6 +88,9 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 				return;
 			}
 			appendLiteral(sb, co.values().get(0));
+			if (isLikeOperator(co.getOperator())) {
+				sb.append(" ESCAPE '").append(SqlEscapers.likeEscapeChar()).append("'");
+			}
 		} else {
 			sb.append(OPENING_PARENTHESIS);
 			for (int i = 0; i < co.values().size(); i++)
@@ -110,7 +114,7 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 		switch (value.type()) {
 		case TY_DATE:
 		case TY_STR:
-			sb.append(POUIC).append(value.value()).append(POUIC);
+			sb.append(POUIC).append(SqlEscapers.escapeStringLiteral(String.valueOf(value.value()))).append(POUIC);
 			break;
 		case TY_DBL:
 		case TY_INT:
@@ -128,6 +132,10 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 	private void appendSubquery(StringBuilder sb, ConditionValue value) {
 		Query query = (Query) value.value();
 		sb.append(OPENING_PARENTHESIS).append(query.transpile()).append(CLOSING_PARENTHESIS);
+	}
+
+	private boolean isLikeOperator(Operator operator) {
+		return Operator.LIKE.equals(operator) || Operator.NOT_LIKE.equals(operator);
 	}
 
 	private boolean isGroupedCondition(Condition condition) {
