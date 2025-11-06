@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface SqlColumn {
 	String name() default "";
 	String alias() default "";
+	Class<?> javaType() default Object.class;
 }

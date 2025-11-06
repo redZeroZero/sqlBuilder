@@ -20,11 +20,13 @@ public interface OrderBy extends Clause, Resetable, Transpilable {
 		return orderBy(descriptor.column(), direction);
 	}
 
+
 	OrderBy asc(Column column);
 
 	default OrderBy asc(TableDescriptor<?> descriptor) {
 		return asc(descriptor.column());
 	}
+
 
 	OrderBy desc(Column column);
 

@@ -8,6 +8,7 @@ import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 
 public interface Query extends SelectStage, FromStage {
 
@@ -28,6 +29,18 @@ public interface Query extends SelectStage, FromStage {
 	Query select(AggregateOperator agg, Column column);
 
 	Query select(AggregateOperator agg, TableDescriptor<?> descriptor);
+
+	default Query select(ColumnRef<?> descriptor) {
+		select(descriptor.column());
+		return this;
+	}
+
+	default Query select(ColumnRef<?>... descriptors) {
+		for (ColumnRef<?> descriptor : descriptors) {
+			select(descriptor);
+		}
+		return this;
+	}
 
 	Query where(Condition condition);
 
@@ -93,6 +106,11 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	@Override
 	default Query where(TableDescriptor<?> descriptor) {
 		return where(descriptor.column());
+	}
+
+	default Query where(ColumnRef<?> descriptor) {
+		where(descriptor.column());
+		return this;
 	}
 
 
@@ -246,6 +264,161 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	@Override
 	Query notIn(Double... value);
 
+	default Query like(ColumnRef<? extends CharSequence> descriptor, String value) {
+		where(descriptor.column()).like(value);
+		return this;
+	}
+
+	default Query notLike(ColumnRef<? extends CharSequence> descriptor, String value) {
+		where(descriptor.column()).notLike(value);
+		return this;
+	}
+
+	default Query eq(ColumnRef<String> descriptor, String value) {
+		where(descriptor.column()).eq(value);
+		return this;
+	}
+
+	default Query notEq(ColumnRef<String> descriptor, String value) {
+		where(descriptor.column()).notEq(value);
+		return this;
+	}
+
+	default Query eq(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).eq(value);
+		return this;
+	}
+
+	default Query notEq(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).notEq(value);
+		return this;
+	}
+
+	default Query eq(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).eq(value);
+		return this;
+	}
+
+	default Query notEq(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).notEq(value);
+		return this;
+	}
+
+	default Query eq(ColumnRef<Date> descriptor, Date value) {
+		where(descriptor.column()).eq(value);
+		return this;
+	}
+
+	default Query notEq(ColumnRef<Date> descriptor, Date value) {
+		where(descriptor.column()).notEq(value);
+		return this;
+	}
+
+	default Query supTo(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).supTo(value);
+		return this;
+	}
+
+	default Query supOrEqTo(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).supOrEqTo(value);
+		return this;
+	}
+
+	default Query infTo(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).infTo(value);
+		return this;
+	}
+
+	default Query infOrEqTo(ColumnRef<Integer> descriptor, Integer value) {
+		where(descriptor.column()).infOrEqTo(value);
+		return this;
+	}
+
+	default Query supTo(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).supTo(value);
+		return this;
+	}
+
+	default Query supOrEqTo(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).supOrEqTo(value);
+		return this;
+	}
+
+	default Query infTo(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).infTo(value);
+		return this;
+	}
+
+	default Query infOrEqTo(ColumnRef<Double> descriptor, Double value) {
+		where(descriptor.column()).infOrEqTo(value);
+		return this;
+	}
+
+	default Query between(ColumnRef<Integer> descriptor, Integer lower, Integer upper) {
+		where(descriptor.column()).between(lower, upper);
+		return this;
+	}
+
+	default Query between(ColumnRef<Double> descriptor, Double lower, Double upper) {
+		where(descriptor.column()).between(lower, upper);
+		return this;
+	}
+
+	default Query between(ColumnRef<Date> descriptor, Date lower, Date upper) {
+		where(descriptor.column()).between(lower, upper);
+		return this;
+	}
+
+	default Query in(ColumnRef<String> descriptor, String... values) {
+		where(descriptor.column()).in(values);
+		return this;
+	}
+
+	default Query notIn(ColumnRef<String> descriptor, String... values) {
+		where(descriptor.column()).notIn(values);
+		return this;
+	}
+
+	default Query in(ColumnRef<Integer> descriptor, Integer... values) {
+		where(descriptor.column()).in(values);
+		return this;
+	}
+
+	default Query notIn(ColumnRef<Integer> descriptor, Integer... values) {
+		where(descriptor.column()).notIn(values);
+		return this;
+	}
+
+	default Query in(ColumnRef<Double> descriptor, Double... values) {
+		where(descriptor.column()).in(values);
+		return this;
+	}
+
+	default Query notIn(ColumnRef<Double> descriptor, Double... values) {
+		where(descriptor.column()).notIn(values);
+		return this;
+	}
+
+	default Query in(ColumnRef<Date> descriptor, Date... values) {
+		where(descriptor.column()).in(values);
+		return this;
+	}
+
+	default Query notIn(ColumnRef<Date> descriptor, Date... values) {
+		where(descriptor.column()).notIn(values);
+		return this;
+	}
+
+	default Query isNull(ColumnRef<?> descriptor) {
+		where(descriptor.column()).isNull();
+		return this;
+	}
+
+	default Query isNotNull(ColumnRef<?> descriptor) {
+		where(descriptor.column()).isNotNull();
+		return this;
+	}
+
 	@Override
 	Query isNull();
 
@@ -375,6 +548,17 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 
 	Query groupBy(TableDescriptor<?>... descriptors);
 
+	default Query groupBy(ColumnRef<?> descriptor) {
+		return groupBy(descriptor.column());
+	}
+
+	default Query groupBy(ColumnRef<?>... descriptors) {
+		for (ColumnRef<?> descriptor : descriptors) {
+			groupBy(descriptor);
+		}
+		return this;
+	}
+
 	@Override
 	Query orderBy(Column column);
 
@@ -385,6 +569,14 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 
 	Query orderBy(TableDescriptor<?> descriptor, SortDirection direction);
 
+	default Query orderBy(ColumnRef<?> descriptor) {
+		return orderBy(descriptor.column());
+	}
+
+	default Query orderBy(ColumnRef<?> descriptor, SortDirection direction) {
+		return orderBy(descriptor.column(), direction);
+	}
+
 	@Override
 	Query asc(Column column);
 
@@ -394,6 +586,14 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	Query desc(Column column);
 
 	Query desc(TableDescriptor<?> descriptor);
+
+	default Query asc(ColumnRef<?> descriptor) {
+		return asc(descriptor.column());
+	}
+
+	default Query desc(ColumnRef<?> descriptor) {
+		return desc(descriptor.column());
+	}
 
 	@Override
 	Query having(Condition condition);

@@ -7,20 +7,20 @@ import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 @SqlTable(name = "Employee", alias = "E")
 public final class Employee {
 
-	@SqlColumn(name = "ID")
-	public static ColumnRef C_ID;
+	@SqlColumn(name = "ID", javaType = Integer.class)
+	public static ColumnRef<Integer> C_ID;
 
-	@SqlColumn(name = "FIRST_NAME", alias = "firstName")
-	public static ColumnRef C_FIRST_NAME;
+	@SqlColumn(name = "FIRST_NAME", alias = "firstName", javaType = String.class)
+	public static ColumnRef<String> C_FIRST_NAME;
 
-	@SqlColumn(name = "LAST_NAME", alias = "lastName")
-	public static ColumnRef C_LAST_NAME;
+	@SqlColumn(name = "LAST_NAME", alias = "lastName", javaType = String.class)
+	public static ColumnRef<String> C_LAST_NAME;
 
-	@SqlColumn(name = "MAIL", alias = "email")
-	public static ColumnRef C_MAIL;
+	@SqlColumn(name = "MAIL", alias = "email", javaType = String.class)
+	public static ColumnRef<String> C_MAIL;
 
-	@SqlColumn(name = "PASSWORD", alias = "passwd")
-	public static ColumnRef C_PASSWORD;
+	@SqlColumn(name = "PASSWORD", alias = "passwd", javaType = String.class)
+	public static ColumnRef<String> C_PASSWORD;
 
 	private Employee() {
 	}

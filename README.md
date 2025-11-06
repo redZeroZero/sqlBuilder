@@ -209,6 +209,7 @@ The same helper works for HAVING clauses: call `query.having(QueryHelper.group(.
 - WHERE / HAVING now support the full comparator set: `<>`, `LIKE`, `NOT LIKE`, `BETWEEN`, `IN` / `NOT IN`, `IS (NOT) NULL`, plus scalar and set subqueries (`eq`, `in`, `exists`).
 - Subqueries can be wrapped into derived tables with `Query.as(alias, columns...)` and reused in any `FROM` / `JOIN` position.
 - Prefer typed column descriptors when you need compile-time guards: `ColumnRef<BigDecimal> SALARY = ColumnRef.of("SALARY", BigDecimal.class);` lets the DSL accept `avg(SALARY)` while preventing you from applying numeric aggregates to non-numeric fields. Existing raw descriptors continue to work unchanged.
+- `LIKE` patterns are escaped automatically (so `%`, `_`, and `\` become `\%`, `\_`, `\\`) and the transpiler appends `ESCAPE '\'` for you—no need to double-escape in client code.
 - `EmployeeSchema` auto-discovers tables in the `org.in.media.res.sqlBuilder.example` package. Pass a different base package to scan additional modules, or plug your own schema into `SchemaScanner.scan("com.acme.sales")`.
 
 ## Configuration & Integration Tips
@@ -226,17 +227,41 @@ Annotate plain Java classes to describe tables and their columns. `SchemaScanner
 @SqlTable(name = "Customer", alias = "C")
 public final class Customer {
 
-    @SqlColumn(name = "ID")
-    public static ColumnRef ID;
+    @SqlColumn(name = "ID", javaType = Long.class)
+    public static ColumnRef<Long> ID;
 
-    @SqlColumn(name = "FIRST_NAME", alias = "firstName")
-    public static ColumnRef FIRST_NAME;
+    @SqlColumn(name = "FIRST_NAME", alias = "firstName", javaType = String.class)
+    public static ColumnRef<String> FIRST_NAME;
 
-    @SqlColumn(name = "LAST_NAME", alias = "lastName")
-    public static ColumnRef LAST_NAME;
+    @SqlColumn(name = "LAST_NAME", alias = "lastName", javaType = String.class)
+    public static ColumnRef<String> LAST_NAME;
 
     private Customer() {} // prevent instantiation
 }
+
+// Alternatively, keep the fields as plain types and let ColumnRef descriptors be derived automatically:
+
+@SqlTable(name = "Customer", alias = "C")
+public final class CustomerPlain {
+
+    @SqlColumn(name = "ID", javaType = Long.class)
+    public static Long ID; // ColumnRef generated via schema facets
+
+    @SqlColumn(name = "FIRST_NAME", alias = "firstName", javaType = String.class)
+    public static String FIRST_NAME;
+
+    @SqlColumn(name = "LAST_NAME", alias = "lastName", javaType = String.class)
+    public static String LAST_NAME;
+
+    private CustomerPlain() {}
+}
+
+// Later, when you need the descriptors:
+var customerFacet = schema.facets().facet(CustomerPlain.class);
+ColumnRef<Long> customerId = (ColumnRef<Long>) customerFacet.column("ID");
+```
+
+If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. In that case, retrieve the generated `ColumnRef` instances via `schema.facets().facet(Customer.class)` when building queries.
 ```
 
 To build a schema from a package (auto-detects classes like `Customer` above):
@@ -260,7 +285,7 @@ Mix-and-match is supported: legacy enum descriptors are still discovered, so you
 
 1. **Model your tables** using `@SqlTable` / `@SqlColumn` annotations. Static `ColumnRef` fields become the handles used throughout the DSL.
 2. **Expose a schema** by extending `ScannedSchema` (or instantiating `SchemaScanner` directly) with the package that contains those annotated classes.
-3. **Bundle the schema** with your application so callers can ask for a `Table` or `ColumnRef` by descriptor class. Example:
+3. **Bundle the schema** with your application so callers can ask for a `Table` or `ColumnRef` by descriptor class. Every column must expose its Java type either via `ColumnRef<T>` generics or `@SqlColumn(javaType = ...)`, otherwise scanning will fail early. Example:
 
 ```java
 public final class SalesSchema extends ScannedSchema {
@@ -271,6 +296,10 @@ public final class SalesSchema extends ScannedSchema {
 
 SalesSchema schema = new SalesSchema();
 Table customer = schema.getTableBy(Customer.class);
+
+// Optional: fetch typed column facets for additional compile-time safety
+var customerFacet = schema.facets().facet(Customer.class);
+ColumnRef<String> lastName = (ColumnRef<String>) customerFacet.column("LAST_NAME");
 ```
 
 4. **Use the descriptors** in queries:
@@ -282,6 +311,33 @@ String sql = SqlQuery.newQuery()
     .where(Customer.C_LAST_NAME).like("%son")
     .transpile();
 ```
+
+Fluent helpers now accept typed descriptors directly, so you can skip intermediate `where(...)` calls when it reads better. For example:
+
+```java
+String sql = SqlQuery.newQuery()
+    .select(Customer.C_ID)
+    .from(customer)
+    .like(Customer.C_LAST_NAME, "%son")
+    .isNull(Customer.C_MAIL)
+    .transpile();
+```
+
+### Typed Rows & Builders
+
+Use `TableFacets` to construct strongly-typed row objects that carry values per column:
+
+```java
+var customerFacet = schema.facets().facet(Customer.class);
+TableRow row = customerFacet.rowBuilder()
+    .set(customerFacet.column("ID"), 42L)
+    .set(customerFacet.column("FIRST_NAME"), "Ada")
+    .build();
+
+String name = row.get((ColumnRef<String>) customerFacet.column("FIRST_NAME"));
+```
+
+These rows can be useful for fixtures, parameter binding, or integrating with whatever persistence layer you prefer.
 
 If you prefer manual wiring, you can instantiate `TableImpl` and `ColumnImpl` directly—just ensure each column is linked to its owning table before you pass it to the fluent APIs.
 

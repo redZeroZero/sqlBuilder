@@ -13,10 +13,13 @@ public class ScannedSchema implements Schema {
 	private final String basePackage;
 	private List<Table> tables;
 	private String schemaName;
+	private volatile TableFacets facets;
 
 	public ScannedSchema(String basePackage) {
 		this.basePackage = Objects.requireNonNull(basePackage, "basePackage");
-		this.tables = CACHE.lookup(basePackage, Thread.currentThread().getContextClassLoader());
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();
+		this.tables = CACHE.lookup(basePackage, loader);
+		this.facets = SchemaScanner.facets(basePackage, loader);
 	}
 
 	@Override
@@ -53,11 +56,31 @@ public class ScannedSchema implements Schema {
 	}
 
 	public void refresh() {
-		this.tables = CACHE.refresh(basePackage, Thread.currentThread().getContextClassLoader());
+		ClassLoader loader = Thread.currentThread().getContextClassLoader();
+		SchemaScanner.invalidate(basePackage, loader);
+		this.tables = CACHE.refresh(basePackage, loader);
+		this.facets = SchemaScanner.facets(basePackage, loader);
 	}
 
 	public String getBasePackage() {
 		return basePackage;
+	}
+
+	public TableFacets facets() {
+		TableFacets snapshot = facets;
+		if (snapshot == null) {
+			synchronized (this) {
+				if (facets == null) {
+					facets = SchemaScanner.facets(basePackage, Thread.currentThread().getContextClassLoader());
+				}
+				snapshot = facets;
+			}
+		}
+		return snapshot;
+	}
+
+	public TableFacets.Facet facet(Class<?> descriptorClass) {
+		return facets().facetFor(descriptorClass);
 	}
 
 	public static void clearCache() {
