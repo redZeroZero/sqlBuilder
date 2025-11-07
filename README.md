@@ -6,7 +6,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 
 ### Installation
 
-1. Clone this repository (or add it as a Git submodule) and run `mvn -q -DskipTests package` to install it to your local Maven cache.
+1. Clone this repository (or add it as a Git submodule) and run `mvn -q -DskipTests package` from the repo root to build both modules and install the core jar into your local Maven cache.
 2. Add the dependency to your application:
 
    **Maven**
@@ -14,7 +14,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
    ```xml
    <dependency>
      <groupId>org.in.media.res</groupId>
-     <artifactId>sqlBuilder</artifactId>
+     <artifactId>sqlBuilder-core</artifactId>
      <version>0.0.1-SNAPSHOT</version>
    </dependency>
    ```
@@ -22,12 +22,17 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
    **Gradle (Kotlin DSL)**
 
    ```kotlin
-   implementation("org.in.media.res:sqlBuilder:0.0.1-SNAPSHOT")
+   implementation("org.in.media.res:sqlBuilder-core:0.0.1-SNAPSHOT")
    ```
 
    Adjust the version to match the coordinate published in your artifact repository (the examples assume a local install).
 
 3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.api.query.SqlQuery` for fluent query construction and the generated table descriptors from your schema package.
+
+### Repository layout
+
+- `core/` — the distributable DSL, factories, validators, and annotation processor (compiles with `-proc:none` but packages the processor for downstream use).
+- `examples/` — the sample schema, `MainApp`, benchmarks, and integration-style tests. This module depends on `sqlBuilder-core`, runs the annotation processor to generate column facades, and mirrors the usage documented below. Run `mvn -pl examples -q test` when you only want to exercise the sample project.
 
 Once the dependency is available, you can start composing queries immediately:
 
@@ -151,7 +156,7 @@ Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "
 String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .from(employee)
-    .join(salaryAvg).on(employee.get(Employee.C_ID), salaryAvg.get("EMPLOYEE_ID"))
+    .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
     .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(60000)
     .transpile();
 ```
@@ -182,13 +187,15 @@ Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subq
 Use `QueryHelper.group` to build parenthesised predicates that mirror SQL's boolean syntax. `and(...)` / `or(...)` automatically target the active clause (WHERE vs. HAVING), so you can chain grouped expressions fluently:
 
 ```java
-var stateGroup = QueryHelper.group(group -> group
+var stateGroup = QueryHelper.group()
     .where(Employee.C_STATE).eq("CA")
-    .or(Employee.C_STATE).eq("OR"));
+    .or(Employee.C_STATE).eq("OR");
 
-var salaryGroup = QueryHelper.group(group -> group
+var salaryGroup = QueryHelper.group()
     .where(Job.C_SALARY).supOrEqTo(120_000)
-    .or(sub -> sub.where(Job.C_SALARY).between(80_000, 90_000)));
+    .orGroup()
+        .where(Job.C_SALARY).between(80_000, 90_000)
+    .endGroup();
 
 String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
@@ -198,6 +205,8 @@ String sql = SqlQuery.newQuery()
     .and(salaryGroup)           //   AND (J.SALARY >= 120000 OR (J.SALARY BETWEEN 80000 AND 90000))
     .transpile();
 ```
+
+Call `QueryHelper.group()` without arguments when you want an inline builder that can be passed straight into `.where(...)`, `.and(...)`, or `.having(...)`. Chain `.andGroup()` / `.orGroup()` whenever you need nested parentheses, then finish the nested block with `.endGroup()`—no lambdas required. (The consumer overload remains available if you prefer that style.)
 
 The same helper works for HAVING clauses: call `query.having(QueryHelper.group(...)).and(...)` to keep aggregates nested under a single `HAVING` block without hand-written parentheses.
 
@@ -209,6 +218,9 @@ The same helper works for HAVING clauses: call `query.having(QueryHelper.group(.
 - WHERE / HAVING now support the full comparator set: `<>`, `LIKE`, `NOT LIKE`, `BETWEEN`, `IN` / `NOT IN`, `IS (NOT) NULL`, plus scalar and set subqueries (`eq`, `in`, `exists`).
 - Subqueries can be wrapped into derived tables with `Query.as(alias, columns...)` and reused in any `FROM` / `JOIN` position.
 - Prefer typed column descriptors when you need compile-time guards: `ColumnRef<BigDecimal> SALARY = ColumnRef.of("SALARY", BigDecimal.class);` lets the DSL accept `avg(SALARY)` while preventing you from applying numeric aggregates to non-numeric fields. Existing raw descriptors continue to work unchanged.
+- Stage interfaces expose typed overloads, so you can call `select(customerColumns.ID())`, `where(customerColumns.LAST_NAME())`, or `like(customerColumns.LAST_NAME(), "%son")` without down-casting to `Query`.
+- Annotated POJOs run through `SqlTableProcessor`, which now emits a `<Table>Columns` interface *and* a concrete `<Table>ColumnsImpl`. `TableFacets.columns(...)` automatically instantiates that implementation so you get IDE-friendly accessors without reflection.
+- The build disables annotation processing (`-proc:none`) to keep local compilation simple; the processor is still packaged in the jar. Enable annotation processing in your application module (or remove that compiler arg) to have column interfaces generated automatically.
 - `LIKE` patterns are escaped automatically (so `%`, `_`, and `\` become `\%`, `\_`, `\\`) and the transpiler appends `ESCAPE '\'` for you—no need to double-escape in client code.
 - `EmployeeSchema` auto-discovers tables in the `org.in.media.res.sqlBuilder.example` package. Pass a different base package to scan additional modules, or plug your own schema into `SchemaScanner.scan("com.acme.sales")`.
 
@@ -239,7 +251,8 @@ public final class Customer {
     private Customer() {} // prevent instantiation
 }
 
-// Alternatively, keep the fields as plain types and let ColumnRef descriptors be derived automatically:
+// Alternatively, keep the fields as plain types and let ColumnRef descriptors be derived automatically.
+// The annotation processor will generate `CustomerPlainColumns` (plus `CustomerPlainColumnsImpl`) with typed accessors.
 
 @SqlTable(name = "Customer", alias = "C")
 public final class CustomerPlain {
@@ -256,20 +269,32 @@ public final class CustomerPlain {
     private CustomerPlain() {}
 }
 
-public interface CustomerColumns {
-    ColumnRef<Long> ID();
-    ColumnRef<String> FIRST_NAME();
-    ColumnRef<String> LAST_NAME();
-}
-
-CustomerColumns cols = schema.facets().columns(CustomerPlain.class, CustomerColumns.class);
+CustomerPlainColumns cols = schema.facets().columns(CustomerPlain.class, CustomerPlainColumns.class);
+// or, if you already have the facet instance:
+CustomerPlainColumns manual = CustomerPlainColumns.of(schema.facets().facet(CustomerPlain.class));
+ColumnRef<String> lastName = manual.LAST_NAME();
 QueryImpl.newQuery()
     .select(cols.ID(), cols.FIRST_NAME())
     .where(cols.LAST_NAME()).like("%son")
     .transpile();
 ```
 
-If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. The scanner will still generate the descriptors, and you can retrieve them via a typed interface: `CustomerColumns cols = schema.facets().columns(CustomerPlain.class, CustomerColumns.class);`.
+If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. During compilation the `SqlTableProcessor` generates both a `<TableName>Columns` interface and a matching `...ColumnsImpl` implementation with a static `of(TableFacets.Facet)` factory. `TableFacets.columns(...)` will automatically instantiate that implementation (falling back to a dynamic proxy only if no generated class exists), so you can simply call `schema.facets().columns(CustomerPlain.class, CustomerPlainColumns.class)` and stay type-safe without hand-writing any plumbing.
+
+Use `QueryColumns` when you want to keep the table handle and typed columns together in one variable:
+
+```java
+QueryColumns<CustomerColumns> customer = QueryColumns.of(schema, CustomerColumns.class);
+// or QueryColumns.of(schema, Customer.class, CustomerColumns.class);
+
+String sql = SqlQuery.newQuery()
+    .select(customer.columns().ID())
+    .from(customer.table())
+    .like(customer.columns().LAST_NAME(), "%son")
+    .transpile();
+```
+
+> The sample schema ships with the generated `CustomerColumns` / `CustomerColumnsImpl` pair checked into source control so the build remains stable even when annotation processing is disabled. In your own modules you can rely on the processor to emit the same code automatically.
 ```
 
 To build a schema from a package (auto-detects classes like `Customer` above):
@@ -306,8 +331,8 @@ SalesSchema schema = new SalesSchema();
 Table customer = schema.getTableBy(Customer.class);
 
 // Optional: fetch typed column facets for additional compile-time safety
-var customerFacet = schema.facets().facet(Customer.class);
-ColumnRef<String> lastName = (ColumnRef<String>) customerFacet.column("LAST_NAME");
+CustomerColumns customerColumns = schema.facets().columns(Customer.class, CustomerColumns.class);
+ColumnRef<String> lastName = customerColumns.LAST_NAME();
 ```
 
 4. **Use the descriptors** in queries:
@@ -337,12 +362,13 @@ Use `TableFacets` to construct strongly-typed row objects that carry values per 
 
 ```java
 var customerFacet = schema.facets().facet(Customer.class);
+CustomerColumns columns = schema.facets().columns(Customer.class, CustomerColumns.class);
 TableRow row = customerFacet.rowBuilder()
-    .set(customerFacet.column("ID"), 42L)
-    .set(customerFacet.column("FIRST_NAME"), "Ada")
+    .set(columns.ID(), 42L)
+    .set(columns.FIRST_NAME(), "Ada")
     .build();
 
-String name = row.get((ColumnRef<String>) customerFacet.column("FIRST_NAME"));
+String name = row.get(columns.FIRST_NAME());
 ```
 
 These rows can be useful for fixtures, parameter binding, or integrating with whatever persistence layer you prefer.
