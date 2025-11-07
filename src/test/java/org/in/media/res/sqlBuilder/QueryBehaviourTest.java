@@ -12,6 +12,11 @@ import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
+import org.in.media.res.sqlBuilder.example.Customer;
+import org.in.media.res.sqlBuilder.example.OrderHeader;
+import org.in.media.res.sqlBuilder.example.OrderLine;
+import org.in.media.res.sqlBuilder.example.Product;
+import org.in.media.res.sqlBuilder.example.Payment;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.Query;
@@ -30,12 +35,22 @@ class QueryBehaviourTest {
 	private EmployeeSchema schema;
 	private Table employee;
 	private Table job;
+	private Table customer;
+	private Table orderHeader;
+	private Table orderLine;
+	private Table product;
+	private Table payment;
 
 	@BeforeEach
 	void setUp() {
 		schema = new EmployeeSchema();
 		employee = schema.getTableBy(Employee.class);
 		job = schema.getTableBy(Job.class);
+		customer = schema.getTableBy(Customer.class);
+		orderHeader = schema.getTableBy(OrderHeader.class);
+		orderLine = schema.getTableBy(OrderLine.class);
+		product = schema.getTableBy(Product.class);
+		payment = schema.getTableBy(Payment.class);
 	}
 
 	@Test
@@ -326,6 +341,57 @@ class QueryBehaviourTest {
 
 		assertTrue(sql.contains("HAVING (AVG(J.SALARY) > 60000) AND (AVG(J.SALARY) >= 55000)"), () -> sql);
 		assertFalse(sql.contains("WHERE AVG("));
+	}
+
+	@Test
+	void customerPaymentAggregations() {
+		Query query = QueryImpl.newQuery()
+				.select(customer.get("ID"))
+				.select(customer.get("FIRST_NAME"))
+				.select(AggregateOperator.SUM, payment.get("AMOUNT"))
+				.from(customer)
+				.join(orderHeader).on(customer.get("ID"), orderHeader.get("CUSTOMER_ID"))
+				.join(payment).on(payment.get("ORDER_ID"), orderHeader.get("ID"))
+				.groupBy(customer.get("ID"), customer.get("FIRST_NAME"))
+				.orderBy(customer.get("FIRST_NAME"));
+
+		String sql = query.transpile();
+
+		assertTrue(sql.contains("FROM Customer"));
+		assertTrue(sql.contains("JOIN Orders"));
+		assertTrue(sql.contains("JOIN Payment"));
+		assertTrue(sql.contains("SUM(PAY.AMOUNT)"));
+	}
+
+	@Test
+	void orderLineJoinProductProducesJoinClause() {
+		Query query = QueryImpl.newQuery()
+				.select(product.get("NAME"))
+				.select(orderLine.get("QUANTITY"))
+				.from(orderLine)
+				.join(product).on(orderLine.get("PRODUCT_ID"), product.get("ID"));
+
+		String sql = query.transpile();
+
+		assertTrue(sql.contains("JOIN Product"));
+		assertTrue(sql.contains("OL.PRODUCT_ID = P.ID"));
+	}
+
+	@Test
+	void customersWithAverageOrderValueAboveThreshold() {
+		Query query = QueryImpl.newQuery()
+				.select(customer.get("ID"))
+				.select(customer.get("FIRST_NAME"))
+				.from(customer)
+				.join(orderHeader).on(customer.get("ID"), orderHeader.get("CUSTOMER_ID"))
+				.groupBy(customer.get("ID"), customer.get("FIRST_NAME"))
+				.having(orderHeader.get("TOTAL")).avg(orderHeader.get("TOTAL"))
+				.supOrEqTo(new java.math.BigDecimal("500.00"));
+
+		String sql = query.transpile();
+
+		assertTrue(sql.contains("AVG(O.TOTAL) >="));
+		assertTrue(sql.contains("500"));
 	}
 
 	@Test

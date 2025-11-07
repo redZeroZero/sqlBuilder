@@ -26,6 +26,11 @@ public final class TableFacets {
 				() -> "No typed facet registered for " + descriptorClass.getName());
 	}
 
+	public <I> I columns(Class<?> descriptorClass, Class<I> viewType) {
+		Facet facet = facetFor(descriptorClass);
+		return viewType.cast(ColumnViewProxy.create(facet, viewType));
+	}
+
 	public Map<Class<?>, Facet> all() {
 		return facets;
 	}
@@ -66,6 +71,34 @@ public final class TableFacets {
 
 		public TableRow.Builder rowBuilder() {
 			return TableRow.builder();
+		}
+	}
+
+	private static final class ColumnViewProxy implements java.lang.reflect.InvocationHandler {
+
+		private final Facet facet;
+		private final Map<String, ColumnRef<?>> cache = new java.util.concurrent.ConcurrentHashMap<>();
+
+		private ColumnViewProxy(Facet facet) {
+			this.facet = facet;
+		}
+
+		static <I> I create(Facet facet, Class<I> viewType) {
+			return viewType.cast(java.lang.reflect.Proxy.newProxyInstance(
+					viewType.getClassLoader(), new Class<?>[] { viewType }, new ColumnViewProxy(facet)));
+		}
+
+		@Override
+		public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args) throws Throwable {
+			if (method.getDeclaringClass() == Object.class) {
+				return method.invoke(this, args);
+			}
+			if (method.getParameterCount() > 0) {
+				throw new IllegalStateException("Column view methods must have no arguments: " + method.getName());
+			}
+			String fieldName = method.getName();
+			ColumnRef<?> ref = cache.computeIfAbsent(fieldName, name -> facet.column(name.toUpperCase()));
+			return ref;
 		}
 	}
 }

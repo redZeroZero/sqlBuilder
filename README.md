@@ -256,12 +256,20 @@ public final class CustomerPlain {
     private CustomerPlain() {}
 }
 
-// Later, when you need the descriptors:
-var customerFacet = schema.facets().facet(CustomerPlain.class);
-ColumnRef<Long> customerId = (ColumnRef<Long>) customerFacet.column("ID");
+public interface CustomerColumns {
+    ColumnRef<Long> ID();
+    ColumnRef<String> FIRST_NAME();
+    ColumnRef<String> LAST_NAME();
+}
+
+CustomerColumns cols = schema.facets().columns(CustomerPlain.class, CustomerColumns.class);
+QueryImpl.newQuery()
+    .select(cols.ID(), cols.FIRST_NAME())
+    .where(cols.LAST_NAME()).like("%son")
+    .transpile();
 ```
 
-If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. In that case, retrieve the generated `ColumnRef` instances via `schema.facets().facet(Customer.class)` when building queries.
+If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. The scanner will still generate the descriptors, and you can retrieve them via a typed interface: `CustomerColumns cols = schema.facets().columns(CustomerPlain.class, CustomerColumns.class);`.
 ```
 
 To build a schema from a package (auto-detects classes like `Customer` above):

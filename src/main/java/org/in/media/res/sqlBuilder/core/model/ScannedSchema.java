@@ -42,6 +42,10 @@ public class ScannedSchema implements Schema {
 
 	@Override
 	public Table getTableBy(Class<?> clazz) {
+		TableFacets.Facet facet = facets().all().get(clazz);
+		if (facet != null) {
+			return facet.table();
+		}
 		return getTableBy(clazz.getSimpleName());
 	}
 
