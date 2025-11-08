@@ -13,6 +13,7 @@ import org.in.media.res.sqlBuilder.core.query.ConditionImpl;
 import org.in.media.res.sqlBuilder.core.query.QueryImpl;
 import org.in.media.res.sqlBuilder.core.query.SelectImpl;
 import org.in.media.res.sqlBuilder.core.query.WhereImpl;
+import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -94,7 +95,7 @@ public final class QueryShowcase {
         System.out.println("EXISTS SUBQUERY -> " + existsSubquery.transpile());
 
         // Condition demonstration
-        Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
         ConditionImpl condition = ConditionImpl.builder()
                 .and()
                 .leftColumn(employee.get(Employee.C_FIRST_NAME))

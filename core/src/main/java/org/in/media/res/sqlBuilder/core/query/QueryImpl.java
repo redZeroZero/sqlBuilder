@@ -20,6 +20,7 @@ import org.in.media.res.sqlBuilder.api.query.Clause;
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
+import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.GroupBy;
 import org.in.media.res.sqlBuilder.api.query.Having;
@@ -32,22 +33,26 @@ import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
+import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 
 public class QueryImpl implements Query {
 
-	private Select selectClause = CLauseFactory.instanciateSelect();
+	private final Dialect dialect;
 
-	private From fromClause = CLauseFactory.instanciateFrom();
+	private Select selectClause;
 
-	private Where whereClause = CLauseFactory.instanciateWhere();
+	private From fromClause;
 
-	private GroupBy groupByClause = CLauseFactory.instanciateGroupBy();
+	private Where whereClause;
 
-	private OrderBy orderByClause = CLauseFactory.instanciateOrderBy();
+	private GroupBy groupByClause;
 
-	private Having havingClause = CLauseFactory.instanciateHaving();
+	private OrderBy orderByClause;
 
-	private Limit limitClause = CLauseFactory.instanciateLimit();
+	private Having havingClause;
+
+	private Limit limitClause;
 
 	private final List<SetOperation> setOperations = new ArrayList<>();
 
@@ -55,8 +60,29 @@ public class QueryImpl implements Query {
 
 	private static final Column STAR = StarColumn.INSTANCE;
 
+	private Dialect.PaginationClause paginationClause = Dialect.PaginationClause.empty();
+
 	public static Query newQuery() {
-		return new QueryImpl();
+		return new QueryImpl(Dialects.defaultDialect());
+	}
+
+	public static Query newQuery(Dialect dialect) {
+		return new QueryImpl(dialect);
+	}
+
+	public static Query newQuery(org.in.media.res.sqlBuilder.api.model.Schema schema) {
+		return new QueryImpl(schema.getDialect());
+	}
+
+	private QueryImpl(Dialect dialect) {
+		this.dialect = Objects.requireNonNull(dialect, "dialect");
+		this.selectClause = CLauseFactory.instanciateSelect(dialect);
+		this.fromClause = CLauseFactory.instanciateFrom(dialect);
+		this.whereClause = CLauseFactory.instanciateWhere(dialect);
+		this.groupByClause = CLauseFactory.instanciateGroupBy(dialect);
+		this.orderByClause = CLauseFactory.instanciateOrderBy(dialect);
+		this.havingClause = CLauseFactory.instanciateHaving(dialect);
+		this.limitClause = CLauseFactory.instanciateLimit(dialect);
 	}
 
 	public static Query fromTable(Table table) {
@@ -123,14 +149,19 @@ public class QueryImpl implements Query {
 	}
 
 	private String buildSql() {
+		try (DialectContext.Scope ignored = DialectContext.scope(dialect)) {
 		StringBuilder builder = new StringBuilder()
 				.append(selectClause.transpile())
 				.append(fromClause.transpile())
 				.append(whereClause.transpile())
 				.append(groupByClause.transpile())
 				.append(havingClause.transpile())
-				.append(orderByClause.transpile())
-				.append(limitClause.transpile());
+				.append(orderByClause.transpile());
+
+		this.paginationClause = dialect.renderLimitOffset(
+				limitClause.limitValue() == null ? null : limitClause.limitValue().longValue(),
+				limitClause.offsetValue() == null ? null : limitClause.offsetValue().longValue());
+		builder.append(paginationClause.sql());
 
 		for (SetOperation operation : setOperations) {
 			builder.append(' ')
@@ -139,6 +170,7 @@ public class QueryImpl implements Query {
 					.append(parenthesize(operation.query()));
 		}
 		return builder.toString();
+		}
 	}
 
 	public String prettyPrint() {
@@ -153,13 +185,13 @@ public class QueryImpl implements Query {
 	}
 
 	public void reset() {
-		this.selectClause = CLauseFactory.instanciateSelect();
-		this.fromClause = CLauseFactory.instanciateFrom();
-		this.whereClause = CLauseFactory.instanciateWhere();
-		this.groupByClause = CLauseFactory.instanciateGroupBy();
-		this.orderByClause = CLauseFactory.instanciateOrderBy();
-		this.havingClause = CLauseFactory.instanciateHaving();
-		this.limitClause = CLauseFactory.instanciateLimit();
+		this.selectClause = CLauseFactory.instanciateSelect(dialect);
+		this.fromClause = CLauseFactory.instanciateFrom(dialect);
+		this.whereClause = CLauseFactory.instanciateWhere(dialect);
+		this.groupByClause = CLauseFactory.instanciateGroupBy(dialect);
+		this.orderByClause = CLauseFactory.instanciateOrderBy(dialect);
+		this.havingClause = CLauseFactory.instanciateHaving(dialect);
+		this.limitClause = CLauseFactory.instanciateLimit(dialect);
 		this.setOperations.clear();
 	}
 
@@ -1072,13 +1104,8 @@ public class QueryImpl implements Query {
 	}
 
 	private void appendLimitPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
-		Integer offset = limitClause.offsetValue();
-		if (offset != null) {
-			placeholders.add(new CompiledQuery.Placeholder(null, offset));
-		}
-		Integer limit = limitClause.limitValue();
-		if (limit != null) {
-			placeholders.add(new CompiledQuery.Placeholder(null, limit));
+		for (Object value : paginationClause.params()) {
+			placeholders.add(new CompiledQuery.Placeholder(null, value));
 		}
 	}
 

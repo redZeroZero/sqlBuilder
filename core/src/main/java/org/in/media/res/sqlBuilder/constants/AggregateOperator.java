@@ -2,15 +2,15 @@ package org.in.media.res.sqlBuilder.constants;
 
 public enum AggregateOperator {
 	
-	COUNT("COUNT"), MIN("MIN"), MAX("MAX"), SUM("SUM"), AVG("AVG"), STAR("*");
+	COUNT("count"), MIN("min"), MAX("max"), SUM("sum"), AVG("avg"), STAR("*");
 
-	private String value;
+	private final String logicalName;
 
-	private AggregateOperator(String actualJoin) {
-		this.value = actualJoin;
+	private AggregateOperator(String logicalName) {
+		this.logicalName = logicalName;
 	}
 
-	public String value() {
-		return value;
+	public String logicalName() {
+		return logicalName;
 	}
 }

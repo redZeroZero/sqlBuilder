@@ -1,4 +1,4 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import static org.in.media.res.sqlBuilder.constants.JoinOperator.ON;
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
@@ -11,8 +11,9 @@ import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
+import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 
-public class OracleFromTranspilerImpl implements FromTranspiler {
+public class DefaultFromTranspiler implements FromTranspiler {
 
     private static final String SEP = ", ";
     private static final String FROM = " FROM ";
@@ -27,7 +28,7 @@ public class OracleFromTranspilerImpl implements FromTranspiler {
             throw new IllegalStateException("FROM clause requires at least one base table before joins");
         }
 
-        SqlBuilder builder = SqlBuilder.from(FROM);
+        DefaultSqlBuilder builder = DefaultSqlBuilder.from(FROM);
         boolean baseTableEncountered = false;
 
         for (Map.Entry<Table, Joiner> entry : from.joins().entrySet()) {
@@ -49,14 +50,14 @@ public class OracleFromTranspilerImpl implements FromTranspiler {
         return builder.toString();
     }
 
-    private void appendTable(SqlBuilder builder, Table table) {
-        builder.appendTable(table);
-        if (table.hasAlias()) {
-            builder.append(ALIAS_SEP).append(table.getAlias());
-        }
-    }
+	private void appendTable(DefaultSqlBuilder builder, Table table) {
+		builder.appendTable(table);
+		if (table.hasAlias()) {
+			builder.append(ALIAS_SEP).append(DialectContext.current().quoteIdent(table.getAlias()));
+		}
+	}
 
-	private void appendJoinCondition(SqlBuilder builder, Table table, Joiner joiner) {
+	private void appendJoinCondition(DefaultSqlBuilder builder, Table table, Joiner joiner) {
 		if (joiner.getOp() == JoinOperator.CROSS_JOIN) {
 			return;
 		}

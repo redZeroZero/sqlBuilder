@@ -1,10 +1,10 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
 
-public class OracleHavingTranspilerImpl implements HavingTranspiler {
+public class DefaultHavingTranspiler implements HavingTranspiler {
 
  private static final String HAVING_ = " HAVING ";
 

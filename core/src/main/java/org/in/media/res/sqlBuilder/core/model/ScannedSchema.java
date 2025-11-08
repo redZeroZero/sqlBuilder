@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.api.model.Schema;
 import org.in.media.res.sqlBuilder.api.model.Table;
+import org.in.media.res.sqlBuilder.api.query.Dialect;
+import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 
 public class ScannedSchema implements Schema {
 
@@ -14,6 +16,7 @@ public class ScannedSchema implements Schema {
 	private List<Table> tables;
 	private String schemaName;
 	private volatile TableFacets facets;
+    private volatile Dialect dialect = Dialects.defaultDialect();
 
 	public ScannedSchema(String basePackage) {
 		this.basePackage = Objects.requireNonNull(basePackage, "basePackage");
@@ -57,6 +60,17 @@ public class ScannedSchema implements Schema {
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public Dialect getDialect() {
+		Dialect current = dialect;
+		return current == null ? Dialects.defaultDialect() : current;
+	}
+
+	@Override
+	public void setDialect(Dialect dialect) {
+		this.dialect = Objects.requireNonNull(dialect, "dialect");
 	}
 
 	public void refresh() {

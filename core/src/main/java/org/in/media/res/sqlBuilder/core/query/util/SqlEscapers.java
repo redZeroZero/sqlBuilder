@@ -6,8 +6,6 @@ package org.in.media.res.sqlBuilder.core.query.util;
  */
 public final class SqlEscapers {
 
-	private static final char ESCAPE_CHAR = '\\';
-
 	private SqlEscapers() {
 	}
 
@@ -19,21 +17,21 @@ public final class SqlEscapers {
 	}
 
 	public static String escapeLikePattern(String value) {
+		return escapeLikePattern(value, '\\');
+	}
+
+	public static String escapeLikePattern(String value, char escapeChar) {
 		if (value == null) {
 			return null;
 		}
 		StringBuilder sb = new StringBuilder(value.length());
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
-			if (c == ESCAPE_CHAR || c == '%' || c == '_') {
-				sb.append(ESCAPE_CHAR);
+			if (c == escapeChar || c == '%' || c == '_') {
+				sb.append(escapeChar);
 			}
 			sb.append(c);
 		}
 		return sb.toString();
-	}
-
-	public static char likeEscapeChar() {
-		return ESCAPE_CHAR;
 	}
 }

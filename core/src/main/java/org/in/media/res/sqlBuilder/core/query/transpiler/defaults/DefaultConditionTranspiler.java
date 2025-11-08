@@ -1,7 +1,9 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 import static org.in.media.res.sqlBuilder.constants.Operator.IN;
+
+import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
@@ -10,9 +12,10 @@ import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
+import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
-public class OracleConditionTranspilerImpl implements ConditionTranspiler {
+public class DefaultConditionTranspiler implements ConditionTranspiler {
 
 	private final String OPENING_PARENTHESIS = "(";
 
@@ -60,11 +63,12 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 	}
 
 	private void transpileColumn(StringBuilder sb, Column col, AggregateOperator agg) {
-		if (agg != null)
-			sb.append(agg.value()).append(OPENING_PARENTHESIS);
+		if (agg != null) {
+			String rendered = DialectContext.current().renderFunction(agg.logicalName(), List.of(col.transpile(false)));
+			sb.append(rendered);
+			return;
+		}
 		sb.append(col.transpile(false));
-		if (agg != null)
-			sb.append(CLOSING_PARENTHESIS);
 	}
 
 	private void transpileValues(StringBuilder sb, Condition co) {
@@ -87,7 +91,7 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 			}
 			appendLiteral(sb, co.values().get(0));
 			if (isLikeOperator(co.getOperator())) {
-				sb.append(" ESCAPE '").append(SqlEscapers.likeEscapeChar()).append("'");
+				sb.append(" ESCAPE '").append(DialectContext.current().likeEscapeChar()).append("'");
 			}
 		} else {
 			sb.append(OPENING_PARENTHESIS);

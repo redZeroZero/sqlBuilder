@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
+import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.QueryColumns;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
@@ -38,6 +39,7 @@ import org.in.media.res.sqlBuilder.core.query.FromImpl;
 import org.in.media.res.sqlBuilder.core.query.QueryImpl;
 import org.in.media.res.sqlBuilder.core.query.SelectImpl;
 import org.in.media.res.sqlBuilder.core.query.WhereImpl;
+import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,6 +66,18 @@ class QueryBehaviourTest {
 		payment = schema.getTableBy(Payment.class);
 	}
 
+	private String quoted(String identifier) {
+		return "\"" + identifier + "\"";
+	}
+
+	private String qualified(String alias, String column) {
+		return quoted(alias) + "." + quoted(column);
+	}
+
+	private String tableRef(Table table) {
+		return table.hasAlias() ? table.getAlias() : table.getName();
+	}
+
 	@Test
 	void schemaFacetsExposeGeneratedColumns() {
 		CustomerColumns columns = schema.facets().columns(Customer.class, CustomerColumns.class);
@@ -77,8 +91,25 @@ class QueryBehaviourTest {
 				.where(columns.LAST_NAME()).like("%son")
 				.transpile();
 
-		assertTrue(sql.contains("Customer"));
+		assertTrue(sql.contains(quoted("Customer")));
 		assertTrue(sql.contains("WHERE"));
+	}
+
+	@Test
+	void schemaLevelDialectControlsQuoting() {
+		DialectsTestDialect bracketDialect = new DialectsTestDialect();
+		EmployeeSchema customSchema = new EmployeeSchema();
+		customSchema.setDialect(bracketDialect);
+
+		Query query = (Query) SqlQuery.newQuery(customSchema)
+				.select(Employee.C_FIRST_NAME)
+				.from(employee);
+
+		SqlAndParams rendered = query.limitAndOffset(5, 1).render();
+
+		assertTrue(rendered.sql().contains("[Employee]"));
+		assertTrue(rendered.sql().contains(" LIMIT ? OFFSET ?"));
+		assertEquals(List.of(5L, 1L), rendered.params());
 	}
 
 	@Test
@@ -93,7 +124,7 @@ class QueryBehaviourTest {
 				.like(helper.columns().LAST_NAME(), "%son")
 				.transpile();
 
-		assertTrue(sql.contains(helper.table().getName()));
+		assertTrue(sql.contains(quoted(tableRef(helper.table()))));
 		assertTrue(sql.contains("LIKE"));
 	}
 
@@ -104,8 +135,8 @@ class QueryBehaviourTest {
 
 		String sql = query.transpile();
 
-		assertTrue(sql.contains("Employee"));
-		assertTrue(sql.contains("Job"));
+		assertTrue(sql.contains(quoted(tableRef(employee))));
+		assertTrue(sql.contains(quoted(tableRef(job))));
 	}
 
 	@Test
@@ -118,7 +149,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereTranspilerSkipsEmptyClauses() {
-		Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
 
 		assertEquals("", where.transpile());
 	}
@@ -135,7 +166,7 @@ class QueryBehaviourTest {
 		CompiledQuery template = query.compile();
 
 		SqlAndParams run = template.bind(Map.of("minSalary", 80_000));
-		assertTrue(run.sql().contains("J.SALARY >= ?"));
+		assertTrue(run.sql().contains(qualified(tableRef(job), "SALARY") + " >= ?"));
 		assertEquals(List.of(80_000), run.params());
 	}
 
@@ -235,9 +266,10 @@ class QueryBehaviourTest {
 		String sql = outer.transpile();
 
 		assertTrue(sql.contains("(SELECT"));
-		assertTrue(sql.contains(") " + salaryView.tableName()));
+		String derivedAlias = quoted(salaryView.tableName());
+		assertTrue(sql.contains(derivedAlias + " ON"));
 		assertNotNull(salaryView.get("AVG_pay"));
-		assertTrue(sql.contains(salaryView.tableName() + "." + salaryView.get("AVG_pay").getName()));
+		assertTrue(sql.contains(qualified(salaryView.tableName(), salaryView.get("AVG_pay").getName())));
 	}
 
 	@Test
@@ -254,7 +286,7 @@ class QueryBehaviourTest {
 				.transpile();
 
 		assertTrue(sql.contains(" IN ("));
-		assertTrue(sql.contains("SELECT J.EMPLOYEE_ID"));
+		assertTrue(sql.contains("SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")));
 	}
 
 	@Test
@@ -312,7 +344,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereOperatorsRequireExistingCondition() {
-		Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
 		assertThrows(IllegalStateException.class, () -> where.eq("value"));
 	}
 
@@ -344,8 +376,9 @@ class QueryBehaviourTest {
 		SqlAndParams rendered = query.render();
 		String sql = rendered.sql();
 
-		assertTrue(sql.contains("(E.FIRST_NAME = ? OR (E.LAST_NAME = ?))"), () -> sql);
-		assertTrue(sql.contains("AND E.ID = ?"), () -> sql);
+		assertTrue(sql.contains("(" + qualified(tableRef(employee), "FIRST_NAME") + " = ? OR ("
+				+ qualified(tableRef(employee), "LAST_NAME") + " = ?))"), () -> sql);
+		assertTrue(sql.contains("AND " + qualified(tableRef(employee), "ID") + " = ?"), () -> sql);
 		assertEquals(List.of("Alice", "Smith", 42), rendered.params());
 	}
 
@@ -383,8 +416,10 @@ class QueryBehaviourTest {
 		SqlAndParams rendered = query.render();
 		String sql = rendered.sql();
 
-		assertTrue(sql.contains("(E.LAST_NAME = ? OR E.LAST_NAME = ?)"), () -> sql);
-		assertTrue(sql.contains("AND (J.SALARY >= ? OR (J.SALARY BETWEEN ? AND ?))"), () -> sql);
+		assertTrue(sql.contains("(" + qualified(tableRef(employee), "LAST_NAME") + " = ? OR "
+				+ qualified(tableRef(employee), "LAST_NAME") + " = ?)"), () -> sql);
+		assertTrue(sql.contains("AND (" + qualified(tableRef(job), "SALARY") + " >= ? OR ("
+				+ qualified(tableRef(job), "SALARY") + " BETWEEN ? AND ?))"), () -> sql);
 		assertEquals(List.of("Miller", "Moore", 120_000, 80_000, 90_000), rendered.params());
 	}
 
@@ -409,7 +444,8 @@ class QueryBehaviourTest {
 		SqlAndParams rendered = query.render();
 		String sql = rendered.sql();
 
-		assertTrue(sql.contains("HAVING (AVG(J.SALARY) > ?) AND (AVG(J.SALARY) >= ?)"), () -> sql);
+		String avgExpr = "AVG(" + qualified(tableRef(job), "SALARY") + ")";
+		assertTrue(sql.contains("HAVING (" + avgExpr + " > ?) AND (" + avgExpr + " >= ?)"), () -> sql);
 		assertFalse(sql.contains("WHERE AVG("));
 		assertEquals(List.of(60_000, 55_000), rendered.params());
 	}
@@ -428,10 +464,10 @@ class QueryBehaviourTest {
 
 		String sql = query.transpile();
 
-		assertTrue(sql.contains("FROM Customer"));
-		assertTrue(sql.contains("JOIN Orders"));
-		assertTrue(sql.contains("JOIN Payment"));
-		assertTrue(sql.contains("SUM(PAY.AMOUNT)"));
+		assertTrue(sql.contains("FROM " + quoted(customer.getName())));
+		assertTrue(sql.contains("JOIN " + quoted(orderHeader.getName())));
+		assertTrue(sql.contains("JOIN " + quoted(payment.getName())));
+		assertTrue(sql.contains("SUM(" + qualified(tableRef(payment), "AMOUNT") + ")"));
 	}
 
 	@Test
@@ -444,8 +480,9 @@ class QueryBehaviourTest {
 
 		String sql = query.transpile();
 
-		assertTrue(sql.contains("JOIN Product"));
-		assertTrue(sql.contains("OL.PRODUCT_ID = P.ID"));
+		assertTrue(sql.contains("JOIN " + quoted(product.getName())));
+		assertTrue(sql.contains(qualified(tableRef(orderLine), "PRODUCT_ID") + " = "
+				+ qualified(tableRef(product), "ID")));
 	}
 
 	@Test
@@ -460,7 +497,7 @@ class QueryBehaviourTest {
 				.supOrEqTo(new java.math.BigDecimal("500.00"));
 
 		SqlAndParams rendered = query.render();
-		assertTrue(rendered.sql().contains("AVG(O.TOTAL) >= ?"));
+		assertTrue(rendered.sql().contains("AVG(" + qualified(tableRef(orderHeader), "TOTAL") + ") >= ?"));
 		assertEquals(List.of(500), rendered.params());
 	}
 
@@ -502,7 +539,7 @@ class QueryBehaviourTest {
 		From from = new FromImpl();
 		from.from(employee);
 
-		assertTrue(from.transpile().contains("Employee"));
+		assertTrue(from.transpile().contains(quoted(tableRef(employee))));
 	}
 
 	@Test
@@ -611,7 +648,7 @@ class QueryBehaviourTest {
 
 		assertTrue(sql.contains(" OFFSET ? ROWS"));
 		assertTrue(sql.contains(" FETCH NEXT ? ROWS ONLY"));
-		assertEquals(List.of(5, 10), rendered.params());
+		assertEquals(List.of(5L, 10L), rendered.params());
 	}
 
 	@Test
@@ -671,9 +708,16 @@ class QueryBehaviourTest {
 
 		String sql = left.union(right).transpile();
 
-		String expected = "SELECT E.ID, E.FIRST_NAME as firstName, E.LAST_NAME as lastName, "
-				+ "E.MAIL as email, E.PASSWORD as passwd FROM Employee E UNION ("
-				+ "SELECT J.ID, J.SALARY as pay, J.DESCRIPTION as Intitule, J.EMPLOYEE_ID as employeeId FROM Job J)";
+		String expected = "SELECT " + qualified(tableRef(employee), "ID") + ", "
+				+ qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName") + ", "
+				+ qualified(tableRef(employee), "LAST_NAME") + " as " + quoted("lastName") + ", "
+				+ qualified(tableRef(employee), "MAIL") + " as " + quoted("email") + ", "
+				+ qualified(tableRef(employee), "PASSWORD") + " as " + quoted("passwd") + " FROM "
+				+ quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " UNION (SELECT "
+				+ qualified(tableRef(job), "ID") + ", " + qualified(tableRef(job), "SALARY") + " as "
+				+ quoted("pay") + ", " + qualified(tableRef(job), "DESCRIPTION") + " as " + quoted("Intitule")
+				+ ", " + qualified(tableRef(job), "EMPLOYEE_ID") + " as " + quoted("employeeId")
+				+ " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + ")";
 		assertEquals(expected, sql);
 	}
 
@@ -711,5 +755,48 @@ class QueryBehaviourTest {
 		Query right = QueryImpl.newQuery().select(job);
 
 		assertThrows(UnsupportedOperationException.class, () -> left.exceptAll(right).transpile());
+	}
+
+	private static final class DialectsTestDialect implements Dialect {
+
+		@Override
+		public String id() {
+			return "test-brackets";
+		}
+
+		@Override
+		public String quoteIdent(String raw) {
+			return "[" + raw + "]";
+		}
+
+		@Override
+		public char likeEscapeChar() {
+			return '#';
+		}
+
+		@Override
+		public String exceptOperator(boolean all) {
+			return all ? "EXCEPT ALL" : "EXCEPT";
+		}
+
+		@Override
+		public PaginationClause renderLimitOffset(Long limit, Long offset) {
+			StringBuilder sql = new StringBuilder();
+			java.util.List<Object> params = new java.util.ArrayList<>();
+			if (limit != null) {
+				sql.append(" LIMIT ?");
+				params.add(limit.longValue());
+			}
+			if (offset != null) {
+				sql.append(" OFFSET ?");
+				params.add(offset.longValue());
+			}
+			return new PaginationClause(sql.toString(), params);
+		}
+
+		@Override
+		public String renderFunction(String logicalName, java.util.List<String> argsSql) {
+			return logicalName.toUpperCase(java.util.Locale.ROOT) + '(' + String.join(", ", argsSql) + ')';
+		}
 	}
 }

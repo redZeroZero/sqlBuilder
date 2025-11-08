@@ -37,9 +37,9 @@ class QueryReadmeExamplesTest {
 				.limitAndOffset(20, 0)
 				.transpile();
 
-		String expected = "SELECT E.FIRST_NAME as firstName, E.LAST_NAME as lastName "
-				+ "FROM Employee E INNER JOIN Job J ON E.ID = J.EMPLOYEE_ID "
-				+ "WHERE E.FIRST_NAME = ? ORDER BY E.LAST_NAME ASC "
+		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", \"E\".\"LAST_NAME\" as \"lastName\" "
+				+ "FROM \"Employee\" \"E\" INNER JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" "
+				+ "WHERE \"E\".\"FIRST_NAME\" = ? ORDER BY \"E\".\"LAST_NAME\" ASC "
 				+ "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
 		assertEquals(expected, sql);
@@ -51,8 +51,8 @@ class QueryReadmeExamplesTest {
 				.select(employee)
 				.transpile();
 
-		String expected = "SELECT E.ID, E.FIRST_NAME as firstName, E.LAST_NAME as lastName, "
-				+ "E.MAIL as email, E.PASSWORD as passwd FROM Employee E";
+		String expected = "SELECT \"E\".\"ID\", \"E\".\"FIRST_NAME\" as \"firstName\", \"E\".\"LAST_NAME\" as \"lastName\", "
+				+ "\"E\".\"MAIL\" as \"email\", \"E\".\"PASSWORD\" as \"passwd\" FROM \"Employee\" \"E\"";
 
 		assertEquals(expected, sql);
 	}
@@ -65,9 +65,9 @@ class QueryReadmeExamplesTest {
 				.where(Job.C_SALARY).supOrEqTo(50000)
 				.transpile();
 
-		String expected = "SELECT E.FIRST_NAME as firstName, J.DESCRIPTION as Intitule "
-				+ "FROM Employee E LEFT JOIN Job J ON E.ID = J.EMPLOYEE_ID "
-				+ "WHERE J.SALARY >= ?";
+		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", \"J\".\"DESCRIPTION\" as \"Intitule\" "
+				+ "FROM \"Employee\" \"E\" LEFT JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" "
+				+ "WHERE \"J\".\"SALARY\" >= ?";
 
 		assertEquals(expected, sql);
 	}
@@ -83,9 +83,9 @@ class QueryReadmeExamplesTest {
 				.orderBy(Employee.C_FIRST_NAME)
 				.transpile();
 
-		String expected = "SELECT AVG(J.SALARY), E.FIRST_NAME as firstName FROM Employee E "
-				+ "JOIN Job J ON E.ID = J.EMPLOYEE_ID GROUP BY E.FIRST_NAME "
-				+ "HAVING AVG(J.SALARY) > ? ORDER BY E.FIRST_NAME ASC";
+		String expected = "SELECT AVG(\"J\".\"SALARY\"), \"E\".\"FIRST_NAME\" as \"firstName\" FROM \"Employee\" \"E\" "
+				+ "JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" GROUP BY \"E\".\"FIRST_NAME\" "
+				+ "HAVING AVG(\"J\".\"SALARY\") > ? ORDER BY \"E\".\"FIRST_NAME\" ASC";
 
 		assertEquals(expected, sql);
 	}
@@ -99,8 +99,8 @@ class QueryReadmeExamplesTest {
 				.limitAndOffset(10, 20)
 				.transpile();
 
-		String expected = "SELECT J.DESCRIPTION as Intitule FROM Job J "
-				+ "ORDER BY J.SALARY DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+		String expected = "SELECT \"J\".\"DESCRIPTION\" as \"Intitule\" FROM \"Job\" \"J\" "
+				+ "ORDER BY \"J\".\"SALARY\" DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
 		assertEquals(expected, sql);
 	}
@@ -114,9 +114,9 @@ class QueryReadmeExamplesTest {
 		printable.from(employee);
 		printable.where(Employee.C_FIRST_NAME).eq("Alice");
 
-		String expected = "SELECT E.FIRST_NAME as firstName\n"
-				+ "FROM Employee E\n"
-				+ "WHERE E.FIRST_NAME = ?";
+		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\"\n"
+				+ "FROM \"Employee\" \"E\"\n"
+				+ "WHERE \"E\".\"FIRST_NAME\" = ?";
 
 		assertEquals(expected, printable.prettyPrint());
 	}

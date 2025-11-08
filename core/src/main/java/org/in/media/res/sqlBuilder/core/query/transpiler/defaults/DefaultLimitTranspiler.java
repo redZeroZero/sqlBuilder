@@ -1,9 +1,9 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.query.Limit;
 import org.in.media.res.sqlBuilder.api.query.LimitTranspiler;
 
-public class OracleLimitTranspilerImpl implements LimitTranspiler {
+public class DefaultLimitTranspiler implements LimitTranspiler {
 
  private static final String OFFSET_ = " OFFSET ";
  private static final String ROWS_ = " ROWS";

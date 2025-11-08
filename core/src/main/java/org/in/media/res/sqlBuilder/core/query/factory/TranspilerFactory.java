@@ -17,7 +17,7 @@ import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 
 public final class TranspilerFactory {
 
-    private static final String DEFAULT_PACKAGE = "org.in.media.res.sqlBuilder.core.query.transpiler.oracle.";
+    private static final String DEFAULT_PACKAGE = "org.in.media.res.sqlBuilder.core.query.transpiler.defaults.";
 
     private static final ConcurrentMap<Class<?>, Object> CACHE = new ConcurrentHashMap<>();
 
@@ -25,39 +25,39 @@ public final class TranspilerFactory {
     }
 
     public static ConditionTranspiler instanciateConditionTranspiler() {
-        return resolve(ConditionTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleConditionTranspilerImpl", ConditionTranspiler.class));
+        return resolve(ConditionTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultConditionTranspiler", ConditionTranspiler.class));
     }
 
     public static ColumnTranspiler instanciateColumnTranspiler() {
-        return resolve(ColumnTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleColumnTranspilerImpl", ColumnTranspiler.class));
+        return resolve(ColumnTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultColumnTranspiler", ColumnTranspiler.class));
     }
 
     public static SelectTranspiler instanciateSelectTranspiler() {
-        return resolve(SelectTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleSelectTranspilerImpl", SelectTranspiler.class));
+        return resolve(SelectTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultSelectTranspiler", SelectTranspiler.class));
     }
 
     public static FromTranspiler instanciateFromTranspiler() {
-        return resolve(FromTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleFromTranspilerImpl", FromTranspiler.class));
+        return resolve(FromTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultFromTranspiler", FromTranspiler.class));
     }
 
     public static WhereTranspiler instanciateWhereTranspiler() {
-        return resolve(WhereTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleWhereTranspilerImpl", WhereTranspiler.class));
+        return resolve(WhereTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultWhereTranspiler", WhereTranspiler.class));
     }
 
     public static GroupByTranspiler instanciateGroupByTranspiler() {
-        return resolve(GroupByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleGroupByTranspilerImpl", GroupByTranspiler.class));
+        return resolve(GroupByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultGroupByTranspiler", GroupByTranspiler.class));
     }
 
     public static OrderByTranspiler instanciateOrderByTranspiler() {
-        return resolve(OrderByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleOrderByTranspilerImpl", OrderByTranspiler.class));
+        return resolve(OrderByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultOrderByTranspiler", OrderByTranspiler.class));
     }
 
     public static HavingTranspiler instanciateHavingTranspiler() {
-        return resolve(HavingTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleHavingTranspilerImpl", HavingTranspiler.class));
+        return resolve(HavingTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultHavingTranspiler", HavingTranspiler.class));
     }
 
     public static LimitTranspiler instanciateLimitTranspiler() {
-        return resolve(LimitTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "OracleLimitTranspilerImpl", LimitTranspiler.class));
+        return resolve(LimitTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultLimitTranspiler", LimitTranspiler.class));
     }
 
     private static <T> T resolve(Class<T> type, Supplier<T> supplier) {

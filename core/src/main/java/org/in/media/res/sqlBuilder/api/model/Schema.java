@@ -2,16 +2,21 @@ package org.in.media.res.sqlBuilder.api.model;
 
 import java.util.List;
 
+import org.in.media.res.sqlBuilder.api.query.Dialect;
+
 public interface Schema {
 
-	public String getName();
+	String getName();
 
-	public void setName(String name);
+	void setName(String name);
 
-	public List<Table> getTables();
+	List<Table> getTables();
 
-	public Table getTableBy(Class<?> clazz);
+	Table getTableBy(Class<?> clazz);
 
-	public Table getTableBy(String name);
-	
+	Table getTableBy(String name);
+
+	Dialect getDialect();
+
+	void setDialect(Dialect dialect);
 }

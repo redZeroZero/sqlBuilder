@@ -7,6 +7,7 @@ import java.util.List;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
+import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
@@ -26,6 +27,12 @@ public class HavingImpl implements Having {
             "Cannot apply operators without a HAVING condition. Call having(...) first.");
 
 	private final HavingTranspiler havingTranspiler = TranspilerFactory.instanciateHavingTranspiler();
+
+	private final Dialect dialect;
+
+	public HavingImpl(Dialect dialect) {
+		this.dialect = java.util.Objects.requireNonNull(dialect, "dialect");
+	}
 
     @Override
     public String transpile() {
@@ -262,12 +269,14 @@ public class HavingImpl implements Having {
 
 		@Override
 		public Having like(String value) {
-			return applyOperator(Operator.LIKE, ConditionValue.of(SqlEscapers.escapeLikePattern(value)));
+			return applyOperator(Operator.LIKE,
+					ConditionValue.of(SqlEscapers.escapeLikePattern(value, dialect.likeEscapeChar())));
 		}
 
 		@Override
 		public Having notLike(String value) {
-			return applyOperator(Operator.NOT_LIKE, ConditionValue.of(SqlEscapers.escapeLikePattern(value)));
+			return applyOperator(Operator.NOT_LIKE,
+					ConditionValue.of(SqlEscapers.escapeLikePattern(value, dialect.likeEscapeChar())));
 		}
 
         @Override

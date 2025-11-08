@@ -12,6 +12,7 @@ import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder;
 import org.in.media.res.sqlBuilder.core.query.HavingImpl;
 import org.in.media.res.sqlBuilder.core.query.WhereImpl;
+import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.junit.jupiter.api.Test;
 
 class QueryValidationTest {
@@ -103,7 +104,7 @@ class QueryValidationTest {
 
 	@Test
 	void whereRejectsColumnsWithoutTable() {
-		Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> where.where(new ColumnStub(null)));
 		assertTrue(ex.getMessage().contains("Column must belong to a table"));
@@ -111,7 +112,7 @@ class QueryValidationTest {
 
 	@Test
 	void havingRejectsColumnsWithoutTable() {
-		Having having = new HavingImpl();
+		Having having = new HavingImpl(Dialects.defaultDialect());
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> having.having(new ColumnStub(null)));
 		assertTrue(ex.getMessage().contains("Column must belong to a table"));
@@ -119,13 +120,13 @@ class QueryValidationTest {
 
 	@Test
 	void validationAcceptsColumnsWithTable() {
-		Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
 		where.where(new ColumnStub(TABLE));
 	}
 
 	@Test
 	void whereInRejectsEmptyValueLists() {
-		Where where = new WhereImpl();
+		Where where = new WhereImpl(Dialects.defaultDialect());
 		where.where(new ColumnStub(TABLE));
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> where.in(new String[0]));
 		assertTrue(ex.getMessage().contains("at least one value"));
@@ -133,7 +134,7 @@ class QueryValidationTest {
 
 	@Test
 	void havingInRejectsEmptyValueLists() {
-		Having having = new HavingImpl();
+		Having having = new HavingImpl(Dialects.defaultDialect());
 		HavingBuilder builder = having.having(new ColumnStub(TABLE));
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> builder.in(new Number[0]));
 		assertTrue(ex.getMessage().contains("at least one value"));

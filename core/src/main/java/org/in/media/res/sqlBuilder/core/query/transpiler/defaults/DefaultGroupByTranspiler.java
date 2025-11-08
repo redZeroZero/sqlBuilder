@@ -1,10 +1,10 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.GroupBy;
 import org.in.media.res.sqlBuilder.api.query.GroupByTranspiler;
 
-public class OracleGroupByTranspilerImpl implements GroupByTranspiler {
+public class DefaultGroupByTranspiler implements GroupByTranspiler {
 
  private static final String GROUP_BY_ = " GROUP BY ";
 

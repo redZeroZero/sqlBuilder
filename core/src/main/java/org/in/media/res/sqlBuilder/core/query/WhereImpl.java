@@ -22,6 +22,7 @@ import org.in.media.res.sqlBuilder.api.query.Comparator;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Connector;
+import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.Where;
@@ -40,6 +41,12 @@ public class WhereImpl implements Where {
 			"Cannot apply operators without a starting condition. Call where(...) first.");
 
 	private final WhereTranspiler whereTranspiler = TranspilerFactory.instanciateWhereTranspiler();
+
+	private final Dialect dialect;
+
+	public WhereImpl(Dialect dialect) {
+		this.dialect = java.util.Objects.requireNonNull(dialect, "dialect");
+	}
 
 	@Override
 	public String transpile() {
@@ -143,13 +150,13 @@ public class WhereImpl implements Where {
 
 	@Override
 	public Connector like(String value) {
-		this.updateLastCondition(Operator.LIKE, SqlEscapers.escapeLikePattern(value));
+		this.updateLastCondition(Operator.LIKE, SqlEscapers.escapeLikePattern(value, dialect.likeEscapeChar()));
 		return this;
 	}
 
 	@Override
 	public Connector notLike(String value) {
-		this.updateLastCondition(Operator.NOT_LIKE, SqlEscapers.escapeLikePattern(value));
+		this.updateLastCondition(Operator.NOT_LIKE, SqlEscapers.escapeLikePattern(value, dialect.likeEscapeChar()));
 		return this;
 	}
 

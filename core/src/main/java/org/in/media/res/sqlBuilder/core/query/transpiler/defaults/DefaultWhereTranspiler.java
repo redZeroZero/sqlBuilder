@@ -1,9 +1,9 @@
-package org.in.media.res.sqlBuilder.core.query.transpiler.oracle;
+package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 
-public class OracleWhereTranspilerImpl implements WhereTranspiler {
+public class DefaultWhereTranspiler implements WhereTranspiler {
 
     private static final String WHERE = " WHERE ";
 
@@ -12,7 +12,7 @@ public class OracleWhereTranspilerImpl implements WhereTranspiler {
         if (where.conditions().isEmpty()) {
             return "";
         }
-        SqlBuilder builder = SqlBuilder.from(WHERE);
+        DefaultSqlBuilder builder = DefaultSqlBuilder.from(WHERE);
         where.conditions().forEach(condition -> builder.append(condition.transpile()));
         return builder.toString();
     }

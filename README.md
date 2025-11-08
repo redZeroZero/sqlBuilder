@@ -66,7 +66,7 @@ String sql = SqlQuery.newQuery()
 
 ## Sample Queries to Try
 
-The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, `.transpile()` returns SQL with `?` placeholders—call `.render()` when you need both SQL and the bound parameter values.
+The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, `.transpile()` returns SQL with `?` placeholders—call `.render()` when you need both SQL and the bound parameter values. Identifiers are quoted according to the active dialect (e.g., Oracle emits `"Employee"`); examples keep the unquoted form for readability.
 
 ### Rendering SQL & parameters
 
@@ -254,9 +254,55 @@ Call `QueryHelper.group()` without arguments when you want an inline builder tha
 
 The same helper works for HAVING clauses: call `query.having(QueryHelper.group(...)).and(...)` to keep aggregates nested under a single `HAVING` block without hand-written parentheses.
 
+## Dialects & SQL Functions
+
+The SQL that `sqlBuilder` emits is *dialect-aware*. A `Dialect` implementation controls:
+
+- Identifier quoting (`"EMPLOYEE"` for Oracle).
+- Pagination syntax (e.g., `OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`).
+- Set-operator keywords (Oracle maps `EXCEPT` to `MINUS`).
+- LIKE escaping (the dialect decides the escape character).
+- Function rendering (logical function names → dialect-specific expressions).
+
+### Using a Different Dialect
+
+Pass a custom dialect when constructing a query:
+
+```java
+Dialect postgres = new PostgresDialect(); // your implementation
+
+SqlAndParams sp = SqlQuery.newQuery(postgres)
+    .select(Employee.C_FIRST_NAME)
+    .where(Employee.C_LAST_NAME).like("Do%")
+    .render();
+
+sp.sql();    // SELECT "employee"."first_name" ...
+sp.params(); // ["Do%"]
+```
+
+Implement `Dialect` (see `core/.../OracleDialect`) to customize quoting, pagination, and function rendering. Because `QueryImpl` and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules.
+
+### Registering Functions
+
+Aggregates and helper APIs call `Dialect.renderFunction(logicalName, args)`. Provide mappings for the logical names you care about (e.g., `lower`, `upper`, `coalesce`). Example snippet inside a dialect:
+
+```java
+@Override
+public String renderFunction(String logicalName, List<String> argsSql) {
+    return switch (logicalName) {
+        case "lower" -> "LOWER(" + argsSql.get(0) + ")";
+        case "coalesce" -> "COALESCE(" + String.join(", ", argsSql) + ")";
+        default -> logicalName.toUpperCase(Locale.ROOT) + '(' + String.join(", ", argsSql) + ')';
+    };
+}
+```
+
+Once the dialect knows about a logical function name, the fluent API can expose helpers (e.g., `functions.lower(column)` in future extensions) without sprinkling dialect-specific SQL throughout the code base.
+
 ## Notes
 
 - The builder creates SQL strings; execution is left to your JDBC or ORM layer. Use `Query.prettyPrint()` when you need a clause-per-line view for debugging.
+- Identifiers are dialect-quoted in the emitted SQL (Oracle uses double quotes). Use aliases or override the dialect to control quoting style.
 - Transpilers are pluggable. The default implementations target Oracle syntax (OFFSET/FETCH). Extend the transpiler factories to add other dialects.
 - Use the fluent HAVING builder to chain aggregate comparisons (`having(col).sum(col).supTo(100)` etc.).
 - WHERE / HAVING now support the full comparator set: `<>`, `LIKE`, `NOT LIKE`, `BETWEEN`, `IN` / `NOT IN`, `IS (NOT) NULL`, plus scalar and set subqueries (`eq`, `in`, `exists`).
