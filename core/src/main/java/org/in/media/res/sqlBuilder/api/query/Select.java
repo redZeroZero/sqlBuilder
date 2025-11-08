@@ -31,5 +31,9 @@ public interface Select extends Clause, Resetable, Transpilable {
 	Map<Column, AggregateOperator> aggColumns();
 
 	boolean isDistinct();
+
+	Select hint(String hintSql);
+
+	List<String> hints();
 	
 }

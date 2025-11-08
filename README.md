@@ -82,6 +82,22 @@ selectByName.sql();    // SELECT E.ID FROM Employee E WHERE E.FIRST_NAME = ?
 selectByName.params(); // ["Alice"]
 ```
 
+### Injecting Optimizer Hints
+
+Call `.hint("/*+ ... */")` before `FROM` when the target database accepts optimizer hints immediately after `SELECT`:
+
+```java
+SqlAndParams hinted = SqlQuery.newQuery()
+    .hint("/*+ INDEX(E EMP_ID_IDX) */")
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .render();
+
+hinted.sql(); // SELECT /*+ INDEX(E EMP_ID_IDX) */ "Employee"...
+```
+
+Hints are emitted verbatim; ensure the syntax matches the dialect you are targeting.
+
 ### Compiled queries & named parameters
 
 Use `SqlParameter` when you want to build a template once and bind values later.
@@ -280,7 +296,7 @@ sp.sql();    // SELECT "employee"."first_name" ...
 sp.params(); // ["Do%"]
 ```
 
-Implement `Dialect` (see `core/.../OracleDialect`) to customize quoting, pagination, and function rendering. Because `QueryImpl` and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules.
+Implement `Dialect` (see `core/.../OracleDialect` or `PostgresDialect`) to customize quoting, pagination, and function rendering. Because `QueryImpl` and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules. The helpers in `Dialects` expose the built-in implementations (e.g., `Dialects.postgres()`), and you can set a schema-wide default via `schema.setDialect(...)`.
 
 ### Registering Functions
 

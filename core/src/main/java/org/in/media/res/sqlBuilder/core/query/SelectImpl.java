@@ -21,6 +21,8 @@ public class SelectImpl implements Select {
 
 	private boolean distinct;
 
+	private final List<String> hints = new ArrayList<>();
+
 	SelectTranspiler selectTranspiler = TranspilerFactory.instanciateSelectTranspiler();
 
 	public String transpile() {
@@ -89,6 +91,19 @@ public class SelectImpl implements Select {
 	@Override
 	public boolean isDistinct() {
 		return distinct;
+	}
+
+	@Override
+	public Select hint(String hintSql) {
+		if (hintSql != null && !hintSql.isBlank()) {
+			hints.add(hintSql);
+		}
+		return this;
+	}
+
+	@Override
+	public List<String> hints() {
+		return List.copyOf(hints);
 	}
 
 }

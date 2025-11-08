@@ -237,6 +237,17 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query hint(String hintSql) {
+		this.selectClause.hint(hintSql);
+		return this;
+	}
+
+	@Override
+	public List<String> hints() {
+		return this.selectClause.hints();
+	}
+
+	@Override
 	public Query select(AggregateOperator agg, TableDescriptor<?> descriptor) {
 		return this.select(agg, descriptor.column());
 	}

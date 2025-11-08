@@ -17,9 +17,13 @@ public class DefaultSelectTranspiler implements SelectTranspiler {
     private static final String COLUMN_SEP = ", ";
 
     @Override
-    public String transpile(Select select) {
-        String keyword = select.isDistinct() ? "SELECT DISTINCT " : SELECT_KEYWORD;
+	public String transpile(Select select) {
+		String keyword = select.isDistinct() ? "SELECT DISTINCT " : SELECT_KEYWORD;
 		DefaultSqlBuilder builder = DefaultSqlBuilder.from(keyword);
+		List<String> hints = select.hints();
+		if (!hints.isEmpty()) {
+			builder.append(String.join(" ", hints)).append(' ');
+		}
 
 		Iterator<Map.Entry<Column, AggregateOperator>> aggregates = select.aggColumns().entrySet().iterator();
 		while (aggregates.hasNext()) {

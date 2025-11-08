@@ -42,6 +42,9 @@ public interface SelectStage extends QueryStage, Select {
 
 	SelectStage count(TableDescriptor<?> descriptor);
 
+	@Override
+	SelectStage hint(String hintSql);
+
 	FromStage from(Table table);
 
 	FromStage from(Table... tables);

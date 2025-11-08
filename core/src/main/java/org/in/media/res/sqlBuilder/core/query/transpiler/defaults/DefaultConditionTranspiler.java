@@ -13,7 +13,6 @@ import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
-import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 public class DefaultConditionTranspiler implements ConditionTranspiler {
 

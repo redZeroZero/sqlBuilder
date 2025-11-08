@@ -113,6 +113,30 @@ class QueryBehaviourTest {
 	}
 
 	@Test
+	void hintsAppearAfterSelectKeyword() {
+		Query hinted = (Query) SqlQuery.newQuery()
+				.hint("/*+ INDEX(E EMP_ID_IDX) */")
+				.select(Employee.C_FIRST_NAME)
+				.from(employee);
+
+		SqlAndParams rendered = hinted.render();
+
+		assertTrue(rendered.sql().startsWith("SELECT /*+ INDEX(E EMP_ID_IDX) */"));
+	}
+
+	@Test
+	void postgresDialectUsesLimitBeforeOffset() {
+		Query pgQuery = (Query) SqlQuery.newQuery(Dialects.postgres())
+				.select(Employee.C_FIRST_NAME)
+				.from(employee);
+
+		SqlAndParams rendered = pgQuery.limitAndOffset(25, 5).render();
+
+		assertTrue(rendered.sql().contains(" LIMIT ? OFFSET ?"));
+		assertEquals(List.of(25L, 5L), rendered.params());
+	}
+
+	@Test
 	void queryColumnsBundlesTableAndColumns() {
 		QueryColumns<CustomerColumns> helper = QueryColumns.of(schema, CustomerColumns.class);
 
