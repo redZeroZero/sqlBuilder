@@ -39,8 +39,8 @@ class QueryReadmeExamplesTest {
 
 		String expected = "SELECT E.FIRST_NAME as firstName, E.LAST_NAME as lastName "
 				+ "FROM Employee E INNER JOIN Job J ON E.ID = J.EMPLOYEE_ID "
-				+ "WHERE E.FIRST_NAME = 'Alice' ORDER BY E.LAST_NAME ASC "
-				+ "OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY";
+				+ "WHERE E.FIRST_NAME = ? ORDER BY E.LAST_NAME ASC "
+				+ "OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
 		assertEquals(expected, sql);
 	}
@@ -67,7 +67,7 @@ class QueryReadmeExamplesTest {
 
 		String expected = "SELECT E.FIRST_NAME as firstName, J.DESCRIPTION as Intitule "
 				+ "FROM Employee E LEFT JOIN Job J ON E.ID = J.EMPLOYEE_ID "
-				+ "WHERE J.SALARY >= 50000";
+				+ "WHERE J.SALARY >= ?";
 
 		assertEquals(expected, sql);
 	}
@@ -85,7 +85,7 @@ class QueryReadmeExamplesTest {
 
 		String expected = "SELECT AVG(J.SALARY), E.FIRST_NAME as firstName FROM Employee E "
 				+ "JOIN Job J ON E.ID = J.EMPLOYEE_ID GROUP BY E.FIRST_NAME "
-				+ "HAVING AVG(J.SALARY) > 60000 ORDER BY E.FIRST_NAME ASC";
+				+ "HAVING AVG(J.SALARY) > ? ORDER BY E.FIRST_NAME ASC";
 
 		assertEquals(expected, sql);
 	}
@@ -100,7 +100,7 @@ class QueryReadmeExamplesTest {
 				.transpile();
 
 		String expected = "SELECT J.DESCRIPTION as Intitule FROM Job J "
-				+ "ORDER BY J.SALARY DESC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY";
+				+ "ORDER BY J.SALARY DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
 
 		assertEquals(expected, sql);
 	}
@@ -116,7 +116,7 @@ class QueryReadmeExamplesTest {
 
 		String expected = "SELECT E.FIRST_NAME as firstName\n"
 				+ "FROM Employee E\n"
-				+ "WHERE E.FIRST_NAME = 'Alice'";
+				+ "WHERE E.FIRST_NAME = ?";
 
 		assertEquals(expected, printable.prettyPrint());
 	}

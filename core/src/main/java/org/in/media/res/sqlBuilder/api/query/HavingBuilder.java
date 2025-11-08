@@ -13,11 +13,15 @@ public interface HavingBuilder {
 
 	Having eq(Date value);
 
+	Having eq(SqlParameter<?> parameter);
+
 	Having notEq(String value);
 
 	Having notEq(Number value);
 
 	Having notEq(Date value);
+
+	Having notEq(SqlParameter<?> parameter);
 
 	Having in(String... values);
 
@@ -39,6 +43,8 @@ public interface HavingBuilder {
 
 	Having between(Date lower, Date upper);
 
+	Having between(SqlParameter<?> lower, SqlParameter<?> upper);
+
 	Having isNull();
 
 	Having isNotNull();
@@ -58,6 +64,14 @@ public interface HavingBuilder {
 	Having infTo(Query subquery);
 
 	Having infOrEqTo(Query subquery);
+
+	Having supTo(SqlParameter<?> parameter);
+
+	Having supOrEqTo(SqlParameter<?> parameter);
+
+	Having infTo(SqlParameter<?> parameter);
+
+	Having infOrEqTo(SqlParameter<?> parameter);
 
 	Having exists(Query subquery);
 

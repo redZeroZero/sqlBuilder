@@ -18,8 +18,6 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 
 	private final String CLOSING_PARENTHESIS = ")";
 
-	private final String POUIC = "'";
-
 	private final String SEP_ = ", ";
 
 	public String transpile(Condition co) {
@@ -112,20 +110,8 @@ public class OracleConditionTranspilerImpl implements ConditionTranspiler {
 
 	private void appendLiteral(StringBuilder sb, ConditionValue value) {
 		switch (value.type()) {
-		case TY_DATE:
-		case TY_STR:
-			sb.append(POUIC).append(SqlEscapers.escapeStringLiteral(String.valueOf(value.value()))).append(POUIC);
-			break;
-		case TY_DBL:
-		case TY_INT:
-			sb.append(value.value());
-			break;
-		case TY_SUBQUERY:
-			appendSubquery(sb, value);
-			break;
-		default:
-			sb.append(POUIC).append(value.value()).append(POUIC);
-			break;
+		case TY_SUBQUERY -> appendSubquery(sb, value);
+		default -> sb.append('?');
 		}
 	}
 

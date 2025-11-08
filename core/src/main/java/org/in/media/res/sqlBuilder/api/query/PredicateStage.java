@@ -82,13 +82,23 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 	PredicateStage notEq(String value);
 
 	@Override
+	PredicateStage eq(SqlParameter<?> parameter);
+
+	@Override
+	PredicateStage notEq(SqlParameter<?> parameter);
+
+	@Override
 	PredicateStage like(String value);
 
 	@Override
 	PredicateStage notLike(String value);
 
+
 	@Override
 	PredicateStage between(String lower, String upper);
+
+	@Override
+	PredicateStage between(SqlParameter<?> lower, SqlParameter<?> upper);
 
 	@Override
 	PredicateStage supTo(String value);
@@ -96,11 +106,23 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 	@Override
 	PredicateStage infTo(String value);
 
-@Override
+	@Override
 	PredicateStage supOrEqTo(String value);
 
 	@Override
 	PredicateStage infOrEqTo(String value);
+
+	@Override
+	PredicateStage supTo(SqlParameter<?> parameter);
+
+ 	@Override
+	PredicateStage infTo(SqlParameter<?> parameter);
+
+	@Override
+	PredicateStage supOrEqTo(SqlParameter<?> parameter);
+
+	@Override
+	PredicateStage infOrEqTo(SqlParameter<?> parameter);
 
 	@Override
 	PredicateStage in(String... value);

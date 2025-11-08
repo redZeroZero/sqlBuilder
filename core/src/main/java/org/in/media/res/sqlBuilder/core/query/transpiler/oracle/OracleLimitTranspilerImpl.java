@@ -16,13 +16,13 @@ public class OracleLimitTranspilerImpl implements LimitTranspiler {
   Integer offset = limitClause.offsetValue();
   Integer limit = limitClause.limitValue();
 
-  if (offset != null) {
-   sb.append(OFFSET_).append(offset).append(ROWS_);
-  }
+	if (offset != null) {
+		sb.append(OFFSET_).append('?').append(ROWS_);
+	}
 
-  if (limit != null) {
-   sb.append(FETCH_NEXT_).append(limit).append(ROWS_ONLY);
-  }
+	if (limit != null) {
+		sb.append(FETCH_NEXT_).append('?').append(ROWS_ONLY);
+	}
 
   return sb.toString();
  }

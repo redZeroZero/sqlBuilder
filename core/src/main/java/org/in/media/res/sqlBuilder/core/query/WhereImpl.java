@@ -22,8 +22,9 @@ import org.in.media.res.sqlBuilder.api.query.Comparator;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Connector;
-import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
@@ -129,6 +130,18 @@ public class WhereImpl implements Where {
 	}
 
 	@Override
+	public Connector eq(SqlParameter<?> parameter) {
+		this.updateLastCondition(EQ, parameter);
+		return this;
+	}
+
+	@Override
+	public Connector notEq(SqlParameter<?> parameter) {
+		this.updateLastCondition(Operator.NOT_EQ, parameter);
+		return this;
+	}
+
+	@Override
 	public Connector like(String value) {
 		this.updateLastCondition(Operator.LIKE, SqlEscapers.escapeLikePattern(value));
 		return this;
@@ -140,8 +153,15 @@ public class WhereImpl implements Where {
 		return this;
 	}
 
+
 	@Override
 	public Connector between(String lower, String upper) {
+		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
+		return this;
+	}
+
+	@Override
+	public Connector between(SqlParameter<?> lower, SqlParameter<?> upper) {
 		this.updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}
@@ -167,6 +187,30 @@ public class WhereImpl implements Where {
 	@Override
 	public Connector infOrEqTo(String value) {
 		this.updateLastCondition(LESS_OR_EQ, value);
+		return this;
+	}
+
+	@Override
+	public Connector supTo(SqlParameter<?> parameter) {
+		this.updateLastCondition(MORE, parameter);
+		return this;
+	}
+
+	@Override
+	public Connector infTo(SqlParameter<?> parameter) {
+		this.updateLastCondition(LESS, parameter);
+		return this;
+	}
+
+	@Override
+	public Connector supOrEqTo(SqlParameter<?> parameter) {
+		this.updateLastCondition(MORE_OR_EQ, parameter);
+		return this;
+	}
+
+	@Override
+	public Connector infOrEqTo(SqlParameter<?> parameter) {
+		this.updateLastCondition(LESS_OR_EQ, parameter);
 		return this;
 	}
 
@@ -541,6 +585,10 @@ public class WhereImpl implements Where {
 
 	private void updateLastCondition(Operator operator, ConditionValue value) {
 		buffer.updateLast(resolveOperator(operator, 1), List.of(value));
+	}
+
+	private void updateLastCondition(Operator operator, SqlParameter<?> parameter) {
+		updateLastCondition(operator, ConditionValue.of(parameter));
 	}
 
 	private void updateLastCondition(Operator operator) {

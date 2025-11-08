@@ -34,6 +34,10 @@ public final class ConditionValue {
 		return new ConditionValue(Objects.requireNonNull(value, "value"), ValueType.TY_SUBQUERY);
 	}
 
+	public static ConditionValue of(SqlParameter<?> parameter) {
+		return new ConditionValue(Objects.requireNonNull(parameter, "parameter"), ValueType.TY_PARAM);
+	}
+
 	public Object value() {
 		return value;
 	}

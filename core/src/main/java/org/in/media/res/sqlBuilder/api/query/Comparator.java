@@ -39,11 +39,18 @@ public interface Comparator {
 
 	public Connector notEq(String value);
 
+	public Connector eq(SqlParameter<?> parameter);
+
+	public Connector notEq(SqlParameter<?> parameter);
+
 	public Connector like(String value);
 
 	public Connector notLike(String value);
 
+
 	public Connector between(String lower, String upper);
+
+	public Connector between(SqlParameter<?> lower, SqlParameter<?> upper);
 
 	public Connector supTo(String value);
 
@@ -52,6 +59,14 @@ public interface Comparator {
 	public Connector supOrEqTo(String value);
 
 	public Connector infOrEqTo(String value);
+
+	public Connector supTo(SqlParameter<?> parameter);
+
+	public Connector infTo(SqlParameter<?> parameter);
+
+	public Connector supOrEqTo(SqlParameter<?> parameter);
+
+	public Connector infOrEqTo(SqlParameter<?> parameter);
 
 	public Connector in(String... value);
 

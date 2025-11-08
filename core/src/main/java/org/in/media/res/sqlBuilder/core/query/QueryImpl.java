@@ -12,11 +12,14 @@ import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.model.DerivedTableImpl;
 import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
 import org.in.media.res.sqlBuilder.core.query.factory.CLauseFactory;
+import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Clause;
+import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Condition;
+import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.GroupBy;
 import org.in.media.res.sqlBuilder.api.query.Having;
@@ -26,6 +29,8 @@ import org.in.media.res.sqlBuilder.api.query.Limit;
 import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.Select;
+import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.Where;
 
 public class QueryImpl implements Query {
@@ -92,7 +97,32 @@ public class QueryImpl implements Query {
 		}
 	}
 
+	@Override
 	public String transpile() {
+		return buildSql();
+	}
+
+	@Override
+	public SqlAndParams render() {
+		String sql = buildSql();
+		List<CompiledQuery.Placeholder> placeholders = collectPlaceholders();
+		List<Object> params = new ArrayList<>(placeholders.size());
+		for (CompiledQuery.Placeholder placeholder : placeholders) {
+			if (placeholder.parameter() != null) {
+				throw new IllegalStateException(
+						"Unbound parameter '" + placeholder.parameter().name() + "'. Use compile().bind(...) instead.");
+			}
+			params.add(placeholder.fixedValue());
+		}
+		return new SqlAndParams(sql, params);
+	}
+
+	@Override
+	public CompiledQuery compile() {
+		return new CompiledQuery(buildSql(), collectPlaceholders());
+	}
+
+	private String buildSql() {
 		StringBuilder builder = new StringBuilder()
 				.append(selectClause.transpile())
 				.append(fromClause.transpile())
@@ -103,10 +133,10 @@ public class QueryImpl implements Query {
 				.append(limitClause.transpile());
 
 		for (SetOperation operation : setOperations) {
-			builder.append(' ') 
-				.append(resolveSetOperator(operation.operator()))
-				.append(' ')
-				.append(parenthesize(operation.query()));
+			builder.append(' ')
+					.append(resolveSetOperator(operation.operator()))
+					.append(' ')
+					.append(parenthesize(operation.query()));
 		}
 		return builder.toString();
 	}
@@ -369,6 +399,18 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query eq(SqlParameter<?> parameter) {
+		this.whereClause.eq(parameter);
+		return this;
+	}
+
+	@Override
+	public Query notEq(SqlParameter<?> parameter) {
+		this.whereClause.notEq(parameter);
+		return this;
+	}
+
+	@Override
 	public Query like(String value) {
 		this.whereClause.like(value);
 		return this;
@@ -382,6 +424,12 @@ public class QueryImpl implements Query {
 
 	@Override
 	public Query between(String lower, String upper) {
+		this.whereClause.between(lower, upper);
+		return this;
+	}
+
+	@Override
+	public Query between(SqlParameter<?> lower, SqlParameter<?> upper) {
 		this.whereClause.between(lower, upper);
 		return this;
 	}
@@ -407,6 +455,30 @@ public class QueryImpl implements Query {
 	@Override
 	public Query infOrEqTo(String value) {
 		this.whereClause.infOrEqTo(value);
+		return this;
+	}
+
+	@Override
+	public Query supTo(SqlParameter<?> parameter) {
+		this.whereClause.supTo(parameter);
+		return this;
+	}
+
+	@Override
+	public Query infTo(SqlParameter<?> parameter) {
+		this.whereClause.infTo(parameter);
+		return this;
+	}
+
+	@Override
+	public Query supOrEqTo(SqlParameter<?> parameter) {
+		this.whereClause.supOrEqTo(parameter);
+		return this;
+	}
+
+	@Override
+	public Query infOrEqTo(SqlParameter<?> parameter) {
+		this.whereClause.infOrEqTo(parameter);
 		return this;
 	}
 
@@ -957,6 +1029,65 @@ public class QueryImpl implements Query {
 		this.activePredicateContext = PredicateContext.HAVING;
 	}
 
+	private List<CompiledQuery.Placeholder> collectPlaceholders() {
+		List<CompiledQuery.Placeholder> placeholders = new ArrayList<>();
+		appendConditionPlaceholders(whereClause.conditions(), placeholders);
+		appendConditionPlaceholders(havingClause.havingConditions(), placeholders);
+		appendLimitPlaceholders(placeholders);
+		appendSetOperationPlaceholders(placeholders);
+		return placeholders;
+	}
+
+	private void appendConditionPlaceholders(List<Condition> conditions, List<CompiledQuery.Placeholder> placeholders) {
+		for (Condition condition : conditions) {
+			collectConditionPlaceholders(condition, placeholders);
+		}
+	}
+
+	private void collectConditionPlaceholders(Condition condition, List<CompiledQuery.Placeholder> placeholders) {
+		if (condition instanceof ConditionGroup group) {
+			for (Condition child : group.children()) {
+				collectConditionPlaceholders(child, placeholders);
+			}
+			return;
+		}
+		for (ConditionValue value : condition.values()) {
+			appendValuePlaceholder(value, placeholders);
+		}
+	}
+
+	private void appendValuePlaceholder(ConditionValue value, List<CompiledQuery.Placeholder> placeholders) {
+		switch (value.type()) {
+		case TY_SUBQUERY -> {
+			Query nested = (Query) value.value();
+			if (nested instanceof QueryImpl queryImpl) {
+				placeholders.addAll(queryImpl.collectPlaceholders());
+			} else {
+				throw new IllegalStateException("Unsupported query implementation: " + nested.getClass());
+			}
+		}
+		case TY_PARAM -> placeholders.add(new CompiledQuery.Placeholder((SqlParameter<?>) value.value(), null));
+		default -> placeholders.add(new CompiledQuery.Placeholder(null, value.value()));
+		}
+	}
+
+	private void appendLimitPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		Integer offset = limitClause.offsetValue();
+		if (offset != null) {
+			placeholders.add(new CompiledQuery.Placeholder(null, offset));
+		}
+		Integer limit = limitClause.limitValue();
+		if (limit != null) {
+			placeholders.add(new CompiledQuery.Placeholder(null, limit));
+		}
+	}
+
+	private void appendSetOperationPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		for (SetOperation operation : setOperations) {
+			placeholders.addAll(operation.query().collectPlaceholders());
+		}
+	}
+
 	private String resolveSetOperator(SetOperator operator) {
 		return switch (operator) {
 		case UNION -> SetOperator.UNION.sql();
@@ -1019,6 +1150,12 @@ public class QueryImpl implements Query {
 		}
 
 		@Override
+		public Query eq(SqlParameter<?> parameter) {
+			this.delegate.eq(parameter);
+			return QueryImpl.this;
+		}
+
+		@Override
 		public Query notEq(String value) {
 			this.delegate.notEq(value);
 			return QueryImpl.this;
@@ -1033,6 +1170,12 @@ public class QueryImpl implements Query {
 		@Override
 		public Query notEq(Date value) {
 			this.delegate.notEq(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notEq(SqlParameter<?> parameter) {
+			this.delegate.notEq(parameter);
 			return QueryImpl.this;
 		}
 
@@ -1092,6 +1235,12 @@ public class QueryImpl implements Query {
 
 		@Override
 		public Query between(Date lower, Date upper) {
+			this.delegate.between(lower, upper);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query between(SqlParameter<?> lower, SqlParameter<?> upper) {
 			this.delegate.between(lower, upper);
 			return QueryImpl.this;
 		}
@@ -1175,8 +1324,20 @@ public class QueryImpl implements Query {
 		}
 
 		@Override
+		public Query supTo(SqlParameter<?> parameter) {
+			this.delegate.supTo(parameter);
+			return QueryImpl.this;
+		}
+
+		@Override
 		public Query supOrEqTo(Number value) {
 			this.delegate.supOrEqTo(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query supOrEqTo(SqlParameter<?> parameter) {
+			this.delegate.supOrEqTo(parameter);
 			return QueryImpl.this;
 		}
 
@@ -1187,8 +1348,20 @@ public class QueryImpl implements Query {
 		}
 
 		@Override
+		public Query infTo(SqlParameter<?> parameter) {
+			this.delegate.infTo(parameter);
+			return QueryImpl.this;
+		}
+
+		@Override
 		public Query infOrEqTo(Number value) {
 			this.delegate.infOrEqTo(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query infOrEqTo(SqlParameter<?> parameter) {
+			this.delegate.infOrEqTo(parameter);
 			return QueryImpl.this;
 		}
 

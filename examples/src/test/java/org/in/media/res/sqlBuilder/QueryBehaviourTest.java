@@ -7,7 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Map;
+
+import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.QueryColumns;
+import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
@@ -114,6 +121,22 @@ class QueryBehaviourTest {
 		Where where = new WhereImpl();
 
 		assertEquals("", where.transpile());
+	}
+
+	@Test
+	void compiledQueriesBindNamedParameters() {
+		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
+		Query query = QueryImpl.newQuery();
+		query.select(Employee.C_FIRST_NAME)
+				.from(employee)
+				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+				.where(Job.C_SALARY).supOrEqTo(minSalary);
+
+		CompiledQuery template = query.compile();
+
+		SqlAndParams run = template.bind(Map.of("minSalary", 80_000));
+		assertTrue(run.sql().contains("J.SALARY >= ?"));
+		assertEquals(List.of(80_000), run.params());
 	}
 
 	@Test
@@ -318,20 +341,23 @@ class QueryBehaviourTest {
 
 		query.and(Employee.C_ID).eq(42);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
-		assertTrue(sql.contains("(E.FIRST_NAME = 'Alice' OR (E.LAST_NAME = 'Smith'))"), () -> sql);
-		assertTrue(sql.contains("AND E.ID = 42"), () -> sql);
+		assertTrue(sql.contains("(E.FIRST_NAME = ? OR (E.LAST_NAME = ?))"), () -> sql);
+		assertTrue(sql.contains("AND E.ID = ?"), () -> sql);
+		assertEquals(List.of("Alice", "Smith", 42), rendered.params());
 	}
 
 	@Test
 	void likeOperatorFormatsStringLiteral() {
-		String sql = QueryImpl.newQuery()
+		SqlAndParams rendered = QueryImpl.newQuery()
 				.select(Employee.C_FIRST_NAME)
 				.where(Employee.C_FIRST_NAME).like("%ice%")
-				.transpile();
+				.render();
 
-		assertTrue(sql.contains(" LIKE '\\%ice\\%' ESCAPE '\\'"), () -> sql);
+		assertTrue(rendered.sql().contains(" LIKE ? ESCAPE '\\'"), () -> rendered.sql());
+		assertEquals(List.of("\\%ice\\%"), rendered.params());
 	}
 
 	@Test
@@ -354,10 +380,12 @@ class QueryBehaviourTest {
 		query.where(stateGroup);
 		query.and(salaryGroup);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
-		assertTrue(sql.contains("(E.LAST_NAME = 'Miller' OR E.LAST_NAME = 'Moore')"), () -> sql);
-		assertTrue(sql.contains("AND (J.SALARY >= 120000 OR (J.SALARY BETWEEN 80000 AND 90000))"), () -> sql);
+		assertTrue(sql.contains("(E.LAST_NAME = ? OR E.LAST_NAME = ?)"), () -> sql);
+		assertTrue(sql.contains("AND (J.SALARY >= ? OR (J.SALARY BETWEEN ? AND ?))"), () -> sql);
+		assertEquals(List.of("Miller", "Moore", 120_000, 80_000, 90_000), rendered.params());
 	}
 
 	@Test
@@ -378,10 +406,12 @@ class QueryBehaviourTest {
 		query.having(highAverage);
 		query.and(fallbackAverage);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
-		assertTrue(sql.contains("HAVING (AVG(J.SALARY) > 60000) AND (AVG(J.SALARY) >= 55000)"), () -> sql);
+		assertTrue(sql.contains("HAVING (AVG(J.SALARY) > ?) AND (AVG(J.SALARY) >= ?)"), () -> sql);
 		assertFalse(sql.contains("WHERE AVG("));
+		assertEquals(List.of(60_000, 55_000), rendered.params());
 	}
 
 	@Test
@@ -429,20 +459,20 @@ class QueryBehaviourTest {
 				.having(orderHeader.get("TOTAL")).avg(orderHeader.get("TOTAL"))
 				.supOrEqTo(new java.math.BigDecimal("500.00"));
 
-		String sql = query.transpile();
-
-		assertTrue(sql.contains("AVG(O.TOTAL) >="));
-		assertTrue(sql.contains("500"));
+		SqlAndParams rendered = query.render();
+		assertTrue(rendered.sql().contains("AVG(O.TOTAL) >= ?"));
+		assertEquals(List.of(500), rendered.params());
 	}
 
 	@Test
 	void betweenOperatorProducesRangeClause() {
-		String sql = QueryImpl.newQuery()
+		SqlAndParams rendered = QueryImpl.newQuery()
 				.select(Employee.C_ID)
 				.where(Employee.C_ID).between(1, 10)
-				.transpile();
+				.render();
 
-		assertTrue(sql.contains(" BETWEEN 1 AND 10"));
+		assertTrue(rendered.sql().contains(" BETWEEN ? AND ?"));
+		assertEquals(List.of(1, 10), rendered.params());
 	}
 
 	@Test
@@ -458,12 +488,13 @@ class QueryBehaviourTest {
 
 	@Test
 	void notInOperatorRendersNotInClause() {
-		String sql = QueryImpl.newQuery()
+		SqlAndParams rendered = QueryImpl.newQuery()
 				.select(Employee.C_FIRST_NAME)
 				.where(Employee.C_FIRST_NAME).notIn("Alice", "Bob")
-				.transpile();
+				.render();
 
-		assertTrue(sql.contains(" NOT IN ('Alice', 'Bob')"));
+		assertTrue(rendered.sql().contains(" NOT IN (?, ?)"));
+		assertEquals(List.of("Alice", "Bob"), rendered.params());
 	}
 
 	@Test
@@ -542,11 +573,13 @@ class QueryBehaviourTest {
 				.groupBy(Job.C_EMPLOYEE_ID)
 				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(50000);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
 		assertTrue(sql.contains(" HAVING AVG("));
 		assertTrue(sql.contains(Job.C_SALARY.column().transpile(false)));
-		assertTrue(sql.contains(" > 50000"));
+		assertTrue(sql.contains(" > ?"));
+		assertEquals(List.of(50_000), rendered.params());
 	}
 
 	@Test
@@ -559,10 +592,12 @@ class QueryBehaviourTest {
 				.groupBy(Job.C_EMPLOYEE_ID)
 				.having(Job.C_SALARY).between(50000, 100000);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
 		assertTrue(sql.contains(" HAVING "));
-		assertTrue(sql.contains(" BETWEEN 50000 AND 100000"));
+		assertTrue(sql.contains(" BETWEEN ? AND ?"));
+		assertEquals(List.of(50_000, 100_000), rendered.params());
 	}
 
 	@Test
@@ -571,10 +606,12 @@ class QueryBehaviourTest {
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_FIRST_NAME)
 				.limitAndOffset(10, 5);
 
-		String sql = query.transpile();
+		SqlAndParams rendered = query.render();
+		String sql = rendered.sql();
 
-		assertTrue(sql.contains(" OFFSET 5 ROWS"));
-		assertTrue(sql.contains(" FETCH NEXT 10 ROWS ONLY"));
+		assertTrue(sql.contains(" OFFSET ? ROWS"));
+		assertTrue(sql.contains(" FETCH NEXT ? ROWS ONLY"));
+		assertEquals(List.of(5, 10), rendered.params());
 	}
 
 	@Test

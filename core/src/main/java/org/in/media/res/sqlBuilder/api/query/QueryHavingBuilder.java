@@ -17,6 +17,9 @@ public interface QueryHavingBuilder extends HavingBuilder {
 	Query eq(Date value);
 
 	@Override
+	Query eq(SqlParameter<?> parameter);
+
+	@Override
 	Query notEq(String value);
 
 	@Override
@@ -24,6 +27,9 @@ public interface QueryHavingBuilder extends HavingBuilder {
 
 	@Override
 	Query notEq(Date value);
+
+	@Override
+	Query notEq(SqlParameter<?> parameter);
 
 	@Override
 	Query in(String... values);
@@ -54,6 +60,9 @@ public interface QueryHavingBuilder extends HavingBuilder {
 
 	@Override
 	Query between(Date lower, Date upper);
+
+	@Override
+	Query between(SqlParameter<?> lower, SqlParameter<?> upper);
 
 	@Override
 	Query isNull();
@@ -102,6 +111,18 @@ public interface QueryHavingBuilder extends HavingBuilder {
 
 	@Override
 	Query infOrEqTo(Number value);
+
+	@Override
+	Query supTo(SqlParameter<?> parameter);
+
+	@Override
+	Query supOrEqTo(SqlParameter<?> parameter);
+
+	@Override
+	Query infTo(SqlParameter<?> parameter);
+
+	@Override
+	Query infOrEqTo(SqlParameter<?> parameter);
 
 	@Override
 	Query supTo(Column column);

@@ -13,6 +13,7 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.model.ColumnRef;
@@ -126,6 +127,11 @@ public final class ConditionGroupBuilder implements Condition {
 		return this;
 	}
 
+	public ConditionGroupBuilder eq(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.EQ, ConditionValue.of(parameter));
+		return this;
+	}
+
 	public ConditionGroupBuilder eq(Integer value) {
 		updateLastCondition(Operator.EQ, value);
 		return this;
@@ -148,6 +154,11 @@ public final class ConditionGroupBuilder implements Condition {
 
 	public ConditionGroupBuilder notEq(String value) {
 		updateLastCondition(Operator.NOT_EQ, value);
+		return this;
+	}
+
+	public ConditionGroupBuilder notEq(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.NOT_EQ, ConditionValue.of(parameter));
 		return this;
 	}
 
@@ -186,6 +197,11 @@ public final class ConditionGroupBuilder implements Condition {
 		return this;
 	}
 
+	public ConditionGroupBuilder supTo(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.MORE, ConditionValue.of(parameter));
+		return this;
+	}
+
 	public ConditionGroupBuilder supOrEqTo(Integer value) {
 		updateLastCondition(Operator.MORE_OR_EQ, value);
 		return this;
@@ -198,6 +214,11 @@ public final class ConditionGroupBuilder implements Condition {
 
 	public ConditionGroupBuilder supOrEqTo(Query subquery) {
 		updateLastCondition(Operator.MORE_OR_EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	public ConditionGroupBuilder supOrEqTo(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.MORE_OR_EQ, ConditionValue.of(parameter));
 		return this;
 	}
 
@@ -216,6 +237,11 @@ public final class ConditionGroupBuilder implements Condition {
 		return this;
 	}
 
+	public ConditionGroupBuilder infTo(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.LESS, ConditionValue.of(parameter));
+		return this;
+	}
+
 	public ConditionGroupBuilder infOrEqTo(Integer value) {
 		updateLastCondition(Operator.LESS_OR_EQ, value);
 		return this;
@@ -228,6 +254,11 @@ public final class ConditionGroupBuilder implements Condition {
 
 	public ConditionGroupBuilder infOrEqTo(Query subquery) {
 		updateLastCondition(Operator.LESS_OR_EQ, ConditionValue.of(subquery));
+		return this;
+	}
+
+	public ConditionGroupBuilder infOrEqTo(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.LESS_OR_EQ, ConditionValue.of(parameter));
 		return this;
 	}
 
@@ -272,6 +303,11 @@ public final class ConditionGroupBuilder implements Condition {
 	}
 
 	public ConditionGroupBuilder between(String lower, String upper) {
+		updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
+		return this;
+	}
+
+	public ConditionGroupBuilder between(SqlParameter<?> lower, SqlParameter<?> upper) {
 		updateBetween(ConditionValue.of(lower), ConditionValue.of(upper));
 		return this;
 	}

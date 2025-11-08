@@ -41,6 +41,19 @@ EmployeeSchema schema = new EmployeeSchema();
 Table employee = schema.getTableBy(Employee.class);
 Table job = schema.getTableBy(Job.class);
 
+SqlAndParams sp = SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .select(Employee.C_LAST_NAME)
+    .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .where(Employee.C_FIRST_NAME).eq("Alice")
+    .orderBy(Employee.C_LAST_NAME)
+    .limitAndOffset(20, 0)
+    .render();
+
+sp.sql();    // SELECT ... WHERE E.FIRST_NAME = ? ORDER BY E.LAST_NAME ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+sp.params(); // ["Alice", 0, 20]
+
+// Need only the placeholder SQL? call transpile(), which now delegates to render().sql()
 String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
@@ -48,12 +61,43 @@ String sql = SqlQuery.newQuery()
     .where(Employee.C_FIRST_NAME).eq("Alice")
     .orderBy(Employee.C_LAST_NAME)
     .limitAndOffset(20, 0)
-    .transpile(); // SELECT ... ORDER BY ... FETCH NEXT 20 ROWS ONLY
+    .transpile();
 ```
 
 ## Sample Queries to Try
 
-The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder.
+The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, `.transpile()` returns SQL with `?` placeholders—call `.render()` when you need both SQL and the bound parameter values.
+
+### Rendering SQL & parameters
+
+`render()` is the primary way to execute a query: it returns a `SqlAndParams` pair containing the SQL text (with `?` placeholders) and the ordered parameter list. `transpile()` is still available when you just need the SQL string, but it now emits placeholders instead of literal values.
+
+```java
+SqlAndParams selectByName = SqlQuery.newQuery()
+    .select(Employee.C_ID)
+    .where(Employee.C_FIRST_NAME).eq("Alice")
+    .render();
+
+selectByName.sql();    // SELECT E.ID FROM Employee E WHERE E.FIRST_NAME = ?
+selectByName.params(); // ["Alice"]
+```
+
+### Compiled queries & named parameters
+
+Use `SqlParameter` when you want to build a template once and bind values later.
+
+```java
+SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
+
+CompiledQuery salaryFilter = SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .where(Job.C_SALARY).supOrEqTo(minSalary)
+    .compile();
+
+SqlAndParams firstRun = salaryFilter.bind(Map.of("minSalary", 80_000));
+SqlAndParams secondRun = salaryFilter.bind(90_000); // positional binding
+```
 
 ### 1. Simple Projection
 
@@ -119,7 +163,7 @@ System.out.println(printable.prettyPrint());
 /*
 SELECT Employee.FIRST_NAME as firstName
 FROM Employee
-WHERE Employee.FIRST_NAME = 'Alice'
+WHERE Employee.FIRST_NAME = ?
 */
 ```
 

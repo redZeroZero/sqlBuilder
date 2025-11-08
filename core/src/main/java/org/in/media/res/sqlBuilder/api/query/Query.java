@@ -14,6 +14,10 @@ public interface Query extends SelectStage, FromStage {
 
 	public List<Clause> clauses();
 
+	SqlAndParams render();
+
+	CompiledQuery compile();
+
 	Table as(String alias, String... columnAliases);
 
 	Query select(Column column);

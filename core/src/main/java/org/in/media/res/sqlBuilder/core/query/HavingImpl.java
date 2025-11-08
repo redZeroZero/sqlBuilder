@@ -11,6 +11,7 @@ import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
@@ -69,11 +70,15 @@ public class HavingImpl implements Having {
 		buffer.appendStandalone(operator, value);
 	}
 
-    private ConditionValue numericValue(Number value) {
-        return (value instanceof Double || value instanceof Float)
-                ? ConditionValue.of(value.doubleValue())
-                : ConditionValue.of(value.intValue());
-    }
+	private ConditionValue numericValue(Number value) {
+		return (value instanceof Double || value instanceof Float)
+				? ConditionValue.of(value.doubleValue())
+				: ConditionValue.of(value.intValue());
+	}
+
+	private ConditionValue parameterValue(SqlParameter<?> parameter) {
+		return ConditionValue.of(parameter);
+	}
 
     private Having applyOperator(Operator operator, ConditionValue... values) {
         buffer.replaceLast(condition -> ClauseConditionBuffer.applyValues(condition, operator, List.of(values)));
@@ -133,10 +138,15 @@ public class HavingImpl implements Having {
             return applyOperator(Operator.EQ, numericValue(value));
         }
 
-        @Override
-        public Having eq(Date value) {
-            return applyOperator(Operator.EQ, ConditionValue.of(value));
-        }
+		@Override
+		public Having eq(Date value) {
+			return applyOperator(Operator.EQ, ConditionValue.of(value));
+		}
+
+		@Override
+		public Having eq(SqlParameter<?> parameter) {
+			return applyOperator(Operator.EQ, parameterValue(parameter));
+		}
 
         @Override
         public Having notEq(String value) {
@@ -148,10 +158,15 @@ public class HavingImpl implements Having {
             return applyOperator(Operator.NOT_EQ, numericValue(value));
         }
 
-        @Override
-        public Having notEq(Date value) {
-            return applyOperator(Operator.NOT_EQ, ConditionValue.of(value));
-        }
+		@Override
+		public Having notEq(Date value) {
+			return applyOperator(Operator.NOT_EQ, ConditionValue.of(value));
+		}
+
+		@Override
+		public Having notEq(SqlParameter<?> parameter) {
+			return applyOperator(Operator.NOT_EQ, parameterValue(parameter));
+		}
 
         @Override
         public Having in(String... values) {
@@ -260,10 +275,15 @@ public class HavingImpl implements Having {
             return applyOperator(Operator.BETWEEN, numericValue(lower), numericValue(upper));
         }
 
-        @Override
-        public Having between(Date lower, Date upper) {
-            return applyOperator(Operator.BETWEEN, ConditionValue.of(lower), ConditionValue.of(upper));
-        }
+		@Override
+		public Having between(Date lower, Date upper) {
+			return applyOperator(Operator.BETWEEN, ConditionValue.of(lower), ConditionValue.of(upper));
+		}
+
+		@Override
+		public Having between(SqlParameter<?> lower, SqlParameter<?> upper) {
+			return applyOperator(Operator.BETWEEN, parameterValue(lower), parameterValue(upper));
+		}
 
         @Override
         public Having isNull() {
@@ -275,25 +295,45 @@ public class HavingImpl implements Having {
             return applyOperator(Operator.IS_NOT_NULL);
         }
 
-        @Override
-        public Having supTo(Number value) {
-            return applyOperator(Operator.MORE, numericValue(value));
-        }
+		@Override
+		public Having supTo(Number value) {
+			return applyOperator(Operator.MORE, numericValue(value));
+		}
 
-        @Override
-        public Having supOrEqTo(Number value) {
-            return applyOperator(Operator.MORE_OR_EQ, numericValue(value));
-        }
+		@Override
+		public Having supTo(SqlParameter<?> parameter) {
+			return applyOperator(Operator.MORE, parameterValue(parameter));
+		}
 
-        @Override
-        public Having infTo(Number value) {
-            return applyOperator(Operator.LESS, numericValue(value));
-        }
+		@Override
+		public Having supOrEqTo(Number value) {
+			return applyOperator(Operator.MORE_OR_EQ, numericValue(value));
+		}
 
-        @Override
-        public Having infOrEqTo(Number value) {
-            return applyOperator(Operator.LESS_OR_EQ, numericValue(value));
-        }
+		@Override
+		public Having supOrEqTo(SqlParameter<?> parameter) {
+			return applyOperator(Operator.MORE_OR_EQ, parameterValue(parameter));
+		}
+
+		@Override
+		public Having infTo(Number value) {
+			return applyOperator(Operator.LESS, numericValue(value));
+		}
+
+		@Override
+		public Having infTo(SqlParameter<?> parameter) {
+			return applyOperator(Operator.LESS, parameterValue(parameter));
+		}
+
+		@Override
+		public Having infOrEqTo(Number value) {
+			return applyOperator(Operator.LESS_OR_EQ, numericValue(value));
+		}
+
+		@Override
+		public Having infOrEqTo(SqlParameter<?> parameter) {
+			return applyOperator(Operator.LESS_OR_EQ, parameterValue(parameter));
+		}
 
         @Override
         public Having supTo(Column column) {
