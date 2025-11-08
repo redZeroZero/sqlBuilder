@@ -82,6 +82,8 @@ selectByName.sql();    // SELECT E.ID FROM Employee E WHERE E.FIRST_NAME = ?
 selectByName.params(); // ["Alice"]
 ```
 
+Need a literal SQL string for ad-hoc execution? Feed the `SqlAndParams` through `SqlFormatter.inlineLiterals(sp, dialect)` to inline values (use with care, since bind-parameter safety is lost).
+
 ### Injecting Optimizer Hints
 
 Call `.hint("/*+ ... */")` before `FROM` when the target database accepts optimizer hints immediately after `SELECT`:

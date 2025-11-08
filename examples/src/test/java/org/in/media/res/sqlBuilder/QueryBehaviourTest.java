@@ -14,6 +14,7 @@ import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.QueryColumns;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
+import org.in.media.res.sqlBuilder.api.query.SqlFormatter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
@@ -823,4 +824,16 @@ class QueryBehaviourTest {
 			return logicalName.toUpperCase(java.util.Locale.ROOT) + '(' + String.join(", ", argsSql) + ')';
 		}
 	}
+
+	@Test
+	void inlineFormatterProducesLiteralSql() {
+		SqlAndParams sp = QueryImpl.newQuery()
+				.select(Employee.C_FIRST_NAME)
+				.where(Employee.C_FIRST_NAME).eq("Alice")
+				.render();
+
+		String literal = SqlFormatter.inlineLiterals(sp, Dialects.defaultDialect());
+		assertTrue(literal.contains("'Alice'"));
+	}
+
 }
