@@ -571,7 +571,35 @@ String name = row.get(columns.FIRST_NAME());
 
 These rows can be useful for fixtures, parameter binding, or integrating with whatever persistence layer you prefer.
 
-If you prefer manual wiring, you can instantiate `TableImpl` and `ColumnImpl` directly—just ensure each column is linked to its owning table before you pass it to the fluent APIs.
+> **Classpath scanning caveats**  
+> The built-in scanner relies on the application classloader to enumerate resources. In environments that rewrite jars (spring-boot fat jars, shaded archives), use JPMS layers, or lock down classloaders, reflection-based scanning might not see every descriptor. When that happens, fall back to manual table registration.
+
+### Manual Table Registration
+
+If annotation scanning is not an option, declare tables programmatically via `Tables.builder(...)`. Columns can be added by name or by binding existing `ColumnRef` descriptors:
+
+```java
+import org.in.media.res.sqlBuilder.api.model.Table;
+import org.in.media.res.sqlBuilder.api.model.Tables;
+import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+
+ColumnRef<Integer> EMP_ID = ColumnRef.of("ID", Integer.class);
+ColumnRef<String> EMP_FIRST_NAME = ColumnRef.of("FIRST_NAME", String.class);
+
+Table employee = Tables.builder("Employee", "E")
+    .column(EMP_ID)                      // ColumnRef binding keeps type information
+    .column(EMP_FIRST_NAME)
+    .column("ACTIVE", "isActive")
+    .build();
+
+String sql = SqlQuery.newQuery()
+    .select(EMP_FIRST_NAME)
+    .from(employee)
+    .where(EMP_ID).eq(42)
+    .transpile();
+```
+
+This manual approach avoids classpath scanning entirely while still delivering typed ColumnRefs to the DSL. Combine it with `QueryColumns` if you want to distribute table/column bundles throughout your application.
 
 ## Running Tests
 
