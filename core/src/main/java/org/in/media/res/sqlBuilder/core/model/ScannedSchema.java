@@ -49,7 +49,12 @@ public class ScannedSchema implements Schema {
 		if (facet != null) {
 			return facet.table();
 		}
-		return getTableBy(clazz.getSimpleName());
+		Table fallback = getTableBy(clazz.getSimpleName());
+		if (fallback != null) {
+			return fallback;
+		}
+		throw new IllegalArgumentException(
+				"No table registered for descriptor " + clazz.getName() + " (scanned base package: " + basePackage + ")");
 	}
 
 	@Override

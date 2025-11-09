@@ -5,12 +5,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SetOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.model.DerivedTableImpl;
-import org.in.media.res.sqlBuilder.api.query.From.JoinSpec;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
@@ -383,513 +383,412 @@ public class QueryImpl implements Query {
 
 	@Override
 	public Query where(Condition condition) {
-		activateWhere();
-		this.whereClause.condition(condition);
-		return this;
+		return withWhere(where -> where.condition(condition));
 	}
 
 	@Override
 	public Query where(Column column) {
-		activateWhere();
-		this.whereClause.where(column);
-		return this;
+		return withWhere(where -> where.where(column));
 	}
 
 	@Override
 	public Query eq(Column column) {
-		this.whereClause.eq(column);
-		return this;
+		return withWhere(where -> where.eq(column));
 	}
 
 	@Override
 	public Query notEq(Column column) {
-		this.whereClause.notEq(column);
-		return this;
+		return withWhere(where -> where.notEq(column));
 	}
 
 	@Override
 	public Query supTo(Column column) {
-		this.whereClause.supTo(column);
-		return this;
+		return withWhere(where -> where.supTo(column));
 	}
 
 	@Override
 	public Query infTo(Column column) {
-		this.whereClause.infTo(column);
-		return this;
+		return withWhere(where -> where.infTo(column));
 	}
 
 	@Override
 	public Query supOrEqTo(Column column) {
-		this.whereClause.supOrEqTo(column);
-		return this;
+		return withWhere(where -> where.supOrEqTo(column));
 	}
 
 	@Override
 	public Query infOrEqTo(Column column) {
-		this.whereClause.infOrEqTo(column);
-		return this;
+		return withWhere(where -> where.infOrEqTo(column));
 	}
 
 	@Override
 	public Query eq(String value) {
-		this.whereClause.eq(value);
-		return this;
+		return withWhere(where -> where.eq(value));
 	}
 
 	@Override
 	public Query notEq(String value) {
-		this.whereClause.notEq(value);
-		return this;
+		return withWhere(where -> where.notEq(value));
 	}
 
 	@Override
 	public Query eq(SqlParameter<?> parameter) {
-		this.whereClause.eq(parameter);
-		return this;
+		return withWhere(where -> where.eq(parameter));
 	}
 
 	@Override
 	public Query notEq(SqlParameter<?> parameter) {
-		this.whereClause.notEq(parameter);
-		return this;
+		return withWhere(where -> where.notEq(parameter));
 	}
 
 	@Override
 	public Query like(String value) {
-		this.whereClause.like(value);
-		return this;
+		return withWhere(where -> where.like(value));
 	}
 
 	@Override
 	public Query like(SqlParameter<?> parameter) {
-		this.whereClause.like(parameter);
-		return this;
+		return withWhere(where -> where.like(parameter));
 	}
 
 	@Override
 	public Query notLike(String value) {
-		this.whereClause.notLike(value);
-		return this;
+		return withWhere(where -> where.notLike(value));
 	}
 
 	@Override
 	public Query notLike(SqlParameter<?> parameter) {
-		this.whereClause.notLike(parameter);
-		return this;
+		return withWhere(where -> where.notLike(parameter));
 	}
 
 	@Override
 	public Query between(String lower, String upper) {
-		this.whereClause.between(lower, upper);
-		return this;
+		return withWhere(where -> where.between(lower, upper));
 	}
 
 	@Override
 	public Query between(SqlParameter<?> lower, SqlParameter<?> upper) {
-		this.whereClause.between(lower, upper);
-		return this;
+		return withWhere(where -> where.between(lower, upper));
 	}
 
 	@Override
 	public Query supTo(String value) {
-		this.whereClause.supTo(value);
-		return this;
+		return withWhere(where -> where.supTo(value));
 	}
 
 	@Override
 	public Query infTo(String value) {
-		this.whereClause.infTo(value);
-		return this;
+		return withWhere(where -> where.infTo(value));
 	}
 
 	@Override
 	public Query supOrEqTo(String value) {
-		this.whereClause.supOrEqTo(value);
-		return this;
+		return withWhere(where -> where.supOrEqTo(value));
 	}
 
 	@Override
 	public Query infOrEqTo(String value) {
-		this.whereClause.infOrEqTo(value);
-		return this;
+		return withWhere(where -> where.infOrEqTo(value));
 	}
 
 	@Override
 	public Query supTo(SqlParameter<?> parameter) {
-		this.whereClause.supTo(parameter);
-		return this;
+		return withWhere(where -> where.supTo(parameter));
 	}
 
 	@Override
 	public Query infTo(SqlParameter<?> parameter) {
-		this.whereClause.infTo(parameter);
-		return this;
+		return withWhere(where -> where.infTo(parameter));
 	}
 
 	@Override
 	public Query supOrEqTo(SqlParameter<?> parameter) {
-		this.whereClause.supOrEqTo(parameter);
-		return this;
+		return withWhere(where -> where.supOrEqTo(parameter));
 	}
 
 	@Override
 	public Query infOrEqTo(SqlParameter<?> parameter) {
-		this.whereClause.infOrEqTo(parameter);
-		return this;
+		return withWhere(where -> where.infOrEqTo(parameter));
 	}
 
 	@Override
 	public Query in(String... value) {
-		this.whereClause.in(value);
-		return this;
+		return withWhere(where -> where.in(value));
 	}
 
 	@Override
 	public Query notIn(String... value) {
-		this.whereClause.notIn(value);
-		return this;
+		return withWhere(where -> where.notIn(value));
 	}
 
 	@Override
 	public Query eq(Integer value) {
-		this.whereClause.eq(value);
-		return this;
+		return withWhere(where -> where.eq(value));
 	}
 
 	@Override
 	public Query notEq(Integer value) {
-		this.whereClause.notEq(value);
-		return this;
+		return withWhere(where -> where.notEq(value));
 	}
 
 	@Override
 	public Query between(Integer lower, Integer upper) {
-		this.whereClause.between(lower, upper);
-		return this;
+		return withWhere(where -> where.between(lower, upper));
 	}
 
 	@Override
 	public Query supTo(Integer value) {
-		this.whereClause.supTo(value);
-		return this;
+		return withWhere(where -> where.supTo(value));
 	}
 
 	@Override
 	public Query infTo(Integer value) {
-		this.whereClause.infTo(value);
-		return this;
+		return withWhere(where -> where.infTo(value));
 	}
 
 	@Override
 	public Query supOrEqTo(Integer value) {
-		this.whereClause.supOrEqTo(value);
-		return this;
+		return withWhere(where -> where.supOrEqTo(value));
 	}
 
 	@Override
 	public Query infOrEqTo(Integer value) {
-		this.whereClause.infOrEqTo(value);
-		return this;
+		return withWhere(where -> where.infOrEqTo(value));
 	}
 
 	@Override
 	public Query in(Integer... value) {
-		this.whereClause.in(value);
-		return this;
+		return withWhere(where -> where.in(value));
 	}
 
 	@Override
 	public Query notIn(Integer... value) {
-		this.whereClause.notIn(value);
-		return this;
+		return withWhere(where -> where.notIn(value));
 	}
 
 	@Override
 	public Query eq(Date value) {
-		this.whereClause.eq(value);
-		return this;
+		return withWhere(where -> where.eq(value));
 	}
 
 	@Override
 	public Query notEq(Date value) {
-		this.whereClause.notEq(value);
-		return this;
+		return withWhere(where -> where.notEq(value));
 	}
 
 	@Override
 	public Query between(Date lower, Date upper) {
-		this.whereClause.between(lower, upper);
-		return this;
+		return withWhere(where -> where.between(lower, upper));
 	}
 
 	@Override
 	public Query supTo(Date value) {
-		this.whereClause.supTo(value);
-		return this;
+		return withWhere(where -> where.supTo(value));
 	}
 
 	@Override
 	public Query infTo(Date value) {
-		this.whereClause.infTo(value);
-		return this;
+		return withWhere(where -> where.infTo(value));
 	}
 
 	@Override
 	public Query supOrEqTo(Date value) {
-		this.whereClause.supOrEqTo(value);
-		return this;
+		return withWhere(where -> where.supOrEqTo(value));
 	}
 
 	@Override
 	public Query infOrEqTo(Date value) {
-		this.whereClause.infOrEqTo(value);
-		return this;
+		return withWhere(where -> where.infOrEqTo(value));
 	}
 
 	@Override
 	public Query in(Date... value) {
-		this.whereClause.in(value);
-		return this;
+		return withWhere(where -> where.in(value));
 	}
 
 	@Override
 	public Query notIn(Date... value) {
-		this.whereClause.notIn(value);
-		return this;
+		return withWhere(where -> where.notIn(value));
 	}
 
 	@Override
 	public Query eq(Double value) {
-		this.whereClause.eq(value);
-		return this;
+		return withWhere(where -> where.eq(value));
 	}
 
 	@Override
 	public Query notEq(Double value) {
-		this.whereClause.notEq(value);
-		return this;
+		return withWhere(where -> where.notEq(value));
 	}
 
 	@Override
 	public Query between(Double lower, Double upper) {
-		this.whereClause.between(lower, upper);
-		return this;
+		return withWhere(where -> where.between(lower, upper));
 	}
 
 	@Override
 	public Query supTo(Double value) {
-		this.whereClause.supTo(value);
-		return this;
+		return withWhere(where -> where.supTo(value));
 	}
 
 	@Override
 	public Query infTo(Double value) {
-		this.whereClause.infTo(value);
-		return this;
+		return withWhere(where -> where.infTo(value));
 	}
 
 	@Override
 	public Query supOrEqTo(Double value) {
-		this.whereClause.supOrEqTo(value);
-		return this;
+		return withWhere(where -> where.supOrEqTo(value));
 	}
 
 	@Override
 	public Query infOrEqTo(Double value) {
-		this.whereClause.infOrEqTo(value);
-		return this;
+		return withWhere(where -> where.infOrEqTo(value));
 	}
 
 	@Override
 	public Query in(Double... value) {
-		this.whereClause.in(value);
-		return this;
+		return withWhere(where -> where.in(value));
 	}
 
 	@Override
 	public Query notIn(Double... value) {
-		this.whereClause.notIn(value);
-		return this;
+		return withWhere(where -> where.notIn(value));
 	}
 
 	@Override
 	public Query isNull() {
-		this.whereClause.isNull();
-		return this;
+		return withWhere(Where::isNull);
 	}
 
 	@Override
 	public Query isNotNull() {
-		this.whereClause.isNotNull();
-		return this;
+		return withWhere(Where::isNotNull);
 	}
 
 	@Override
 	public Query eq(Query subquery) {
-		this.whereClause.eq(subquery);
-		return this;
+		return withWhere(where -> where.eq(subquery));
 	}
 
 	@Override
 	public Query notEq(Query subquery) {
-		this.whereClause.notEq(subquery);
-		return this;
+		return withWhere(where -> where.notEq(subquery));
 	}
 
 	@Override
 	public Query in(Query subquery) {
-		this.whereClause.in(subquery);
-		return this;
+		return withWhere(where -> where.in(subquery));
 	}
 
 	@Override
 	public Query notIn(Query subquery) {
-		this.whereClause.notIn(subquery);
-		return this;
+		return withWhere(where -> where.notIn(subquery));
 	}
 
 	@Override
 	public Query supTo(Query subquery) {
-		this.whereClause.supTo(subquery);
-		return this;
+		return withWhere(where -> where.supTo(subquery));
 	}
 
 	@Override
 	public Query infTo(Query subquery) {
-		this.whereClause.infTo(subquery);
-		return this;
+		return withWhere(where -> where.infTo(subquery));
 	}
 
 	@Override
 	public Query supOrEqTo(Query subquery) {
-		this.whereClause.supOrEqTo(subquery);
-		return this;
+		return withWhere(where -> where.supOrEqTo(subquery));
 	}
 
 	@Override
 	public Query infOrEqTo(Query subquery) {
-		this.whereClause.infOrEqTo(subquery);
-		return this;
+		return withWhere(where -> where.infOrEqTo(subquery));
 	}
 
 	@Override
 	public Query exists(Query subquery) {
-		activateWhere();
-		this.whereClause.exists(subquery);
-		return this;
+		return withWhere(where -> where.exists(subquery));
 	}
 
 	@Override
 	public Query notExists(Query subquery) {
-		activateWhere();
-		this.whereClause.notExists(subquery);
-		return this;
+		return withWhere(where -> where.notExists(subquery));
 	}
 
 	@Override
 	public Query and(Column column) {
-		activateWhere();
-		this.whereClause.and(column);
-		return this;
+		return withWhere(where -> where.and(column));
 	}
 
 	@Override
 	public Query or(Column column) {
-		activateWhere();
-		this.whereClause.or(column);
-		return this;
+		return withWhere(where -> where.or(column));
 	}
 
 	@Override
 	public Query and() {
-		activateWhere();
-		this.whereClause.and();
-		return this;
+		return withWhere(Where::and);
 	}
 
 	@Override
 	public Query or() {
-		activateWhere();
-		this.whereClause.or();
-		return this;
+		return withWhere(Where::or);
 	}
 
 	@Override
 	public Query eq() {
-		activateWhere();
-		this.whereClause.eq();
-		return this;
+		return withWhere(Where::eq);
 	}
 
 	@Override
 	public Query supTo() {
-		activateWhere();
-		this.whereClause.supTo();
-		return this;
+		return withWhere(Where::supTo);
 	}
 
 	@Override
 	public Query infTo() {
-		activateWhere();
-		this.whereClause.infTo();
-		return this;
+		return withWhere(Where::infTo);
 	}
 
 	@Override
 	public Query supOrEqTo() {
-		activateWhere();
-		this.whereClause.supOrEqTo();
-		return this;
+		return withWhere(Where::supOrEqTo);
 	}
 
 	@Override
 	public Query infOrEqTo() {
-		activateWhere();
-		this.whereClause.infOrEqTo();
-		return this;
+		return withWhere(Where::infOrEqTo);
 	}
 
 	@Override
 	public Query in() {
-		activateWhere();
-		this.whereClause.in();
-		return this;
+		return withWhere(Where::in);
 	}
 
 	@Override
 	public Query min(Column column) {
-		activateWhere();
-		this.whereClause.min(column);
-		return this;
+		return withWhere(where -> where.min(column));
 	}
 
 	@Override
 	public Query max(Column column) {
-		activateWhere();
-		this.whereClause.max(column);
-		return this;
+		return withWhere(where -> where.max(column));
 	}
 
 	@Override
 	public Query sum(Column column) {
-		activateWhere();
-		this.whereClause.sum(column);
-		return this;
+		return withWhere(where -> where.sum(column));
 	}
 
 	@Override
 	public Query avg(Column column) {
-		activateWhere();
-		this.whereClause.avg(column);
-		return this;
+		return withWhere(where -> where.avg(column));
 	}
 
 	@Override
 	public Query col(Column column) {
-		activateWhere();
-		this.whereClause.col(column);
-		return this;
+		return withWhere(where -> where.col(column));
 	}
 
 	@Override
@@ -1002,33 +901,23 @@ public class QueryImpl implements Query {
 
 	@Override
 	public Query having(Condition condition) {
-		activateHaving();
-		this.havingClause.having(condition);
-		return this;
+		return withHaving(having -> having.having(condition));
 	}
 
 	@Override
 	public Query and(Condition condition) {
 		if (this.activePredicateContext == PredicateContext.HAVING) {
-			this.havingClause.and(condition);
-			activateHaving();
-			return this;
+			return withHaving(having -> having.and(condition));
 		}
-		activateWhere();
-		this.whereClause.and(condition);
-		return this;
+		return withWhere(where -> where.and(condition));
 	}
 
 	@Override
 	public Query or(Condition condition) {
 		if (this.activePredicateContext == PredicateContext.HAVING) {
-			this.havingClause.or(condition);
-			activateHaving();
-			return this;
+			return withHaving(having -> having.or(condition));
 		}
-		activateWhere();
-		this.whereClause.or(condition);
-		return this;
+		return withWhere(where -> where.or(condition));
 	}
 
 	@Override
@@ -1084,6 +973,18 @@ public class QueryImpl implements Query {
 
 	private void activateHaving() {
 		this.activePredicateContext = PredicateContext.HAVING;
+	}
+
+	private Query withWhere(Consumer<Where> consumer) {
+		activateWhere();
+		consumer.accept(this.whereClause);
+		return this;
+	}
+
+	private Query withHaving(Consumer<Having> consumer) {
+		activateHaving();
+		consumer.accept(this.havingClause);
+		return this;
 	}
 
 	private List<CompiledQuery.Placeholder> collectPlaceholders() {

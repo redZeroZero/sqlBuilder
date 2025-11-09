@@ -485,6 +485,14 @@ String sql = SqlQuery.newQuery()
 ```
 
 > The sample schema ships with the generated `CustomerColumns` / `CustomerColumnsImpl` pair checked into source control so the build remains stable even when annotation processing is disabled. In your own modules you can rely on the processor to emit the same code automatically.
+
+> **Initialization checklist**
+> 1. Annotate each table with `@SqlTable`/`@SqlColumn`, declaring either `ColumnRef<T>` fields or plain static fields plus `javaType`.
+> 2. Run the `SqlTableProcessor` (enabled in `examples/`) so `<Table>Columns` interfaces/implementations are generated next to your descriptors.
+> 3. Instantiate your `ScannedSchema`. It now fails fast if a descriptor cannot be matched to a table (`schema.getTableBy(Foo.class)` throws) and `TableFacets` immediately raises an error when a column name is missing.
+> 4. Fetch typed handles via `schema.facets().columns(Foo.class, FooColumns.class)` or `QueryColumns.of(...)` and pass those `ColumnRef`s throughout the DSL.
+
+These guards surface misconfigurations during startup instead of at query execution time.
 ```
 
 To build a schema from a package (auto-detects classes like `Customer` above):

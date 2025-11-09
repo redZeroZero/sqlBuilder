@@ -1,7 +1,6 @@
 package org.in.media.res.sqlBuilder.core.query;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -18,6 +17,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
+import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 /**
@@ -532,31 +532,27 @@ public final class ConditionGroupBuilder implements Condition {
 	}
 
 	private void updateLastCondition(Operator operator, String... values) {
-		requireValues(operator, values.length);
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		PredicateValues.Result update = PredicateValues.strings(operator, values);
+		replaceLast(condition -> applyValues(condition, update.operator(), update.values()));
 	}
 
 	private void updateLastCondition(Operator operator, Integer... values) {
-		requireValues(operator, values.length);
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		PredicateValues.Result update = PredicateValues.integers(operator, values);
+		replaceLast(condition -> applyValues(condition, update.operator(), update.values()));
 	}
 
 	private void updateLastCondition(Operator operator, Double... values) {
-		requireValues(operator, values.length);
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		PredicateValues.Result update = PredicateValues.doubles(operator, values);
+		replaceLast(condition -> applyValues(condition, update.operator(), update.values()));
 	}
 
 	private void updateLastCondition(Operator operator, Date... values) {
-		requireValues(operator, values.length);
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList()));
+		PredicateValues.Result update = PredicateValues.dates(operator, values);
+		replaceLast(condition -> applyValues(condition, update.operator(), update.values()));
 	}
 
 	private void updateLastCondition(Operator operator, ConditionValue value) {
-		replaceLast(condition -> applyValues(condition, resolveOperator(operator, 1), List.of(value)));
+		replaceLast(condition -> applyValues(condition, operator, List.of(value)));
 	}
 
 	private void updateLastCondition(Operator operator) {
@@ -613,17 +609,4 @@ public final class ConditionGroupBuilder implements Condition {
 		return column;
 	}
 
-	private Operator resolveOperator(Operator operator, int valueCount) {
-		if (operator == Operator.EQ && valueCount > 1) {
-			return Operator.IN;
-		}
-		return operator;
-	}
-
-    private void requireValues(Operator operator, int valueCount) {
-        if (valueCount == 0) {
-            String label = operator != null ? operator.name() : "condition";
-            throw new IllegalArgumentException(label + " requires at least one value");
-        }
-    }
 }

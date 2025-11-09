@@ -17,6 +17,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
+import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 final class HavingImpl implements Having {
@@ -92,42 +93,10 @@ final class HavingImpl implements Having {
         return HavingImpl.this;
     }
 
-    private IllegalArgumentException emptyValues(Operator operator) {
-        return new IllegalArgumentException(operator.name() + " requires at least one value");
-    }
-
-    private ConditionValue[] numericValues(Operator operator, Number... values) {
-        if (values.length == 0) {
-            throw emptyValues(operator);
-        }
-        ConditionValue[] result = new ConditionValue[values.length];
-        for (int i = 0; i < values.length; i++) {
-            result[i] = numericValue(values[i]);
-        }
-        return result;
-    }
-
-    private ConditionValue[] stringValues(Operator operator, String... values) {
-        if (values.length == 0) {
-            throw emptyValues(operator);
-        }
-        ConditionValue[] result = new ConditionValue[values.length];
-        for (int i = 0; i < values.length; i++) {
-            result[i] = ConditionValue.of(values[i]);
-        }
-        return result;
-    }
-
-    private ConditionValue[] dateValues(Operator operator, Date... values) {
-        if (values.length == 0) {
-            throw emptyValues(operator);
-        }
-        ConditionValue[] result = new ConditionValue[values.length];
-        for (int i = 0; i < values.length; i++) {
-            result[i] = ConditionValue.of(values[i]);
-        }
-        return result;
-    }
+	private Having applyOperator(PredicateValues.Result result) {
+		List<ConditionValue> values = result.values();
+		return applyOperator(result.operator(), values.toArray(ConditionValue[]::new));
+	}
 
     private void setAggregate(AggregateOperator aggregate, Column column) {
         buffer.replaceLast(condition -> condition.withLeftAggregate(aggregate).withLeftColumn(requireColumn(column)));
@@ -177,32 +146,32 @@ final class HavingImpl implements Having {
 
         @Override
         public Having in(String... values) {
-            return applyOperator(Operator.IN, stringValues(Operator.IN, values));
+			return applyOperator(PredicateValues.strings(Operator.IN, values));
         }
 
         @Override
         public Having in(Number... values) {
-            return applyOperator(Operator.IN, numericValues(Operator.IN, values));
+			return applyOperator(PredicateValues.numbers(Operator.IN, values));
         }
 
         @Override
         public Having in(Date... values) {
-            return applyOperator(Operator.IN, dateValues(Operator.IN, values));
+			return applyOperator(PredicateValues.dates(Operator.IN, values));
         }
 
         @Override
         public Having notIn(String... values) {
-            return applyOperator(Operator.NOT_IN, stringValues(Operator.NOT_IN, values));
+			return applyOperator(PredicateValues.strings(Operator.NOT_IN, values));
         }
 
         @Override
         public Having notIn(Number... values) {
-            return applyOperator(Operator.NOT_IN, numericValues(Operator.NOT_IN, values));
+			return applyOperator(PredicateValues.numbers(Operator.NOT_IN, values));
         }
 
         @Override
 		public Having notIn(Date... values) {
-			return applyOperator(Operator.NOT_IN, dateValues(Operator.NOT_IN, values));
+			return applyOperator(PredicateValues.dates(Operator.NOT_IN, values));
 		}
 
 		@Override

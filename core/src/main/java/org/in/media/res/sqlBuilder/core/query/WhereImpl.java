@@ -12,7 +12,6 @@ import static org.in.media.res.sqlBuilder.constants.Operator.MORE;
 import static org.in.media.res.sqlBuilder.constants.Operator.MORE_OR_EQ;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -31,6 +30,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
+import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
 final class WhereImpl implements Where {
@@ -579,31 +579,27 @@ final class WhereImpl implements Where {
 	}
 
 	private void updateLastCondition(Operator operator, String... values) {
-		requireValues(operator, values.length);
-		buffer.updateLast(resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList());
+		PredicateValues.Result update = PredicateValues.strings(operator, values);
+		buffer.updateLast(update.operator(), update.values());
 	}
 
 	private void updateLastCondition(Operator operator, Integer... values) {
-		requireValues(operator, values.length);
-		buffer.updateLast(resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList());
+		PredicateValues.Result update = PredicateValues.integers(operator, values);
+		buffer.updateLast(update.operator(), update.values());
 	}
 
 	private void updateLastCondition(Operator operator, Double... values) {
-		requireValues(operator, values.length);
-		buffer.updateLast(resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList());
+		PredicateValues.Result update = PredicateValues.doubles(operator, values);
+		buffer.updateLast(update.operator(), update.values());
 	}
 
 	private void updateLastCondition(Operator operator, Date... values) {
-		requireValues(operator, values.length);
-		buffer.updateLast(resolveOperator(operator, values.length),
-				Arrays.stream(values).map(ConditionValue::of).toList());
+		PredicateValues.Result update = PredicateValues.dates(operator, values);
+		buffer.updateLast(update.operator(), update.values());
 	}
 
 	private void updateLastCondition(Operator operator, ConditionValue value) {
-		buffer.updateLast(resolveOperator(operator, 1), List.of(value));
+		buffer.updateLast(operator, List.of(value));
 	}
 
 	private void updateLastCondition(Operator operator, SqlParameter<?> parameter) {
@@ -627,13 +623,6 @@ final class WhereImpl implements Where {
 		return column;
 	}
 
-	private void requireValues(Operator operator, int valueCount) {
-		if (valueCount == 0) {
-			String label = operator != null ? operator.name() : "condition";
-			throw new IllegalArgumentException(label + " requires at least one value");
-		}
-	}
-
 	private void updateLastCondition(Operator operator, AggregateOperator aggregate, Column column) {
 		buffer.replaceLast(condition -> {
 			ConditionImpl updated = condition;
@@ -650,13 +639,4 @@ final class WhereImpl implements Where {
 		});
 	}
 
-	private Operator resolveOperator(Operator operator, int valueCount) {
-		if (operator == EQ && valueCount > 1) {
-			return IN;
-		}
-		if (operator == Operator.EXISTS || operator == Operator.NOT_EXISTS) {
-			return operator;
-		}
-		return operator;
-	}
 }

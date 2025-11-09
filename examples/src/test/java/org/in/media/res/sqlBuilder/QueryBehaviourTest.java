@@ -26,9 +26,13 @@ import org.in.media.res.sqlBuilder.example.Job;
 import org.in.media.res.sqlBuilder.example.Customer;
 import org.in.media.res.sqlBuilder.example.CustomerColumns;
 import org.in.media.res.sqlBuilder.example.OrderHeader;
+import org.in.media.res.sqlBuilder.example.OrderHeaderColumns;
 import org.in.media.res.sqlBuilder.example.OrderLine;
-import org.in.media.res.sqlBuilder.example.Product;
+import org.in.media.res.sqlBuilder.example.OrderLineColumns;
 import org.in.media.res.sqlBuilder.example.Payment;
+import org.in.media.res.sqlBuilder.example.PaymentColumns;
+import org.in.media.res.sqlBuilder.example.Product;
+import org.in.media.res.sqlBuilder.example.ProductColumns;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.QueryHelper;
@@ -48,6 +52,11 @@ class QueryBehaviourTest {
 	private Table orderLine;
 	private Table product;
 	private Table payment;
+	private CustomerColumns customerColumns;
+	private OrderHeaderColumns orderHeaderColumns;
+	private OrderLineColumns orderLineColumns;
+	private ProductColumns productColumns;
+	private PaymentColumns paymentColumns;
 
 	@BeforeEach
 	void setUp() {
@@ -59,6 +68,11 @@ class QueryBehaviourTest {
 		orderLine = schema.getTableBy(OrderLine.class);
 		product = schema.getTableBy(Product.class);
 		payment = schema.getTableBy(Payment.class);
+		customerColumns = schema.facets().columns(Customer.class, CustomerColumns.class);
+		orderHeaderColumns = schema.facets().columns(OrderHeader.class, OrderHeaderColumns.class);
+		orderLineColumns = schema.facets().columns(OrderLine.class, OrderLineColumns.class);
+		productColumns = schema.facets().columns(Product.class, ProductColumns.class);
+		paymentColumns = schema.facets().columns(Payment.class, PaymentColumns.class);
 	}
 
 	private String quoted(String identifier) {
@@ -473,14 +487,14 @@ class QueryBehaviourTest {
 	@Test
 	void customerPaymentAggregations() {
 		Query query = SqlQuery.newQuery().asQuery()
-				.select(customer.get("ID"))
-				.select(customer.get("FIRST_NAME"))
-				.select(AggregateOperator.SUM, payment.get("AMOUNT"))
+				.select(customerColumns.ID())
+				.select(customerColumns.FIRST_NAME())
+				.select(AggregateOperator.SUM, paymentColumns.AMOUNT())
 				.from(customer)
-				.join(orderHeader).on(customer.get("ID"), orderHeader.get("CUSTOMER_ID"))
-				.join(payment).on(payment.get("ORDER_ID"), orderHeader.get("ID"))
-				.groupBy(customer.get("ID"), customer.get("FIRST_NAME"))
-				.orderBy(customer.get("FIRST_NAME"));
+				.join(orderHeader).on(customerColumns.ID(), orderHeaderColumns.CUSTOMER_ID())
+				.join(payment).on(paymentColumns.ORDER_ID(), orderHeaderColumns.ID())
+				.groupBy(customerColumns.ID(), customerColumns.FIRST_NAME())
+				.orderBy(customerColumns.FIRST_NAME());
 
 		String sql = query.transpile();
 
@@ -493,10 +507,10 @@ class QueryBehaviourTest {
 	@Test
 	void orderLineJoinProductProducesJoinClause() {
 		Query query = SqlQuery.newQuery().asQuery()
-				.select(product.get("NAME"))
-				.select(orderLine.get("QUANTITY"))
+				.select(productColumns.NAME())
+				.select(orderLineColumns.QUANTITY())
 				.from(orderLine)
-				.join(product).on(orderLine.get("PRODUCT_ID"), product.get("ID"));
+				.join(product).on(orderLineColumns.PRODUCT_ID(), productColumns.ID());
 
 		String sql = query.transpile();
 
@@ -508,12 +522,12 @@ class QueryBehaviourTest {
 	@Test
 	void customersWithAverageOrderValueAboveThreshold() {
 		Query query = SqlQuery.newQuery().asQuery()
-				.select(customer.get("ID"))
-				.select(customer.get("FIRST_NAME"))
+				.select(customerColumns.ID())
+				.select(customerColumns.FIRST_NAME())
 				.from(customer)
-				.join(orderHeader).on(customer.get("ID"), orderHeader.get("CUSTOMER_ID"))
-				.groupBy(customer.get("ID"), customer.get("FIRST_NAME"))
-				.having(orderHeader.get("TOTAL")).avg(orderHeader.get("TOTAL"))
+				.join(orderHeader).on(customerColumns.ID(), orderHeaderColumns.CUSTOMER_ID())
+				.groupBy(customerColumns.ID(), customerColumns.FIRST_NAME())
+				.having(orderHeaderColumns.TOTAL()).avg(orderHeaderColumns.TOTAL())
 				.supOrEqTo(new java.math.BigDecimal("500.00"));
 
 		SqlAndParams rendered = query.render();

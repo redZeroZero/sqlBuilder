@@ -9,9 +9,6 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder;
-import org.in.media.res.sqlBuilder.core.query.HavingImpl;
-import org.in.media.res.sqlBuilder.core.query.WhereImpl;
 import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.junit.jupiter.api.Test;
 

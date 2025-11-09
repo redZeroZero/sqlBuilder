@@ -32,9 +32,9 @@ public final class QueryShowcase {
 
     private static void demoSelectClause(Table employee, Table job) {
         Select select = SqlQuery.newQuery();
-        select.select(MAX, employee.get("FIRST_NAME"))
-              .select(MIN, job.get("ID"))
-              .select(job.get("SALARY"));
+        select.select(MAX, Employee.C_FIRST_NAME)
+              .select(MIN, Job.C_ID)
+              .select(Job.C_SALARY);
         System.out.println("SELECT CLAUSE -> " + select.transpile());
     }
 
@@ -42,8 +42,8 @@ public final class QueryShowcase {
         Query query = SqlQuery.newQuery().asQuery();
         query.select(employee)
                 .from(employee)
-                .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID))
-                .where(employee.get(Employee.C_FIRST_NAME)).eq("Alphonse");
+                .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+                .where(Employee.C_FIRST_NAME).eq("Alphonse");
         System.out.println("BASIC QUERY -> " + query.transpile());
 
         Query count = SqlQuery.countAll()
@@ -55,9 +55,9 @@ public final class QueryShowcase {
     private static void demoDerivedTables(Table employee, Table job) {
         Query salarySummary = SqlQuery.newQuery().asQuery();
         salarySummary.select(Employee.C_ID)
-                .select(AVG, job.get(Job.C_SALARY))
+                .select(AVG, Job.C_SALARY)
                 .from(employee)
-                .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID))
+                .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
                 .groupBy(Employee.C_ID);
 
         Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
@@ -73,32 +73,32 @@ public final class QueryShowcase {
 
     private static void demoSubqueryPredicates(Table employee, Table job) {
         Query highSalaryIds = SqlQuery.newQuery().asQuery();
-        highSalaryIds.select(job.get(Job.C_EMPLOYEE_ID))
+        highSalaryIds.select(Job.C_EMPLOYEE_ID)
                 .from(job)
-                .where(job.get(Job.C_SALARY)).supOrEqTo(60000);
+                .where(Job.C_SALARY).supOrEqTo(60000);
 
         Query inSubquery = SqlQuery.newQuery().asQuery();
-        inSubquery.select(employee.get(Employee.C_FIRST_NAME))
+        inSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
-                .where(employee.get(Employee.C_ID)).in(highSalaryIds);
+                .where(Employee.C_ID).in(highSalaryIds);
         System.out.println("IN SUBQUERY -> " + inSubquery.transpile());
 
         Query existsSubquery = SqlQuery.newQuery().asQuery();
-        existsSubquery.select(employee.get(Employee.C_FIRST_NAME))
+        existsSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
-                .exists(SqlQuery.newQuery().select(job.get(Job.C_ID)).from(job).asQuery());
+                .exists(SqlQuery.newQuery().select(Job.C_ID).from(job).asQuery());
         System.out.println("EXISTS SUBQUERY -> " + existsSubquery.transpile());
 
         // Condition demonstration using the fluent DSL
         Query whereDemo = SqlQuery.newQuery().asQuery();
-        whereDemo.select(employee.get(Employee.C_FIRST_NAME))
+        whereDemo.select(Employee.C_FIRST_NAME)
                 .from(employee)
-                .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID));
-        whereDemo.where(employee.get("FIRST_NAME"))
+                .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID);
+        whereDemo.where(Employee.C_FIRST_NAME)
                 .in("Tagada", "tsoin")
-                .and(employee.get(Employee.C_FIRST_NAME))
+                .and(Employee.C_FIRST_NAME)
                 .eq("ULUBERLU")
-                .and(job.get(Job.C_ID)).eq(42);
+                .and(Job.C_ID).eq(42);
         System.out.println("WHERE CHAIN -> " + whereDemo.transpile());
     }
 }
