@@ -463,8 +463,20 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query like(SqlParameter<?> parameter) {
+		this.whereClause.like(parameter);
+		return this;
+	}
+
+	@Override
 	public Query notLike(String value) {
 		this.whereClause.notLike(value);
+		return this;
+	}
+
+	@Override
+	public Query notLike(SqlParameter<?> parameter) {
+		this.whereClause.notLike(parameter);
 		return this;
 	}
 
@@ -1340,8 +1352,20 @@ public class QueryImpl implements Query {
 		}
 
 		@Override
+		public Query like(SqlParameter<?> parameter) {
+			this.delegate.like(parameter);
+			return QueryImpl.this;
+		}
+
+		@Override
 		public Query notLike(String value) {
 			this.delegate.notLike(value);
+			return QueryImpl.this;
+		}
+
+		@Override
+		public Query notLike(SqlParameter<?> parameter) {
+			this.delegate.notLike(parameter);
 			return QueryImpl.this;
 		}
 

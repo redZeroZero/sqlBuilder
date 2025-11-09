@@ -1,5 +1,6 @@
 package org.in.media.res.sqlBuilder.api.query;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +16,8 @@ public final class SqlAndParams {
 
     public SqlAndParams(String sql, List<Object> params) {
         this.sql = Objects.requireNonNull(sql, "sql");
-        this.params = List.copyOf(Objects.requireNonNull(params, "params"));
+        Objects.requireNonNull(params, "params");
+        this.params = Collections.unmodifiableList(new ArrayList<>(params));
     }
 
     public String sql() {

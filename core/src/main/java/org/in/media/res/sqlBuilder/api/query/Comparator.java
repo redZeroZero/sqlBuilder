@@ -47,6 +47,10 @@ public interface Comparator {
 
 	public Connector notLike(String value);
 
+	public Connector like(SqlParameter<?> parameter);
+
+	public Connector notLike(SqlParameter<?> parameter);
+
 
 	public Connector between(String lower, String upper);
 

@@ -274,9 +274,19 @@ public class HavingImpl implements Having {
 		}
 
 		@Override
+		public Having like(SqlParameter<?> parameter) {
+			return applyOperator(Operator.LIKE, parameterValue(parameter));
+		}
+
+		@Override
 		public Having notLike(String value) {
 			return applyOperator(Operator.NOT_LIKE,
 					ConditionValue.of(SqlEscapers.escapeLikePattern(value, dialect.likeEscapeChar())));
+		}
+
+		@Override
+		public Having notLike(SqlParameter<?> parameter) {
+			return applyOperator(Operator.NOT_LIKE, parameterValue(parameter));
 		}
 
         @Override

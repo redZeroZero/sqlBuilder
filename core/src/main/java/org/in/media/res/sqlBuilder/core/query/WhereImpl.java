@@ -160,6 +160,18 @@ public class WhereImpl implements Where {
 		return this;
 	}
 
+	@Override
+	public Connector like(SqlParameter<?> parameter) {
+		this.updateLastCondition(Operator.LIKE, parameter);
+		return this;
+	}
+
+	@Override
+	public Connector notLike(SqlParameter<?> parameter) {
+		this.updateLastCondition(Operator.NOT_LIKE, parameter);
+		return this;
+	}
+
 
 	@Override
 	public Connector between(String lower, String upper) {

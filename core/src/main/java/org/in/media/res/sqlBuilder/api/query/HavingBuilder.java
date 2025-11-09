@@ -39,6 +39,10 @@ public interface HavingBuilder {
 
 	Having notLike(String value);
 
+	Having like(SqlParameter<?> parameter);
+
+	Having notLike(SqlParameter<?> parameter);
+
 	Having between(Number lower, Number upper);
 
 	Having between(Date lower, Date upper);

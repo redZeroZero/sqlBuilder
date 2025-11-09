@@ -332,8 +332,18 @@ public final class ConditionGroupBuilder implements Condition {
 		return this;
 	}
 
+	public ConditionGroupBuilder like(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.LIKE, ConditionValue.of(parameter));
+		return this;
+	}
+
 	public ConditionGroupBuilder notLike(String value) {
 		updateLastCondition(Operator.NOT_LIKE, SqlEscapers.escapeLikePattern(value));
+		return this;
+	}
+
+	public ConditionGroupBuilder notLike(SqlParameter<?> parameter) {
+		updateLastCondition(Operator.NOT_LIKE, ConditionValue.of(parameter));
 		return this;
 	}
 
@@ -507,6 +517,9 @@ public final class ConditionGroupBuilder implements Condition {
 
 	private Condition normalize(Condition condition, Operator startOperator) {
 		Objects.requireNonNull(condition, "condition");
+		if (condition instanceof org.in.media.res.sqlBuilder.core.query.predicate.ParameterCondition parameterCondition) {
+			return startOperator != null ? parameterCondition.withStartOperator(startOperator) : parameterCondition;
+		}
 		if (condition instanceof ConditionGroupBuilder builder) {
 			ConditionGroup group = builder.build();
 			return startOperator != null ? group.withStartOperator(startOperator) : group;

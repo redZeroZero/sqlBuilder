@@ -71,6 +71,9 @@ public final class ClauseConditionBuffer {
 
 	public Condition normalize(Condition condition, Operator startOperator) {
 		Objects.requireNonNull(condition, "condition");
+		if (condition instanceof ParameterCondition parameterCondition) {
+			return startOperator != null ? parameterCondition.withStartOperator(startOperator) : parameterCondition;
+		}
 		if (condition instanceof ConditionGroupBuilder builder) {
 			ConditionGroup group = builder.build();
 			return startOperator != null ? group.withStartOperator(startOperator) : group;

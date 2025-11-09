@@ -70,10 +70,7 @@ public final class CompiledQuery {
     }
 
     private static void validateBindingValue(SqlParameter<?> parameter, Object value) {
-        if (value == null) {
-            throw new IllegalArgumentException(
-                    "Null value supplied for parameter '" + parameter.name() + "'. Use explicit IS NULL predicates.");
-        }
+        // Null values are permitted so optional predicates can be toggled at bind-time.
     }
 
     public static record Placeholder(SqlParameter<?> parameter, Object fixedValue) {

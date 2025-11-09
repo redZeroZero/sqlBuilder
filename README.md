@@ -2,6 +2,16 @@
 
 sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It provides composable builders for `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and `LIMIT / OFFSET` clauses so you can express queries without string concatenation.
 
+## Contents
+
+- [Getting Started](#getting-started)
+- [Sample Queries to Try](#sample-queries-to-try)
+  - [Derived Tables](#7-derived-tables-from-subqueries)
+  - [Common Table Expressions](#8-common-table-expressions-ctes)
+  - [Optional Filters for Compiled Queries](#10-optional-filters-for-compiled-queries)
+  - [Grouped Filters](#11-grouped-filters-nested-and--or-trees)
+- [Dialects & SQL Functions](#dialects--sql-functions)
+
 ## Getting Started
 
 ### Installation
@@ -275,7 +285,46 @@ String sql = SqlQuery.newQuery()
 
 Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the query builder, and the DSL will emit `WHERE EXISTS (...)` without requiring a placeholder column.
 
-### 10. Grouped Filters (Nested AND / OR Trees)
+### 10. Optional Filters for Compiled Queries
+
+When you need a single compiled SQL statement that conditionally applies filters based on bound parameters, use the `whereOptional*` helpers:
+
+- `whereOptionalEquals(column, param)`
+- `whereOptionalLike(column, param)`
+- `whereOptionalGreaterOrEqual(column, param)`
+
+Each helper emits `(param IS NULL OR column <op> param)` so the SQL structure never changes.
+
+```java
+SqlParameter<String> pName = SqlParameters.param("name");
+SqlParameter<Integer> pMinSalary = SqlParameters.param("minSalary");
+SqlParameter<String> pPattern = SqlParameters.param("pattern");
+
+CompiledQuery cq = SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .whereOptionalEquals(Employee.C_FIRST_NAME, pName)
+    .whereOptionalLike(Employee.C_LAST_NAME, pPattern)
+    .whereOptionalGreaterOrEqual(Employee.C_SALARY, pMinSalary)
+    .asQuery()
+    .compile();
+
+Map<String, Object> disabled = new HashMap<>();
+disabled.put("name", null);
+disabled.put("pattern", null);
+disabled.put("minSalary", null);
+cq.bind(disabled); // emits no filters
+
+Map<String, Object> enabled = new HashMap<>();
+enabled.put("name", "Alice");
+enabled.put("pattern", null);      // still safe to bind null
+enabled.put("minSalary", 80_000);
+cq.bind(enabled); // applies NAME + salary filters
+```
+
+Each helper references the same `SqlParameter` twice, so the bound value is reused for both `IS NULL` and the real predicate. This keeps plan caching intact while letting you toggle conditions at bind time without rebuilding SQL.
+
+### 11. Grouped Filters (Nested AND / OR Trees)
 
 Use `QueryHelper.group` to build parenthesised predicates that mirror SQL's boolean syntax. `and(...)` / `or(...)` automatically target the active clause (WHERE vs. HAVING), so you can chain grouped expressions fluently:
 

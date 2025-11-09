@@ -4,8 +4,10 @@ import java.util.Date;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.core.query.OptionalConditions;
 
 /**
  * Stage exposing predicate, grouping, ordering, and pagination operations.
@@ -27,6 +29,44 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 
 	default PredicateStage where(ColumnRef<?> descriptor) {
 		return where(descriptor.column());
+	}
+
+	default PredicateStage whereOptionalEquals(Column column, SqlParameter<?> parameter) {
+		return condition(OptionalConditions.optionalEquals(column, parameter));
+	}
+
+	default PredicateStage whereOptionalEquals(TableDescriptor<?> descriptor, SqlParameter<?> parameter) {
+		return whereOptionalEquals(descriptor.column(), parameter);
+	}
+
+	default PredicateStage whereOptionalEquals(ColumnRef<?> descriptor, SqlParameter<?> parameter) {
+		return whereOptionalEquals(descriptor.column(), parameter);
+	}
+
+	default PredicateStage whereOptionalLike(Column column, SqlParameter<?> parameter) {
+		return condition(OptionalConditions.optionalLike(column, parameter));
+	}
+
+	default PredicateStage whereOptionalLike(TableDescriptor<?> descriptor, SqlParameter<?> parameter) {
+		return whereOptionalLike(descriptor.column(), parameter);
+	}
+
+	default PredicateStage whereOptionalLike(ColumnRef<? extends CharSequence> descriptor,
+			SqlParameter<?> parameter) {
+		return whereOptionalLike(descriptor.column(), parameter);
+	}
+
+	default PredicateStage whereOptionalGreaterOrEqual(Column column, SqlParameter<?> parameter) {
+		return condition(OptionalConditions.optionalGreaterOrEq(column, parameter));
+	}
+
+	default PredicateStage whereOptionalGreaterOrEqual(TableDescriptor<?> descriptor, SqlParameter<?> parameter) {
+		return whereOptionalGreaterOrEqual(descriptor.column(), parameter);
+	}
+
+	default PredicateStage whereOptionalGreaterOrEqual(ColumnRef<? extends Number> descriptor,
+			SqlParameter<?> parameter) {
+		return whereOptionalGreaterOrEqual(descriptor.column(), parameter);
 	}
 
 	PredicateStage and(Condition condition);
@@ -92,6 +132,12 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 
 	@Override
 	PredicateStage notLike(String value);
+
+	@Override
+	PredicateStage like(SqlParameter<?> parameter);
+
+	@Override
+	PredicateStage notLike(SqlParameter<?> parameter);
 
 
 	@Override
