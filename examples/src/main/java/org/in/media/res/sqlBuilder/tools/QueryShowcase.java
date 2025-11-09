@@ -3,17 +3,10 @@ package org.in.media.res.sqlBuilder.tools;
 import static org.in.media.res.sqlBuilder.constants.AggregateOperator.AVG;
 import static org.in.media.res.sqlBuilder.constants.AggregateOperator.MAX;
 import static org.in.media.res.sqlBuilder.constants.AggregateOperator.MIN;
-import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
-
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.Select;
-import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.core.query.ConditionImpl;
-import org.in.media.res.sqlBuilder.core.query.QueryImpl;
-import org.in.media.res.sqlBuilder.core.query.SelectImpl;
-import org.in.media.res.sqlBuilder.core.query.WhereImpl;
-import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
+import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -32,43 +25,45 @@ public final class QueryShowcase {
         Table job = schema.getTableBy(Job.class);
 
         demoSelectClause(employee, job);
-        demoQueryBuilder(employee, job);
+        demoQueryDsl(employee, job);
         demoDerivedTables(employee, job);
         demoSubqueryPredicates(employee, job);
     }
 
     private static void demoSelectClause(Table employee, Table job) {
-        Select select = new SelectImpl();
+        Select select = SqlQuery.newQuery();
         select.select(MAX, employee.get("FIRST_NAME"))
               .select(MIN, job.get("ID"))
               .select(job.get("SALARY"));
         System.out.println("SELECT CLAUSE -> " + select.transpile());
     }
 
-    private static void demoQueryBuilder(Table employee, Table job) {
-        Query query = QueryImpl.newQuery()
-                .select(employee)
+    private static void demoQueryDsl(Table employee, Table job) {
+        Query query = SqlQuery.newQuery().asQuery();
+        query.select(employee)
                 .from(employee)
                 .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID))
                 .where(employee.get(Employee.C_FIRST_NAME)).eq("Alphonse");
         System.out.println("BASIC QUERY -> " + query.transpile());
 
-        Query count = QueryImpl.countAll().from(employee);
+        Query count = SqlQuery.countAll()
+                .from(employee)
+                .asQuery();
         System.out.println("COUNT QUERY -> " + count.transpile());
     }
 
     private static void demoDerivedTables(Table employee, Table job) {
-        Query salarySummary = QueryImpl.newQuery()
-                .select(Employee.C_ID)
+        Query salarySummary = SqlQuery.newQuery().asQuery();
+        salarySummary.select(Employee.C_ID)
                 .select(AVG, job.get(Job.C_SALARY))
                 .from(employee)
                 .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID))
                 .groupBy(Employee.C_ID);
 
-        Table salaryAvg = QueryImpl.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
+        Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
 
-        Query derived = QueryImpl.newQuery()
-                .select(Employee.C_FIRST_NAME)
+        Query derived = SqlQuery.newQuery().asQuery();
+        derived.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
                 .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(60000);
@@ -77,36 +72,33 @@ public final class QueryShowcase {
     }
 
     private static void demoSubqueryPredicates(Table employee, Table job) {
-        Query highSalaryIds = QueryImpl.newQuery()
-                .select(job.get(Job.C_EMPLOYEE_ID))
+        Query highSalaryIds = SqlQuery.newQuery().asQuery();
+        highSalaryIds.select(job.get(Job.C_EMPLOYEE_ID))
                 .from(job)
                 .where(job.get(Job.C_SALARY)).supOrEqTo(60000);
 
-        Query inSubquery = QueryImpl.newQuery()
-                .select(employee.get(Employee.C_FIRST_NAME))
+        Query inSubquery = SqlQuery.newQuery().asQuery();
+        inSubquery.select(employee.get(Employee.C_FIRST_NAME))
                 .from(employee)
                 .where(employee.get(Employee.C_ID)).in(highSalaryIds);
         System.out.println("IN SUBQUERY -> " + inSubquery.transpile());
 
-        Query existsSubquery = QueryImpl.newQuery()
-                .select(employee.get(Employee.C_FIRST_NAME))
+        Query existsSubquery = SqlQuery.newQuery().asQuery();
+        existsSubquery.select(employee.get(Employee.C_FIRST_NAME))
                 .from(employee)
-                .exists(QueryImpl.newQuery().select(job.get(Job.C_ID)).from(job));
+                .exists(SqlQuery.newQuery().select(job.get(Job.C_ID)).from(job).asQuery());
         System.out.println("EXISTS SUBQUERY -> " + existsSubquery.transpile());
 
-        // Condition demonstration
-		Where where = new WhereImpl(Dialects.defaultDialect());
-        ConditionImpl condition = ConditionImpl.builder()
-                .and()
-                .leftColumn(employee.get(Employee.C_FIRST_NAME))
-                .comparisonOp(EQ)
-                .rightColumn(job.get(Job.C_ID))
-                .build();
-        where.where(employee.get("FIRST_NAME"))
+        // Condition demonstration using the fluent DSL
+        Query whereDemo = SqlQuery.newQuery().asQuery();
+        whereDemo.select(employee.get(Employee.C_FIRST_NAME))
+                .from(employee)
+                .join(job).on(Employee.C_ID, job.get(Job.C_EMPLOYEE_ID));
+        whereDemo.where(employee.get("FIRST_NAME"))
                 .in("Tagada", "tsoin")
                 .and(employee.get(Employee.C_FIRST_NAME))
-                .eq("ULUBERLU");
-        where.condition(condition);
-        System.out.println("WHERE CHAIN -> " + where.transpile());
+                .eq("ULUBERLU")
+                .and(job.get(Job.C_ID)).eq(42);
+        System.out.println("WHERE CHAIN -> " + whereDemo.transpile());
     }
 }

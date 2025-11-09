@@ -4,7 +4,7 @@ import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.query.Limit;
 import org.in.media.res.sqlBuilder.api.query.LimitTranspiler;
 
-public class LimitImpl implements Limit {
+final class LimitImpl implements Limit {
 
 	private Integer limit;
 	private Integer offset;

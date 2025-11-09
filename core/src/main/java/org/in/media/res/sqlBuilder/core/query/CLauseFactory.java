@@ -1,4 +1,4 @@
-package org.in.media.res.sqlBuilder.core.query.factory;
+package org.in.media.res.sqlBuilder.core.query;
 
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.From;
@@ -8,15 +8,7 @@ import org.in.media.res.sqlBuilder.api.query.Limit;
 import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.core.query.FromImpl;
-import org.in.media.res.sqlBuilder.core.query.GroupByImpl;
-import org.in.media.res.sqlBuilder.core.query.HavingImpl;
-import org.in.media.res.sqlBuilder.core.query.LimitImpl;
-import org.in.media.res.sqlBuilder.core.query.OrderByImpl;
-import org.in.media.res.sqlBuilder.core.query.SelectImpl;
-import org.in.media.res.sqlBuilder.core.query.WhereImpl;
-
-public final class CLauseFactory {
+final class CLauseFactory {
 
     private CLauseFactory() {
     }

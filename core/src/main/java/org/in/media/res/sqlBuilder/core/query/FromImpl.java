@@ -10,13 +10,13 @@ import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
 
-public class FromImpl implements From {
+final class FromImpl implements From {
 
-	private Map<Table, Joiner> joins = new LinkedHashMap<>();
+	private final Map<Table, JoinSpec> joins = new LinkedHashMap<>();
 
     private FromTranspiler fromTranspiler = TranspilerFactory.instanciateFromTranspiler();
 
-    public Map<Table, Joiner> joins() {
+    public Map<Table, JoinSpec> joins() {
         return joins;
     }
 
@@ -33,42 +33,42 @@ public class FromImpl implements From {
 
 	public From join(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.JOIN));
 		return this;
 	}
 
 	public From innerJoin(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.INNER_JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.INNER_JOIN));
 		return this;
 	}
 
 	public From leftJoin(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.LEFT_JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.LEFT_JOIN));
 		return this;
 	}
 
 	public From rightJoin(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.RIGHT_JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.RIGHT_JOIN));
 		return this;
 	}
 
 	public From crossJoin(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.CROSS_JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.CROSS_JOIN));
 		return this;
 	}
 
 	public From fullOuterJoin(Table t) {
 		this.from(t);
-		joins.put(t, new Joiner(JoinOperator.FULL_OUTER_JOIN));
+		joins.put(t, new JoinSpecImpl(JoinOperator.FULL_OUTER_JOIN));
 		return this;
 	}
 
 	public From on(Column c1, Column c2) {
-		Joiner j = this.getFromKey(c1, c2);
+		JoinSpecImpl j = this.getFromKey(c1, c2);
 		if (j != null) {
 			j.setCol1(c1);
 			j.setCol2(c2);
@@ -76,8 +76,8 @@ public class FromImpl implements From {
 		return this;
 	}
 
-	private Joiner getFromKey(Column c1, Column c2) {
-		Joiner j = getConditionFromTableKey(c1.table());
+	private JoinSpecImpl getFromKey(Column c1, Column c2) {
+		JoinSpecImpl j = getConditionFromTableKey(c1.table());
 		if (j != null)
 			return j;
 		j = getConditionFromTableKey(c2.table());
@@ -86,36 +86,35 @@ public class FromImpl implements From {
 		return null;
 	}
 
-	private Joiner getConditionFromTableKey(Table table) {
-		return joins.get(table);
+	private JoinSpecImpl getConditionFromTableKey(Table table) {
+		return (JoinSpecImpl) joins.get(table);
 	}
 
 	public String transpile() {
 		return this.fromTranspiler.transpile(this);
 	}
 
-	public class Joiner {
-		Column col1;
-		Column col2;
-		JoinOperator op;
+	private static final class JoinSpecImpl implements JoinSpec {
+		private Column col1;
+		private Column col2;
+		private final JoinOperator op;
 
+		@Override
 		public JoinOperator getOp() {
 			return op;
 		}
 
-		public void setOp(JoinOperator op) {
-			this.op = op;
-		}
-
+		@Override
 		public Column getCol1() {
 			return col1;
 		}
 
+		@Override
 		public Column getCol2() {
 			return col2;
 		}
 
-		public Joiner(JoinOperator op) {
+		JoinSpecImpl(JoinOperator op) {
 			this.op = op;
 		}
 
@@ -128,5 +127,4 @@ public class FromImpl implements From {
 		}
 
 	}
-
 }

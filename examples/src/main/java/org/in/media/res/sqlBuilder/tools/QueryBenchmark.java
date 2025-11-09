@@ -3,7 +3,7 @@ package org.in.media.res.sqlBuilder.tools;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
-import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -23,7 +23,7 @@ public final class QueryBenchmark {
 		var employee = schema.getTableBy(Employee.class);
 		var job = schema.getTableBy(Job.class);
 
-		Query query = QueryImpl.newQuery();
+		Query query = SqlQuery.newQuery().asQuery();
 		query.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)

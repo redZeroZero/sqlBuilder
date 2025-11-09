@@ -39,6 +39,8 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 
 3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.api.query.SqlQuery` for fluent query construction and the generated table descriptors from your schema package.
 
+> **API boundary:** Only packages under `org.in.media.res.sqlBuilder.api.*` are considered stable. Everything in `org.in.media.res.sqlBuilder.core.*` is internal to the DSL—use the `SqlQuery` facade (and other `api.*` helpers) instead of instantiating `*Impl` classes directly.
+
 ### Repository layout
 
 - `core/` — the distributable DSL, factories, validators, and annotation processor (compiles with `-proc:none` but packages the processor for downstream use).
@@ -283,7 +285,7 @@ String sql = SqlQuery.newQuery()
     .transpile();
 ```
 
-Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the query builder, and the DSL will emit `WHERE EXISTS (...)` without requiring a placeholder column.
+Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the fluent query DSL, and it will emit `WHERE EXISTS (...)` without requiring a placeholder column.
 
 ### 10. Optional Filters for Compiled Queries
 
@@ -378,7 +380,7 @@ sp.sql();    // SELECT "employee"."first_name" ...
 sp.params(); // ["Do%"]
 ```
 
-Implement `Dialect` (see `core/.../OracleDialect` or `PostgresDialect`) to customize quoting, pagination, and function rendering. Because `QueryImpl` and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules. The helpers in `Dialects` expose the built-in implementations (e.g., `Dialects.postgres()`), and you can set a schema-wide default via `schema.setDialect(...)`.
+Implement `Dialect` (see `core/.../OracleDialect` or `PostgresDialect`) to customize quoting, pagination, and function rendering. Because the core query engine (used by `SqlQuery`) and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules. The helpers in `Dialects` expose the built-in implementations (e.g., `Dialects.postgres()`), and you can set a schema-wide default via `schema.setDialect(...)`.
 
 ### Registering Functions
 
@@ -461,7 +463,7 @@ CustomerPlainColumns cols = schema.facets().columns(CustomerPlain.class, Custome
 // or, if you already have the facet instance:
 CustomerPlainColumns manual = CustomerPlainColumns.of(schema.facets().facet(CustomerPlain.class));
 ColumnRef<String> lastName = manual.LAST_NAME();
-QueryImpl.newQuery()
+SqlQuery.newQuery()
     .select(cols.ID(), cols.FIRST_NAME())
     .where(cols.LAST_NAME()).like("%son")
     .transpile();

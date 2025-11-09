@@ -8,7 +8,7 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.GroupBy;
 import org.in.media.res.sqlBuilder.api.query.GroupByTranspiler;
 
-public class GroupByImpl implements GroupBy {
+final class GroupByImpl implements GroupBy {
 
 	private final List<Column> columns = new ArrayList<>();
 

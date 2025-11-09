@@ -33,7 +33,7 @@ import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
-public class WhereImpl implements Where {
+final class WhereImpl implements Where {
 
 	private final List<Condition> filters = new ArrayList<>();
 

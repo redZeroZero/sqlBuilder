@@ -9,7 +9,7 @@ import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
-import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,9 +28,10 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void gettingStartedExampleMatchesExpectedSql() {
-		String sql = QueryImpl.newQuery()
+		String sql = SqlQuery.newQuery()
 				.select(Employee.C_FIRST_NAME)
 				.select(Employee.C_LAST_NAME)
+				.from(employee)
 				.innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
 				.where(Employee.C_FIRST_NAME).eq("Alice")
 				.orderBy(Employee.C_LAST_NAME)
@@ -47,7 +48,7 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void simpleProjectionExampleSelectsAllEmployeeColumns() {
-		String sql = QueryImpl.newQuery()
+		String sql = SqlQuery.newQuery()
 				.select(employee)
 				.transpile();
 
@@ -59,8 +60,9 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void joinWithFilterExampleMatchesReadmeFlow() {
-		String sql = QueryImpl.newQuery()
+		String sql = SqlQuery.newQuery()
 				.select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
+				.from(employee)
 				.leftJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
 				.where(Job.C_SALARY).supOrEqTo(50000)
 				.transpile();
@@ -74,14 +76,16 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void aggregationExampleProducesGroupedAverage() {
-		String sql = QueryImpl.newQuery()
-				.select(Employee.C_FIRST_NAME)
+		Query aggregate = SqlQuery.newQuery().asQuery();
+		aggregate.select(Employee.C_FIRST_NAME)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
+				.from(employee)
 				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-				.groupBy(Employee.C_FIRST_NAME)
-				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000)
-				.orderBy(Employee.C_FIRST_NAME)
-				.transpile();
+				.groupBy(Employee.C_FIRST_NAME);
+		aggregate.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000);
+		aggregate.orderBy(Employee.C_FIRST_NAME);
+
+		String sql = aggregate.transpile();
 
 		String expected = "SELECT AVG(\"J\".\"SALARY\"), \"E\".\"FIRST_NAME\" as \"firstName\" FROM \"Employee\" \"E\" "
 				+ "JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" GROUP BY \"E\".\"FIRST_NAME\" "
@@ -92,7 +96,7 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void paginationExampleUsesOffsetFetchSyntax() {
-		String sql = QueryImpl.newQuery()
+		String sql = SqlQuery.newQuery()
 				.select(Job.C_DESCRIPTION)
 				.from(job)
 				.orderBy(Job.C_SALARY, SortDirection.DESC)
@@ -107,9 +111,9 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void quickCountAndPrettyPrintExampleMatchesReadme() {
-		assertEquals("SELECT COUNT(*)", QueryImpl.countAll().transpile());
+		assertEquals("SELECT COUNT(*)", SqlQuery.countAll().transpile());
 
-		Query printable = QueryImpl.newQuery();
+		Query printable = SqlQuery.newQuery().asQuery();
 		printable.select(Employee.C_FIRST_NAME);
 		printable.from(employee);
 		printable.where(Employee.C_FIRST_NAME).eq("Alice");

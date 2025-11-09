@@ -13,7 +13,7 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
 
-public class SelectImpl implements Select {
+final class SelectImpl implements Select {
 
 	private List<Column> columns = new ArrayList<>();
 

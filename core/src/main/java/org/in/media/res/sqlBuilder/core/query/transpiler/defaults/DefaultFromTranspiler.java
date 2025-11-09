@@ -5,10 +5,10 @@ import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 
 import java.util.Map;
 
-import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
+import org.in.media.res.sqlBuilder.api.query.From.JoinSpec;
 import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
@@ -31,9 +31,9 @@ public class DefaultFromTranspiler implements FromTranspiler {
         DefaultSqlBuilder builder = DefaultSqlBuilder.from(FROM);
         boolean baseTableEncountered = false;
 
-        for (Map.Entry<Table, Joiner> entry : from.joins().entrySet()) {
+        for (Map.Entry<Table, JoinSpec> entry : from.joins().entrySet()) {
             Table table = entry.getKey();
-            Joiner joiner = entry.getValue();
+            JoinSpec joiner = entry.getValue();
             if (joiner == null) {
                 if (baseTableEncountered) {
                     builder.append(SEP);
@@ -57,7 +57,7 @@ public class DefaultFromTranspiler implements FromTranspiler {
 		}
 	}
 
-	private void appendJoinCondition(DefaultSqlBuilder builder, Table table, Joiner joiner) {
+	private void appendJoinCondition(DefaultSqlBuilder builder, Table table, JoinSpec joiner) {
 		if (joiner.getOp() == JoinOperator.CROSS_JOIN) {
 			return;
 		}

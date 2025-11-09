@@ -10,8 +10,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SetOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.model.DerivedTableImpl;
-import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
-import org.in.media.res.sqlBuilder.core.query.factory.CLauseFactory;
+import org.in.media.res.sqlBuilder.api.query.From.JoinSpec;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
@@ -914,7 +913,7 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
-	public Map<Table, Joiner> joins() {
+	public Map<Table, JoinSpec> joins() {
 		return this.fromClause.joins();
 	}
 

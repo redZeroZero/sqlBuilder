@@ -2,8 +2,9 @@ package org.in.media.res.sqlBuilder.api.query;
 
 import java.util.Map;
 
-import org.in.media.res.sqlBuilder.core.query.FromImpl.Joiner;
+import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
+import org.in.media.res.sqlBuilder.constants.JoinOperator;
 
 public interface From extends Joinable, Clause, Transpilable {
 
@@ -18,6 +19,12 @@ public interface From extends Joinable, Clause, Transpilable {
 	Joinable crossJoin(Table t);
 	Joinable fullOuterJoin(Table t);
 
-	public Map<Table, Joiner> joins();
+	public Map<Table, JoinSpec> joins();
+
+	interface JoinSpec {
+		JoinOperator getOp();
+		Column getCol1();
+		Column getCol2();
+	}
 
 }

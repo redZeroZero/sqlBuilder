@@ -5,8 +5,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Locale;
 
-import org.in.media.res.sqlBuilder.constants.ValueType;
-
 /** Utility that renders {@link SqlAndParams} with inline literal values. */
 public final class SqlFormatter {
 

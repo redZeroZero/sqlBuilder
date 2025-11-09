@@ -1,4 +1,4 @@
-package org.in.media.res.sqlBuilder;
+package org.in.media.res.sqlBuilder.core.query;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

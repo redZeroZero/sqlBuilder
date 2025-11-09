@@ -19,7 +19,7 @@ import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
-public class HavingImpl implements Having {
+final class HavingImpl implements Having {
 
     private final List<Condition> conditions = new ArrayList<>();
 

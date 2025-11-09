@@ -1,6 +1,6 @@
 package org.in.media.res.sqlBuilder;
 
-import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -22,7 +22,7 @@ class PerformanceBenchmarkTest {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < iterations; i++) {
-			QueryImpl.newQuery()
+			SqlQuery.newQuery()
 					.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
 					.select(org.in.media.res.sqlBuilder.constants.AggregateOperator.AVG, Job.C_SALARY)
 					.from(employee)
@@ -35,7 +35,7 @@ class PerformanceBenchmarkTest {
 		}
 		long elapsed = System.nanoTime() - start;
 		double perQueryMicros = (elapsed / 1_000.0) / iterations;
-		System.out.printf("QueryBuilder throughput: %,d iterations in %.2f ms (%.3f µs/query)%n",
+		System.out.printf("Query DSL throughput: %,d iterations in %.2f ms (%.3f µs/query)%n",
 				iterations, elapsed / 1_000_000.0, perQueryMicros);
 	}
 
