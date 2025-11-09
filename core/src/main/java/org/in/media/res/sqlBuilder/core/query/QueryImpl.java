@@ -55,6 +55,7 @@ public class QueryImpl implements Query {
 	private Limit limitClause;
 
 	private final List<SetOperation> setOperations = new ArrayList<>();
+	private List<CteDeclaration> ctes = List.of();
 
 	private PredicateContext activePredicateContext = PredicateContext.WHERE;
 
@@ -150,8 +151,9 @@ public class QueryImpl implements Query {
 
 	private String buildSql() {
 		try (DialectContext.Scope ignored = DialectContext.scope(dialect)) {
-		StringBuilder builder = new StringBuilder()
-				.append(selectClause.transpile())
+		StringBuilder builder = new StringBuilder();
+		appendWithClauses(builder);
+		builder.append(selectClause.transpile())
 				.append(fromClause.transpile())
 				.append(whereClause.transpile())
 				.append(groupByClause.transpile())
@@ -193,6 +195,7 @@ public class QueryImpl implements Query {
 		this.havingClause = CLauseFactory.instanciateHaving(dialect);
 		this.limitClause = CLauseFactory.instanciateLimit(dialect);
 		this.setOperations.clear();
+		this.ctes = List.of();
 	}
 
 	@Override
@@ -1074,6 +1077,7 @@ public class QueryImpl implements Query {
 
 	private List<CompiledQuery.Placeholder> collectPlaceholders() {
 		List<CompiledQuery.Placeholder> placeholders = new ArrayList<>();
+		appendCtePlaceholders(placeholders);
 		appendConditionPlaceholders(whereClause.conditions(), placeholders);
 		appendConditionPlaceholders(havingClause.havingConditions(), placeholders);
 		appendLimitPlaceholders(placeholders);
@@ -1126,6 +1130,12 @@ public class QueryImpl implements Query {
 		}
 	}
 
+	private void appendCtePlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		for (CteDeclaration declaration : ctes) {
+			placeholders.addAll(declaration.query().collectPlaceholders());
+		}
+	}
+
 	private String resolveSetOperator(SetOperator operator) {
 		return switch (operator) {
 		case UNION -> SetOperator.UNION.sql();
@@ -1148,6 +1158,76 @@ public class QueryImpl implements Query {
 
 	private boolean supportsExceptAll() {
 		return false;
+	}
+
+	public void withClauses(List<CteDeclaration> declaredCtes) {
+		if (declaredCtes == null || declaredCtes.isEmpty()) {
+			this.ctes = List.of();
+		} else {
+			this.ctes = List.copyOf(declaredCtes);
+		}
+	}
+
+	private void appendWithClauses(StringBuilder builder) {
+		if (ctes.isEmpty()) {
+			return;
+		}
+		if (!dialect.supportsCte()) {
+			throw new UnsupportedOperationException(
+					"Dialect '" + dialect.id() + "' does not support common table expressions");
+		}
+		builder.append("WITH ");
+		for (int i = 0; i < ctes.size(); i++) {
+			CteDeclaration cte = ctes.get(i);
+			builder.append(dialect.quoteIdent(cte.name()));
+			appendCteColumns(builder, cte.columnAliases());
+			builder.append(" AS (")
+					.append(cte.query().transpile())
+					.append(')');
+			if (i < ctes.size() - 1) {
+				builder.append(", ");
+			} else {
+				builder.append(' ');
+			}
+		}
+	}
+
+	private void appendCteColumns(StringBuilder builder, List<String> aliases) {
+		if (aliases.isEmpty()) {
+			return;
+		}
+		builder.append('(');
+		for (int i = 0; i < aliases.size(); i++) {
+			if (i > 0) {
+				builder.append(", ");
+			}
+			builder.append(dialect.quoteIdent(aliases.get(i)));
+		}
+		builder.append(')');
+	}
+
+	public static final class CteDeclaration {
+		private final String name;
+		private final QueryImpl query;
+		private final List<String> columnAliases;
+
+		public CteDeclaration(String name, QueryImpl query, List<String> columnAliases) {
+			this.name = Objects.requireNonNull(name, "name");
+			this.query = Objects.requireNonNull(query, "query");
+			this.columnAliases = List.copyOf(Objects.requireNonNull(columnAliases, "columnAliases"));
+		}
+
+		String name() {
+			return name;
+		}
+
+		QueryImpl query() {
+			return query;
+		}
+
+		List<String> columnAliases() {
+			return columnAliases;
+		}
 	}
 
 	private String parenthesize(QueryImpl query) {

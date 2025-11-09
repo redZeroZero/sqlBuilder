@@ -23,11 +23,18 @@ public interface Dialect {
     /** Render a dialect-specific function call using already-rendered arguments. */
     String renderFunction(String logicalName, List<String> argsSql);
 
-    /**
-     * Render pagination fragment given limit/offset. Returning {@code PaginationClause.empty()}
-     * indicates no fragment should be appended.
-     */
-    PaginationClause renderLimitOffset(Long limit, Long offset);
+	/**
+	 * Render pagination fragment given limit/offset. Returning {@code PaginationClause.empty()}
+	 * indicates no fragment should be appended.
+	 */
+	PaginationClause renderLimitOffset(Long limit, Long offset);
+
+	/**
+	 * Whether the dialect supports standard {@code WITH} / CTE clauses.
+	 */
+	default boolean supportsCte() {
+		return true;
+	}
 
     record PaginationClause(String sql, List<Object> params) {
         public static PaginationClause empty() {

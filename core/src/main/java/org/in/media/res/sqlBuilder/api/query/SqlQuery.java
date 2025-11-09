@@ -7,6 +7,7 @@ import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.core.query.cte.WithBuilderImpl;
 
 /**
  * Public facade for fluent query creation. Delegates to {@link QueryImpl} while
@@ -48,6 +49,10 @@ public final class SqlQuery {
 
 	public static SelectStage selecting(AggregateOperator agg, Column column) {
 		return (SelectStage) QueryImpl.newQuery().select(agg, column);
+	}
+
+	public static WithBuilder with() {
+		return new WithBuilderImpl();
 	}
 
 	public static Table toTable(Query query, String alias, String... columnAliases) {

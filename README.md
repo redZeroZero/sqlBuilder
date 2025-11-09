@@ -225,7 +225,38 @@ String sql = SqlQuery.newQuery()
 
 Call `SqlQuery.toTable(query)` to auto-generate aliases (or supply your own as above). Each column alias you provide or that is inferred is available via `salaryAvg.get("ALIAS")`, so subsequent clauses can reference the derived table just like any other.
 
-### 8. Filtering with Subqueries
+### 8. Common Table Expressions (CTEs)
+
+Build reusable subqueries once, give them a name, and reference them like tables via `SqlQuery.with()`:
+
+```java
+Query avgSalary = SqlQuery.newQuery()
+    .select(Employee.C_ID)
+    .select(AggregateOperator.AVG, Job.C_SALARY)
+    .from(employee)
+    .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .groupBy(Employee.C_ID)
+    .asQuery();
+
+WithBuilder with = SqlQuery.with();
+CteRef salaryAverages = with.cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+
+SqlAndParams sp = with.main(
+    SqlQuery.newQuery()
+        .select(Employee.C_FIRST_NAME)
+        .from(employee)
+        .join(salaryAverages).on(Employee.C_ID, salaryAverages.column("EMPLOYEE_ID"))
+        .where(salaryAverages.column("AVG_SALARY")).supOrEqTo(80_000)
+        .asQuery()
+).render();
+
+sp.sql();
+// WITH "salary_avg"("EMPLOYEE_ID", "AVG_SALARY") AS (...) SELECT ...
+```
+
+`cte(name, query, columnAliases)` captures any query (including joins, groups, optional filters). Each call returns a `CteRef`, which exposes columns via `column("ALIAS")` or `col("ALIAS")`. Bind variables declared inside CTEs are rendered before main-query parameters, so JDBC bindings follow SQL order. Dialects can opt out via `Dialect.supportsCte()`; attempting to render a CTE with an unsupported dialect raises `UnsupportedOperationException`.
+
+### 9. Filtering with Subqueries
 
 ```java
 Query highSalaryIds = SqlQuery.newQuery()
@@ -244,7 +275,7 @@ String sql = SqlQuery.newQuery()
 
 Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the query builder, and the DSL will emit `WHERE EXISTS (...)` without requiring a placeholder column.
 
-### 9. Grouped Filters (Nested AND / OR Trees)
+### 10. Grouped Filters (Nested AND / OR Trees)
 
 Use `QueryHelper.group` to build parenthesised predicates that mirror SQL's boolean syntax. `and(...)` / `or(...)` automatically target the active clause (WHERE vs. HAVING), so you can chain grouped expressions fluently:
 
