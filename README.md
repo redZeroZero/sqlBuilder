@@ -354,6 +354,30 @@ Call `QueryHelper.group()` without arguments when you want an inline builder tha
 
 The same helper works for HAVING clauses: call `query.having(QueryHelper.group(...)).and(...)` to keep aggregates nested under a single `HAVING` block without hand-written parentheses.
 
+### 12. Raw SQL Fragments
+
+When you need to drop all safety rails—for example, to use vendor-specific functions, hints, or hand-written predicates—every clause exposes a `*Raw(...)` overload. Each method comes in three ergonomic forms:
+
+- `selectRaw("expr")`: quick string literal, no parameters.
+- `selectRaw("expr = ?", SqlParameters.param("p"))`: string + parameters (the builder captures ordering for you).
+- `selectRaw(RawSql.of("expr", param1, param2))`: pass an existing `RawSqlFragment` object if you already built one.
+
+Raw fragments are available on `select`, `from` / all join types, `where` / `and` / `or`, `having`, `groupBy`, `orderBy`, and `with`. They render verbatim, so make sure you include any necessary whitespace. A fragment can also contain bound parameters— they’re appended to the surrounding query in the order the fragments execute.
+
+```java
+SqlParameter<Integer> minProjects = SqlParameters.param("minProjects");
+
+String sql = SqlQuery.newQuery()
+    .selectRaw("emp.*, COUNT(*) OVER (PARTITION BY emp.DEPARTMENT_ID) AS dept_count")
+    .fromRaw("HR.EMPLOYEE emp")
+    .whereRaw("EXISTS (SELECT 1 FROM HR.PROJECT p WHERE p.EMP_ID = emp.ID AND p.STATE = 'ACTIVE')")
+    .andRaw("emp.PROJECT_COUNT >= ?", minProjects)
+    .orderByRaw("emp.HIRE_DATE DESC NULLS LAST")
+    .transpile();
+```
+
+Use `RawSql.of(sql, params...)` anywhere you want to prebuild a fragment and reuse it across queries. Because raw snippets bypass validation, keep them focused and prefer the typed DSL when possible—the raw APIs are an escape hatch, not the primary authoring style.
+
 ## Dialects & SQL Functions
 
 The SQL that `sqlBuilder` emits is *dialect-aware*. A `Dialect` implementation controls:
