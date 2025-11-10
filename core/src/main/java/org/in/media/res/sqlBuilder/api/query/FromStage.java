@@ -19,6 +19,15 @@ public interface FromStage extends PredicateStage, From {
 	FromStage from(Table... tables);
 
 	@Override
+	FromStage fromRaw(String sql);
+
+	@Override
+	FromStage fromRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage fromRaw(RawSqlFragment fragment);
+
+	@Override
 	FromStage join(Table table);
 
 	@Override
@@ -35,6 +44,51 @@ public interface FromStage extends PredicateStage, From {
 
 	@Override
 	FromStage fullOuterJoin(Table table);
+
+	@Override
+	FromStage joinRaw(String sql);
+
+	@Override
+	FromStage joinRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage joinRaw(RawSqlFragment fragment);
+
+	@Override
+	FromStage leftJoinRaw(String sql);
+
+	@Override
+	FromStage leftJoinRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage leftJoinRaw(RawSqlFragment fragment);
+
+	@Override
+	FromStage rightJoinRaw(String sql);
+
+	@Override
+	FromStage rightJoinRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage rightJoinRaw(RawSqlFragment fragment);
+
+	@Override
+	FromStage fullOuterJoinRaw(String sql);
+
+	@Override
+	FromStage fullOuterJoinRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage fullOuterJoinRaw(RawSqlFragment fragment);
+
+	@Override
+	FromStage crossJoinRaw(String sql);
+
+	@Override
+	FromStage crossJoinRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	FromStage crossJoinRaw(RawSqlFragment fragment);
 
 	FromStage on(Column left, Column right);
 

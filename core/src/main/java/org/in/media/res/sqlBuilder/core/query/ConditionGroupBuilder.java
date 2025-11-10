@@ -12,6 +12,8 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.RawSql;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
@@ -19,6 +21,7 @@ import org.in.media.res.sqlBuilder.core.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
+import org.in.media.res.sqlBuilder.core.query.RawCondition;
 
 /**
  * Builder for grouped boolean expressions that can be used inside WHERE / HAVING clauses.
@@ -41,6 +44,15 @@ public final class ConditionGroupBuilder implements Condition {
 
 	public ConditionGroupBuilder where(Column column) {
 		addCondition(ConditionImpl.builder().leftColumn(requireColumn(column)).build());
+		return this;
+	}
+
+	public ConditionGroupBuilder whereRaw(String sql, SqlParameter<?>... params) {
+		return whereRaw(RawSql.of(sql, params));
+	}
+
+	public ConditionGroupBuilder whereRaw(RawSqlFragment fragment) {
+		addCondition(new RawCondition(null, fragment));
 		return this;
 	}
 
@@ -81,6 +93,15 @@ public final class ConditionGroupBuilder implements Condition {
 		return this;
 	}
 
+	public ConditionGroupBuilder andRaw(String sql, SqlParameter<?>... params) {
+		return andRaw(RawSql.of(sql, params));
+	}
+
+	public ConditionGroupBuilder andRaw(RawSqlFragment fragment) {
+		addCondition(new RawCondition(Operator.AND, fragment));
+		return this;
+	}
+
 	public ConditionGroupBuilder and(TableDescriptor<?> descriptor) {
 		return and(descriptor.column());
 	}
@@ -96,6 +117,15 @@ public final class ConditionGroupBuilder implements Condition {
 
 	public ConditionGroupBuilder or(Column column) {
 		addCondition(ConditionImpl.builder().or().leftColumn(requireColumn(column)).build());
+		return this;
+	}
+
+	public ConditionGroupBuilder orRaw(String sql, SqlParameter<?>... params) {
+		return orRaw(RawSql.of(sql, params));
+	}
+
+	public ConditionGroupBuilder orRaw(RawSqlFragment fragment) {
+		addCondition(new RawCondition(Operator.OR, fragment));
 		return this;
 	}
 
@@ -519,6 +549,9 @@ public final class ConditionGroupBuilder implements Condition {
 		Objects.requireNonNull(condition, "condition");
 		if (condition instanceof org.in.media.res.sqlBuilder.core.query.predicate.ParameterCondition parameterCondition) {
 			return startOperator != null ? parameterCondition.withStartOperator(startOperator) : parameterCondition;
+		}
+		if (condition instanceof RawCondition rawCondition) {
+			return startOperator != null ? rawCondition.withStartOperator(startOperator) : rawCondition;
 		}
 		if (condition instanceof ConditionGroupBuilder builder) {
 			ConditionGroup group = builder.build();

@@ -20,6 +20,16 @@ public interface OrderBy extends Clause, Resetable, Transpilable {
 		return orderBy(descriptor.column(), direction);
 	}
 
+	default OrderBy orderByRaw(String sql) {
+		return orderByRaw(sql, new SqlParameter<?>[0]);
+	}
+
+	default OrderBy orderByRaw(String sql, SqlParameter<?>... params) {
+		return orderByRaw(RawSql.of(sql, params));
+	}
+
+	OrderBy orderByRaw(RawSqlFragment fragment);
+
 
 	OrderBy asc(Column column);
 

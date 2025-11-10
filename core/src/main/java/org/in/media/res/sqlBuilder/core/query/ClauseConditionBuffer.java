@@ -1,4 +1,4 @@
-package org.in.media.res.sqlBuilder.core.query.predicate;
+package org.in.media.res.sqlBuilder.core.query;
 
 import java.util.List;
 import java.util.Objects;
@@ -6,9 +6,10 @@ import java.util.function.UnaryOperator;
 
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.constants.Operator;
-import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder;
-import org.in.media.res.sqlBuilder.core.query.ConditionImpl;
+import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
+import org.in.media.res.sqlBuilder.core.query.predicate.ParameterCondition;
 
 /**
  * Utility to manage condition lists shared across WHERE / HAVING clauses.
@@ -25,6 +26,10 @@ public final class ClauseConditionBuffer {
 
 	public void add(Condition condition, Operator startOperator) {
 		conditions.addLast(normalize(condition, startOperator));
+	}
+
+	public void addRaw(RawSqlFragment fragment, Operator startOperator) {
+		conditions.addLast(new RawCondition(startOperator, fragment));
 	}
 
 	public void clear() {
@@ -73,6 +78,9 @@ public final class ClauseConditionBuffer {
 		Objects.requireNonNull(condition, "condition");
 		if (condition instanceof ParameterCondition parameterCondition) {
 			return startOperator != null ? parameterCondition.withStartOperator(startOperator) : parameterCondition;
+		}
+		if (condition instanceof RawCondition rawCondition) {
+			return startOperator != null ? rawCondition.withStartOperator(startOperator) : rawCondition;
 		}
 		if (condition instanceof ConditionGroupBuilder builder) {
 			ConditionGroup group = builder.build();

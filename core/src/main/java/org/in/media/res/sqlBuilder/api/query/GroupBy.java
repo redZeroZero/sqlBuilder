@@ -22,6 +22,16 @@ public interface GroupBy extends Clause, Resetable, Transpilable {
 		return this;
 	}
 
+	default GroupBy groupByRaw(String sql) {
+		return groupByRaw(sql, new SqlParameter<?>[0]);
+	}
+
+	default GroupBy groupByRaw(String sql, SqlParameter<?>... params) {
+		return groupByRaw(RawSql.of(sql, params));
+	}
+
+	GroupBy groupByRaw(RawSqlFragment fragment);
+
 	List<Column> groupByColumns();
 
 }

@@ -15,9 +15,39 @@ public interface Having extends Clause, Resetable, Transpilable {
 		return having(descriptor.column());
 	}
 
+	default Having havingRaw(String sql) {
+		return havingRaw(sql, new SqlParameter<?>[0]);
+	}
+
+	default Having havingRaw(String sql, SqlParameter<?>... params) {
+		return havingRaw(RawSql.of(sql, params));
+	}
+
+	Having havingRaw(RawSqlFragment fragment);
+
 	Having and(Condition condition);
 
+	default Having andRaw(String sql) {
+		return andRaw(sql, new SqlParameter<?>[0]);
+	}
+
+	default Having andRaw(String sql, SqlParameter<?>... params) {
+		return andRaw(RawSql.of(sql, params));
+	}
+
+	Having andRaw(RawSqlFragment fragment);
+
 	Having or(Condition condition);
+
+	default Having orRaw(String sql) {
+		return orRaw(sql, new SqlParameter<?>[0]);
+	}
+
+	default Having orRaw(String sql, SqlParameter<?>... params) {
+		return orRaw(RawSql.of(sql, params));
+	}
+
+	Having orRaw(RawSqlFragment fragment);
 
 	List<Condition> havingConditions();
 }

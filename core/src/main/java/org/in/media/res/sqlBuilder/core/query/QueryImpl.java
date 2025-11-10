@@ -28,6 +28,7 @@ import org.in.media.res.sqlBuilder.api.query.QueryHavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.Limit;
 import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
@@ -239,6 +240,24 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query selectRaw(String sql) {
+		this.selectClause.selectRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query selectRaw(String sql, SqlParameter<?>... params) {
+		this.selectClause.selectRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query selectRaw(RawSqlFragment fragment) {
+		this.selectClause.selectRaw(fragment);
+		return this;
+	}
+
+	@Override
 	public Query hint(String hintSql) {
 		this.selectClause.hint(hintSql);
 		return this;
@@ -358,6 +377,114 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query fromRaw(String sql) {
+		this.fromClause.fromRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query fromRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.fromRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query fromRaw(RawSqlFragment fragment) {
+		this.fromClause.fromRaw(fragment);
+		return this;
+	}
+
+	@Override
+	public Query joinRaw(String sql) {
+		this.fromClause.joinRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query joinRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.joinRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query joinRaw(RawSqlFragment fragment) {
+		this.fromClause.joinRaw(fragment);
+		return this;
+	}
+
+	@Override
+	public Query leftJoinRaw(String sql) {
+		this.fromClause.leftJoinRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query leftJoinRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.leftJoinRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query leftJoinRaw(RawSqlFragment fragment) {
+		this.fromClause.leftJoinRaw(fragment);
+		return this;
+	}
+
+	@Override
+	public Query rightJoinRaw(String sql) {
+		this.fromClause.rightJoinRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query rightJoinRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.rightJoinRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query rightJoinRaw(RawSqlFragment fragment) {
+		this.fromClause.rightJoinRaw(fragment);
+		return this;
+	}
+
+	@Override
+	public Query crossJoinRaw(String sql) {
+		this.fromClause.crossJoinRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query crossJoinRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.crossJoinRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query crossJoinRaw(RawSqlFragment fragment) {
+		this.fromClause.crossJoinRaw(fragment);
+		return this;
+	}
+
+	@Override
+	public Query fullOuterJoinRaw(String sql) {
+		this.fromClause.fullOuterJoinRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query fullOuterJoinRaw(String sql, SqlParameter<?>... params) {
+		this.fromClause.fullOuterJoinRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query fullOuterJoinRaw(RawSqlFragment fragment) {
+		this.fromClause.fullOuterJoinRaw(fragment);
+		return this;
+	}
+
+	@Override
 	public Query fullOuterJoin(Table t) {
 		this.fromClause.fullOuterJoin(t);
 		return this;
@@ -389,6 +516,21 @@ public class QueryImpl implements Query {
 	@Override
 	public Query where(Column column) {
 		return withWhere(where -> where.where(column));
+	}
+
+	@Override
+	public Query whereRaw(String sql) {
+		return withWhere(where -> where.whereRaw(sql));
+	}
+
+	@Override
+	public Query whereRaw(String sql, SqlParameter<?>... params) {
+		return withWhere(where -> where.whereRaw(sql, params));
+	}
+
+	@Override
+	public Query whereRaw(RawSqlFragment fragment) {
+		return withWhere(where -> where.whereRaw(fragment));
 	}
 
 	@Override
@@ -722,8 +864,68 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query andRaw(String sql) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.andRaw(sql);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.andRaw(sql));
+	}
+
+	@Override
+	public Query andRaw(String sql, SqlParameter<?>... params) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.andRaw(sql, params);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.andRaw(sql, params));
+	}
+
+	@Override
+	public Query andRaw(RawSqlFragment fragment) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.andRaw(fragment);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.andRaw(fragment));
+	}
+
+	@Override
 	public Query or(Column column) {
 		return withWhere(where -> where.or(column));
+	}
+
+	@Override
+	public Query orRaw(String sql) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.orRaw(sql);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.orRaw(sql));
+	}
+
+	@Override
+	public Query orRaw(String sql, SqlParameter<?>... params) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.orRaw(sql, params);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.orRaw(sql, params));
+	}
+
+	@Override
+	public Query orRaw(RawSqlFragment fragment) {
+		if (this.activePredicateContext == PredicateContext.HAVING) {
+			this.havingClause.orRaw(fragment);
+			activateHaving();
+			return this;
+		}
+		return withWhere(where -> where.orRaw(fragment));
 	}
 
 	@Override
@@ -846,6 +1048,24 @@ public class QueryImpl implements Query {
 	}
 
 	@Override
+	public Query groupByRaw(String sql) {
+		this.groupByClause.groupByRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query groupByRaw(String sql, SqlParameter<?>... params) {
+		this.groupByClause.groupByRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query groupByRaw(RawSqlFragment fragment) {
+		this.groupByClause.groupByRaw(fragment);
+		return this;
+	}
+
+	@Override
 	public List<Column> groupByColumns() {
 		return this.groupByClause.groupByColumns();
 	}
@@ -870,6 +1090,24 @@ public class QueryImpl implements Query {
 	@Override
 	public Query orderBy(TableDescriptor<?> descriptor, SortDirection direction) {
 		return this.orderBy(descriptor.column(), direction);
+	}
+
+	@Override
+	public Query orderByRaw(String sql) {
+		this.orderByClause.orderByRaw(sql);
+		return this;
+	}
+
+	@Override
+	public Query orderByRaw(String sql, SqlParameter<?>... params) {
+		this.orderByClause.orderByRaw(sql, params);
+		return this;
+	}
+
+	@Override
+	public Query orderByRaw(RawSqlFragment fragment) {
+		this.orderByClause.orderByRaw(fragment);
+		return this;
 	}
 
 	@Override
@@ -924,6 +1162,21 @@ public class QueryImpl implements Query {
 	public QueryHavingBuilder having(Column column) {
 		activateHaving();
 		return new FluentHavingBuilder(this.havingClause.having(column));
+	}
+
+	@Override
+	public Query havingRaw(String sql) {
+		return withHaving(having -> having.havingRaw(sql));
+	}
+
+	@Override
+	public Query havingRaw(String sql, SqlParameter<?>... params) {
+		return withHaving(having -> having.havingRaw(sql, params));
+	}
+
+	@Override
+	public Query havingRaw(RawSqlFragment fragment) {
+		return withHaving(having -> having.havingRaw(fragment));
 	}
 
 	@Override
@@ -990,8 +1243,12 @@ public class QueryImpl implements Query {
 	private List<CompiledQuery.Placeholder> collectPlaceholders() {
 		List<CompiledQuery.Placeholder> placeholders = new ArrayList<>();
 		appendCtePlaceholders(placeholders);
+		appendSelectPlaceholders(placeholders);
+		appendFromPlaceholders(placeholders);
 		appendConditionPlaceholders(whereClause.conditions(), placeholders);
+		appendGroupByPlaceholders(placeholders);
 		appendConditionPlaceholders(havingClause.havingConditions(), placeholders);
+		appendOrderByPlaceholders(placeholders);
 		appendLimitPlaceholders(placeholders);
 		appendSetOperationPlaceholders(placeholders);
 		return placeholders;
@@ -1027,6 +1284,53 @@ public class QueryImpl implements Query {
 		}
 		case TY_PARAM -> placeholders.add(new CompiledQuery.Placeholder((SqlParameter<?>) value.value(), null));
 		default -> placeholders.add(new CompiledQuery.Placeholder(null, value.value()));
+		}
+	}
+
+	private void appendSelectPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		if (selectClause instanceof SelectProjectionSupport support) {
+			for (SelectProjectionSupport.SelectProjection projection : support.projections()) {
+				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
+					appendRawFragment(projection.fragment(), placeholders);
+				}
+			}
+		}
+	}
+
+	private void appendFromPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		if (fromClause instanceof FromRawSupport rawSupport) {
+			RawSqlFragment rawBase = rawSupport.rawBaseFragment();
+			if (rawBase != null) {
+				appendRawFragment(rawBase, placeholders);
+			}
+			for (FromRawSupport.RawJoinFragmentView joinFragment : rawSupport.rawJoinFragments()) {
+				appendRawFragment(joinFragment.fragment(), placeholders);
+			}
+		}
+	}
+
+	private void appendGroupByPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		if (groupByClause instanceof GroupByRawSupport groupByRawSupport) {
+			for (RawSqlFragment fragment : groupByRawSupport.groupByFragments()) {
+				appendRawFragment(fragment, placeholders);
+			}
+		}
+	}
+
+	private void appendOrderByPlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		if (orderByClause instanceof OrderByRawSupport orderByRawSupport) {
+			for (RawSqlFragment fragment : orderByRawSupport.orderByFragments()) {
+				appendRawFragment(fragment, placeholders);
+			}
+		}
+	}
+
+	private void appendRawFragment(RawSqlFragment fragment, List<CompiledQuery.Placeholder> placeholders) {
+		if (fragment == null) {
+			return;
+		}
+		for (SqlParameter<?> parameter : fragment.parameters()) {
+			placeholders.add(new CompiledQuery.Placeholder(parameter, null));
 		}
 	}
 

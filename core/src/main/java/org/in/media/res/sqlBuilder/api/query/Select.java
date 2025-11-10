@@ -26,6 +26,12 @@ public interface Select extends Clause, Resetable, Transpilable {
 
 	Select select(AggregateOperator agg, TableDescriptor<?> descriptor);
 
+	Select selectRaw(String sql);
+
+	Select selectRaw(String sql, SqlParameter<?>... params);
+
+	Select selectRaw(RawSqlFragment fragment);
+
 	List<Column> columns();
 
 	Map<Column, AggregateOperator> aggColumns();

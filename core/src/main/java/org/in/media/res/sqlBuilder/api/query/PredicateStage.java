@@ -22,6 +22,15 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 	PredicateStage where(Column column);
 
 	@Override
+	PredicateStage whereRaw(String sql);
+
+	@Override
+	PredicateStage whereRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	PredicateStage whereRaw(RawSqlFragment fragment);
+
+	@Override
 	default PredicateStage where(TableDescriptor<?> descriptor) {
 		return where(descriptor.column());
 	}
@@ -71,6 +80,24 @@ public interface PredicateStage extends QueryStage, Where, GroupBy, OrderBy, Hav
 	PredicateStage and(Condition condition);
 
 	PredicateStage or(Condition condition);
+
+	@Override
+	PredicateStage andRaw(String sql);
+
+	@Override
+	PredicateStage andRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	PredicateStage andRaw(RawSqlFragment fragment);
+
+	@Override
+	PredicateStage orRaw(String sql);
+
+	@Override
+	PredicateStage orRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	PredicateStage orRaw(RawSqlFragment fragment);
 
 	@Override
 	PredicateStage and();

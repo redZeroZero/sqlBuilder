@@ -9,6 +9,7 @@ import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
+import org.in.media.res.sqlBuilder.core.query.SelectProjectionSupport;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 
 public class DefaultSelectTranspiler implements SelectTranspiler {
@@ -16,13 +17,18 @@ public class DefaultSelectTranspiler implements SelectTranspiler {
     private static final String SELECT_KEYWORD = "SELECT ";
     private static final String COLUMN_SEP = ", ";
 
-    @Override
+	@Override
 	public String transpile(Select select) {
 		String keyword = select.isDistinct() ? "SELECT DISTINCT " : SELECT_KEYWORD;
 		DefaultSqlBuilder builder = DefaultSqlBuilder.from(keyword);
 		List<String> hints = select.hints();
 		if (!hints.isEmpty()) {
 			builder.append(String.join(" ", hints)).append(' ');
+		}
+
+		if (select instanceof SelectProjectionSupport support) {
+			renderEntries(builder, support.projections());
+			return builder.toString();
 		}
 
 		Iterator<Map.Entry<Column, AggregateOperator>> aggregates = select.aggColumns().entrySet().iterator();
@@ -37,8 +43,26 @@ public class DefaultSelectTranspiler implements SelectTranspiler {
 			}
 		}
 
-        builder.join(select.columns(), COLUMN_SEP, column -> builder.append(column.transpile()));
+		builder.join(select.columns(), COLUMN_SEP, column -> builder.append(column.transpile()));
+		return builder.toString();
+	}
 
-        return builder.toString();
-    }
+	private void renderEntries(DefaultSqlBuilder builder, List<SelectProjectionSupport.SelectProjection> entries) {
+		boolean first = true;
+		for (SelectProjectionSupport.SelectProjection entry : entries) {
+			if (!first) {
+				builder.append(COLUMN_SEP);
+			}
+			switch (entry.type()) {
+			case COLUMN -> builder.append(entry.column().transpile());
+			case AGGREGATE -> {
+				String columnSql = entry.column().transpile(false);
+				String rendered = DialectContext.current().renderFunction(entry.aggregate().logicalName(), List.of(columnSql));
+				builder.append(rendered);
+			}
+			case RAW -> builder.append(entry.fragment().sql());
+			}
+			first = false;
+		}
+	}
 }

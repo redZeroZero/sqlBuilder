@@ -5,81 +5,162 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.query.RawSql;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.Select;
 import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 
-final class SelectImpl implements Select {
+final class SelectImpl implements Select, SelectProjectionSupport {
 
-	private List<Column> columns = new ArrayList<>();
+	private static final class Entry implements SelectProjection {
+		private final ProjectionType type;
+		private final Column column;
+		private final AggregateOperator aggregate;
+		private final RawSqlFragment fragment;
 
-	private Map<Column, AggregateOperator> aggColumns = new LinkedHashMap<>();
+		private Entry(ProjectionType type, Column column, AggregateOperator aggregate, RawSqlFragment fragment) {
+			this.type = type;
+			this.column = column;
+			this.aggregate = aggregate;
+			this.fragment = fragment;
+		}
 
+		static Entry column(Column column) {
+			return new Entry(ProjectionType.COLUMN, column, null, null);
+		}
+
+		static Entry aggregate(AggregateOperator aggregate, Column column) {
+			return new Entry(ProjectionType.AGGREGATE, column, aggregate, null);
+		}
+
+		static Entry raw(RawSqlFragment fragment) {
+			return new Entry(ProjectionType.RAW, null, null, fragment);
+		}
+
+		@Override
+		public ProjectionType type() {
+			return type;
+		}
+
+		@Override
+		public Column column() {
+			return column;
+		}
+
+		@Override
+		public AggregateOperator aggregate() {
+			return aggregate;
+		}
+
+		@Override
+		public RawSqlFragment fragment() {
+			return fragment;
+		}
+	}
+
+	private final List<Entry> entries = new ArrayList<>();
+	private final List<String> hints = new ArrayList<>();
 	private boolean distinct;
 
-	private final List<String> hints = new ArrayList<>();
+	private final SelectTranspiler selectTranspiler = TranspilerFactory.instanciateSelectTranspiler();
 
-	SelectTranspiler selectTranspiler = TranspilerFactory.instanciateSelectTranspiler();
-
+	@Override
 	public String transpile() {
 		return selectTranspiler.transpile(this);
 	}
 
+	@Override
 	public void reset() {
-		this.columns.clear();
-		this.aggColumns.clear();
-		this.distinct = false;
+		entries.clear();
+		hints.clear();
+		distinct = false;
 	}
 
+	@Override
 	public Select select(Column column) {
-		this.columns.addLast(column);
+		entries.add(Entry.column(column));
 		return this;
 	}
 
 	@Override
 	public Select select(TableDescriptor<?> descriptor) {
-		return this.select(descriptor.column());
+		return select(descriptor.column());
 	}
 
+	@Override
 	public Select select(Column... columns) {
-		for (Column c : columns)
-			this.select(c);
+		for (Column column : columns) {
+			select(column);
+		}
 		return this;
 	}
 
 	@Override
 	public Select select(TableDescriptor<?>... descriptors) {
 		for (TableDescriptor<?> descriptor : descriptors) {
-			this.select(descriptor);
+			select(descriptor);
 		}
 		return this;
 	}
 
+	@Override
 	public Select select(Table table) {
-		this.select(table.getColumns());
-		return this;
+		return select(table.getColumns());
 	}
 
+	@Override
 	public Select select(AggregateOperator agg, Column column) {
-		this.aggColumns().put(column, agg);
+		entries.add(Entry.aggregate(agg, column));
 		return this;
 	}
 
 	@Override
 	public Select select(AggregateOperator agg, TableDescriptor<?> descriptor) {
-		return this.select(agg, descriptor.column());
+		return select(agg, descriptor.column());
 	}
 
+	@Override
+	public Select selectRaw(String sql) {
+		return selectRaw(RawSql.of(sql));
+	}
+
+	@Override
+	public Select selectRaw(String sql, SqlParameter<?>... params) {
+		return selectRaw(RawSql.of(sql, params));
+	}
+
+	@Override
+	public Select selectRaw(RawSqlFragment fragment) {
+		entries.add(Entry.raw(fragment));
+		return this;
+	}
+
+	@Override
 	public List<Column> columns() {
-		return columns;
+		List<Column> cols = new ArrayList<>();
+		for (Entry entry : entries) {
+			if (entry.type == ProjectionType.COLUMN) {
+				cols.add(entry.column);
+			}
+		}
+		return cols;
 	}
 
+	@Override
 	public Map<Column, AggregateOperator> aggColumns() {
-		return aggColumns;
+		Map<Column, AggregateOperator> aggregates = new LinkedHashMap<>();
+		for (Entry entry : entries) {
+			if (entry.type == ProjectionType.AGGREGATE) {
+				aggregates.put(entry.column, entry.aggregate);
+			}
+		}
+		return aggregates;
 	}
 
 	@Override
@@ -106,4 +187,8 @@ final class SelectImpl implements Select {
 		return List.copyOf(hints);
 	}
 
+	@Override
+	public List<SelectProjection> projections() {
+		return List.copyOf(entries);
+	}
 }

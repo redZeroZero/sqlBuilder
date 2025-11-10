@@ -87,7 +87,7 @@ class QueryReadmeExamplesTest {
 
 		String sql = aggregate.transpile();
 
-		String expected = "SELECT AVG(\"J\".\"SALARY\"), \"E\".\"FIRST_NAME\" as \"firstName\" FROM \"Employee\" \"E\" "
+		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", AVG(\"J\".\"SALARY\") FROM \"Employee\" \"E\" "
 				+ "JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" GROUP BY \"E\".\"FIRST_NAME\" "
 				+ "HAVING AVG(\"J\".\"SALARY\") > ? ORDER BY \"E\".\"FIRST_NAME\" ASC";
 

@@ -3,15 +3,19 @@ package org.in.media.res.sqlBuilder.core.query;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.in.media.res.sqlBuilder.constants.SortDirection;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.OrderByTranspiler;
+import org.in.media.res.sqlBuilder.api.query.RawSql;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
+import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.constants.SortDirection;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 
-final class OrderByImpl implements OrderBy {
+final class OrderByImpl implements OrderBy, OrderByRawSupport {
 
 	private final List<Ordering> orderings = new ArrayList<>();
+	private final List<RawSqlFragment> rawFragments = new ArrayList<>();
 
 	private final OrderByTranspiler orderByTranspiler = TranspilerFactory.instanciateOrderByTranspiler();
 
@@ -23,6 +27,7 @@ final class OrderByImpl implements OrderBy {
 	@Override
 	public void reset() {
 		orderings.clear();
+		rawFragments.clear();
 	}
 
 	@Override
@@ -34,6 +39,17 @@ final class OrderByImpl implements OrderBy {
 	public OrderBy orderBy(Column column, SortDirection direction) {
 		orderings.addLast(new Ordering(column, direction));
 		return this;
+	}
+
+	@Override
+	public OrderBy orderByRaw(RawSqlFragment fragment) {
+		rawFragments.add(fragment);
+		return this;
+	}
+
+	@Override
+	public OrderBy orderByRaw(String sql, SqlParameter<?>... params) {
+		return orderByRaw(RawSql.of(sql, params));
 	}
 
 	@Override
@@ -49,6 +65,11 @@ final class OrderByImpl implements OrderBy {
 	@Override
 	public List<Ordering> orderings() {
 		return orderings;
+	}
+
+	@Override
+	public List<RawSqlFragment> orderByFragments() {
+		return List.copyOf(rawFragments);
 	}
 
 }

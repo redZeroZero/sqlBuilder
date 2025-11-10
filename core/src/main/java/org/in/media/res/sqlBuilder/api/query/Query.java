@@ -34,6 +34,15 @@ public interface Query extends SelectStage, FromStage {
 
 	Query select(AggregateOperator agg, TableDescriptor<?> descriptor);
 
+	@Override
+	Query selectRaw(String sql);
+
+	@Override
+	Query selectRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query selectRaw(RawSqlFragment fragment);
+
 	default Query select(AggregateOperator agg, ColumnRef<?> descriptor) {
 		return select(agg, descriptor.column());
 	}
@@ -79,7 +88,7 @@ public interface Query extends SelectStage, FromStage {
 		return on(left.column(), right.column());
 	}
 
-	Query from(Table table);
+Query from(Table table);
 
 Query from(Table... tables);
 Query join(Table t);
@@ -88,6 +97,60 @@ Query leftJoin(Table t);
 Query rightJoin(Table t);
 Query crossJoin(Table t);
 Query fullOuterJoin(Table t);
+
+@Override
+Query fromRaw(String sql);
+
+@Override
+Query fromRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query fromRaw(RawSqlFragment fragment);
+
+@Override
+Query joinRaw(String sql);
+
+@Override
+Query joinRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query joinRaw(RawSqlFragment fragment);
+
+@Override
+Query leftJoinRaw(String sql);
+
+@Override
+Query leftJoinRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query leftJoinRaw(RawSqlFragment fragment);
+
+@Override
+Query rightJoinRaw(String sql);
+
+@Override
+Query rightJoinRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query rightJoinRaw(RawSqlFragment fragment);
+
+@Override
+Query fullOuterJoinRaw(String sql);
+
+@Override
+Query fullOuterJoinRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query fullOuterJoinRaw(RawSqlFragment fragment);
+
+@Override
+Query crossJoinRaw(String sql);
+
+@Override
+Query crossJoinRaw(String sql, SqlParameter<?>... params);
+
+@Override
+Query crossJoinRaw(RawSqlFragment fragment);
 
 default Query from(Query subquery, String alias, String... columnAliases) {
     return from(subquery.as(alias, columnAliases));
@@ -122,6 +185,15 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 
 	@Override
 	Query where(Column column);
+
+	@Override
+	Query whereRaw(String sql);
+
+	@Override
+	Query whereRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query whereRaw(RawSqlFragment fragment);
 
 	@Override
 	default Query where(TableDescriptor<?> descriptor) {
@@ -517,6 +589,24 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	@Override
 	Query or();
 
+	@Override
+	Query andRaw(String sql);
+
+	@Override
+	Query andRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query andRaw(RawSqlFragment fragment);
+
+	@Override
+	Query orRaw(String sql);
+
+	@Override
+	Query orRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query orRaw(RawSqlFragment fragment);
+
 
 	@Override
 	Query min(Column column);
@@ -568,6 +658,15 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 
 	Query groupBy(TableDescriptor<?>... descriptors);
 
+	@Override
+	Query groupByRaw(String sql);
+
+	@Override
+	Query groupByRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query groupByRaw(RawSqlFragment fragment);
+
 	default Query groupBy(ColumnRef<?> descriptor) {
 		return groupBy(descriptor.column());
 	}
@@ -588,6 +687,15 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	Query orderBy(Column column, SortDirection direction);
 
 	Query orderBy(TableDescriptor<?> descriptor, SortDirection direction);
+
+	@Override
+	Query orderByRaw(String sql);
+
+	@Override
+	Query orderByRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query orderByRaw(RawSqlFragment fragment);
 
 	default Query orderBy(ColumnRef<?> descriptor) {
 		return orderBy(descriptor.column());
@@ -631,6 +739,15 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 	default QueryHavingBuilder having(TableDescriptor<?> descriptor) {
 		return having(descriptor.column());
 	}
+
+	@Override
+	Query havingRaw(String sql);
+
+	@Override
+	Query havingRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	Query havingRaw(RawSqlFragment fragment);
 
 	Query union(Query other);
 

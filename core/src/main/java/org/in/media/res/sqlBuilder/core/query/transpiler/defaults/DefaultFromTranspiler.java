@@ -3,6 +3,7 @@ package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 import static org.in.media.res.sqlBuilder.constants.JoinOperator.ON;
 import static org.in.media.res.sqlBuilder.constants.Operator.EQ;
 
+import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
@@ -10,7 +11,9 @@ import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.From;
 import org.in.media.res.sqlBuilder.api.query.From.JoinSpec;
 import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
+import org.in.media.res.sqlBuilder.core.query.FromRawSupport;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 
 public class DefaultFromTranspiler implements FromTranspiler {
@@ -21,6 +24,13 @@ public class DefaultFromTranspiler implements FromTranspiler {
 
     @Override
     public String transpile(From from) {
+		FromRawSupport rawSupport = from instanceof FromRawSupport support ? support : null;
+		if (rawSupport != null && rawSupport.rawBaseFragment() != null) {
+			DefaultSqlBuilder builder = DefaultSqlBuilder.from(FROM);
+			builder.append(rawSupport.rawBaseFragment().sql());
+			appendRawJoins(builder, rawSupport.rawJoinFragments());
+			return builder.toString();
+		}
         if (from.joins().isEmpty()) {
             return "";
         }
@@ -47,6 +57,10 @@ public class DefaultFromTranspiler implements FromTranspiler {
             }
         }
 
+		if (rawSupport != null) {
+			appendRawJoins(builder, rawSupport.rawJoinFragments());
+		}
+
         return builder.toString();
     }
 
@@ -69,4 +83,10 @@ public class DefaultFromTranspiler implements FromTranspiler {
         }
         builder.append(ON.value()).appendColumn(left).append(EQ.value()).appendColumn(right);
     }
+
+	private void appendRawJoins(DefaultSqlBuilder builder, List<FromRawSupport.RawJoinFragmentView> rawJoins) {
+		for (FromRawSupport.RawJoinFragmentView fragment : rawJoins) {
+			builder.append(' ').append(fragment.operator().value()).append(' ').append(fragment.fragment().sql());
+		}
+	}
 }

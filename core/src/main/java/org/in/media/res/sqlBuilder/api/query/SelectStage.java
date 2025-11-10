@@ -34,6 +34,15 @@ public interface SelectStage extends QueryStage, Select {
 	SelectStage select(AggregateOperator agg, TableDescriptor<?> descriptor);
 
 	@Override
+	SelectStage selectRaw(String sql);
+
+	@Override
+	SelectStage selectRaw(String sql, SqlParameter<?>... params);
+
+	@Override
+	SelectStage selectRaw(RawSqlFragment fragment);
+
+	@Override
 	SelectStage distinct();
 
 	SelectStage count();

@@ -23,13 +23,14 @@ import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Connector;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.RawSql;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.Where;
 import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
-import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
 import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
@@ -65,15 +66,48 @@ final class WhereImpl implements Where {
 	}
 
 	@Override
+	public Where whereRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, null);
+		return this;
+	}
+
+	@Override
+	public Where whereRaw(String sql, SqlParameter<?>... params) {
+		return whereRaw(RawSql.of(sql, params));
+	}
+
+	@Override
 	public Where and(Column column) {
 		buffer.add(ConditionImpl.builder().and().leftColumn(requireColumn(column)).build(), null);
 		return this;
 	}
 
 	@Override
+	public Where andRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, Operator.AND);
+		return this;
+	}
+
+	@Override
+	public Where andRaw(String sql, SqlParameter<?>... params) {
+		return andRaw(RawSql.of(sql, params));
+	}
+
+	@Override
 	public Where or(Column column) {
 		buffer.add(ConditionImpl.builder().or().leftColumn(requireColumn(column)).build(), null);
 		return this;
+	}
+
+	@Override
+	public Where orRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, Operator.OR);
+		return this;
+	}
+
+	@Override
+	public Where orRaw(String sql, SqlParameter<?>... params) {
+		return orRaw(RawSql.of(sql, params));
 	}
 
 	@Override

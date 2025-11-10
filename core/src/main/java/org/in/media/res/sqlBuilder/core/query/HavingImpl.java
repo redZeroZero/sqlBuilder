@@ -12,11 +12,12 @@ import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.RawSql;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
-import org.in.media.res.sqlBuilder.core.query.predicate.ClauseConditionBuffer;
 import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
 
@@ -51,17 +52,50 @@ final class HavingImpl implements Having {
         return this;
     }
 
+	@Override
+	public Having havingRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, null);
+		return this;
+	}
+
+	@Override
+	public Having havingRaw(String sql, SqlParameter<?>... params) {
+		return havingRaw(RawSql.of(sql, params));
+	}
+
     @Override
     public Having and(Condition condition) {
         buffer.add(condition, Operator.AND);
         return this;
     }
 
+	@Override
+	public Having andRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, Operator.AND);
+		return this;
+	}
+
+	@Override
+	public Having andRaw(String sql, SqlParameter<?>... params) {
+		return andRaw(RawSql.of(sql, params));
+	}
+
     @Override
     public Having or(Condition condition) {
         buffer.add(condition, Operator.OR);
         return this;
     }
+
+	@Override
+	public Having orRaw(RawSqlFragment fragment) {
+		buffer.addRaw(fragment, Operator.OR);
+		return this;
+	}
+
+	@Override
+	public Having orRaw(String sql, SqlParameter<?>... params) {
+		return orRaw(RawSql.of(sql, params));
+	}
 
     @Override
     public HavingBuilder having(Column column) {
