@@ -1,147 +1,58 @@
 package org.in.media.res.sqlBuilder.core.query;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
-import org.in.media.res.sqlBuilder.api.query.spi.Having;
-import org.in.media.res.sqlBuilder.api.query.spi.Where;
-import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
+import org.in.media.res.sqlBuilder.api.model.Tables;
+import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.junit.jupiter.api.Test;
 
 class QueryValidationTest {
 
-	private static final Table TABLE = new Table() {
-		@Override
-		public String getName() {
-			return "FAKE";
-		}
+    private final Table employee = Tables.builder("Employee", "E")
+            .column("ID")
+            .column("FIRST_NAME")
+            .build();
 
-		@Override
-		public String getAlias() {
-			return null;
-		}
+    @Test
+    void requireTableRejectsColumnsWithoutOwner() {
+        var column = org.in.media.res.sqlBuilder.core.model.ColumnImpl.builder()
+                .name("COL")
+                .table(null)
+                .build();
 
-		@Override
-		public boolean hasAlias() {
-			return false;
-		}
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> QueryValidation.requireTable(column, "Requires table"));
+        assertEquals("Requires table (no owning table)", ex.getMessage());
+    }
 
-		@Override
-		public Column[] getColumns() {
-			return new Column[0];
-		}
+    @Test
+    void requireScalarSubqueryAllowsSingleProjection() {
+        Query sub = SqlQuery.newQuery().asQuery();
+        sub.select(employee.get("ID")).from(employee);
+        QueryValidation.requireScalarSubquery(sub, "scalar");
+    }
 
-		@Override
-		public Column get(String columnName) {
-			return null;
-		}
+    @Test
+    void requireScalarSubqueryThrowsWhenMultipleColumns() {
+        Query sub = SqlQuery.newQuery().asQuery();
+        sub.select(employee.get("ID"))
+                .select(employee.get("FIRST_NAME"))
+                .from(employee);
 
-		@Override
-		public Column get(TableDescriptor<?> descriptor) {
-			return null;
-		}
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> QueryValidation.requireScalarSubquery(sub, "multi"));
+        assertEquals("multi (expected 1 column, got 2)", ex.getMessage());
+    }
 
-		@Override
-		public void includeSchema(String schema) {
-			// no-op
-		}
+    @Test
+    void requireAnyProjectionThrowsWhenNoColumns() {
+        Query sub = SqlQuery.newQuery().asQuery();
 
-		@Override
-		public boolean hasTableName() {
-			return true;
-		}
-
-		@Override
-		public String tableName() {
-			return getName();
-		}
-	};
-
-	private static final class ColumnStub implements Column {
-		private final Table table;
-
-		private ColumnStub(Table table) {
-			this.table = table;
-		}
-
-		@Override
-		public String transpile(boolean useAlias) {
-			return "STUB";
-		}
-
-		@Override
-		public String transpile() {
-			return transpile(true);
-		}
-
-	@Override
-	public Table table() {
-		return table;
-	}
-
-	@Override
-	public String getName() {
-		return "COLUMN";
-	}
-
-	@Override
-	public String getAlias() {
-		return null;
-	}
-
-	@Override
-	public boolean hasColumnAlias() {
-		return false;
-	}
-}
-
-	@Test
-	void whereRejectsColumnsWithoutTable() {
-		Where where = new WhereImpl(Dialects.defaultDialect());
-		IllegalStateException ex = assertThrows(IllegalStateException.class,
-				() -> where.where(new ColumnStub(null)));
-		assertTrue(ex.getMessage().contains("Column must belong to a table"));
-	}
-
-	@Test
-	void havingRejectsColumnsWithoutTable() {
-		Having having = new HavingImpl(Dialects.defaultDialect());
-		IllegalStateException ex = assertThrows(IllegalStateException.class,
-				() -> having.having(new ColumnStub(null)));
-		assertTrue(ex.getMessage().contains("Column must belong to a table"));
-	}
-
-	@Test
-	void validationAcceptsColumnsWithTable() {
-		Where where = new WhereImpl(Dialects.defaultDialect());
-		where.where(new ColumnStub(TABLE));
-	}
-
-	@Test
-	void whereInRejectsEmptyValueLists() {
-		Where where = new WhereImpl(Dialects.defaultDialect());
-		where.where(new ColumnStub(TABLE));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> where.in(new String[0]));
-		assertTrue(ex.getMessage().contains("at least one value"));
-	}
-
-	@Test
-	void havingInRejectsEmptyValueLists() {
-		Having having = new HavingImpl(Dialects.defaultDialect());
-		HavingBuilder builder = having.having(new ColumnStub(TABLE));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> builder.in(new Number[0]));
-		assertTrue(ex.getMessage().contains("at least one value"));
-	}
-
-	@Test
-	void conditionGroupInRejectsEmptyValueLists() {
-		ConditionGroupBuilder builder = new ConditionGroupBuilder();
-		builder.where(new ColumnStub(TABLE));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> builder.in(new String[0]));
-		assertTrue(ex.getMessage().contains("at least one value"));
-	}
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> QueryValidation.requireAnyProjection(sub, "any"));
+        assertEquals("any (subquery selects no columns)", ex.getMessage());
+    }
 }
