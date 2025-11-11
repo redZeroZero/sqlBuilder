@@ -1,0 +1,13 @@
+version: '3.9'
+services:
+  sqlbuilder-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sqlbuilder
+      POSTGRES_USER: sb_user
+      POSTGRES_PASSWORD: sb_pass
+    ports:
+      - 5432:5432
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro

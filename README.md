@@ -2,15 +2,36 @@
 
 sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It provides composable builders for `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and `LIMIT / OFFSET` clauses so you can express queries without string concatenation.
 
-## Contents
+## Quick navigation
 
 - [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Repository layout](#repository-layout)
 - [Sample Queries to Try](#sample-queries-to-try)
-  - [Derived Tables](#7-derived-tables-from-subqueries)
-  - [Common Table Expressions](#8-common-table-expressions-ctes)
+  - [Rendering SQL & parameters](#rendering-sql--parameters)
+  - [Injecting Optimizer Hints](#injecting-optimizer-hints)
+  - [Compiled queries & named parameters](#compiled-queries--named-parameters)
+  - [Simple Projection](#1-simple-projection)
+  - [Joins with Filters](#2-joins-with-filters)
+  - [Aggregations with GROUP BY / HAVING](#3-aggregations-with-group-by--having)
+  - [Pagination (Oracle-style)](#4-pagination-oracle-style)
+  - [Quick Count / Pretty Print](#5-quick-count--pretty-print)
+  - [Set Operations](#6-set-operations)
+  - [Derived Tables (FROM Subqueries)](#7-derived-tables-from-subqueries)
+  - [Common Table Expressions (CTEs)](#8-common-table-expressions-ctes)
+  - [Filtering with Subqueries](#9-filtering-with-subqueries)
   - [Optional Filters for Compiled Queries](#10-optional-filters-for-compiled-queries)
-  - [Grouped Filters](#11-grouped-filters-nested-and--or-trees)
+  - [Grouped Filters (Nested AND / OR Trees)](#11-grouped-filters-nested-and--or-trees)
+  - [Raw SQL Fragments](#12-raw-sql-fragments)
 - [Dialects & SQL Functions](#dialects--sql-functions)
+  - [Using a Different Dialect](#using-a-different-dialect)
+  - [Registering Functions](#registering-functions)
+- [Defining Tables & Schemas](#defining-tables--schemas)
+  - [Custom Schema Quick Start](#custom-schema-quick-start)
+  - [Typed Rows & Builders](#typed-rows--builders)
+  - [Manual Table Registration](#manual-table-registration)
+- [Integration Module with PostgreSQL](#integration-module-with-postgresql)
+- [Running Tests](#running-tests)
 
 ## Getting Started
 
@@ -624,6 +645,32 @@ String sql = SqlQuery.newQuery()
 ```
 
 This manual approach avoids classpath scanning entirely while still delivering typed ColumnRefs to the DSL. Combine it with `QueryColumns` if you want to distribute table/column bundles throughout your application.
+
+### Integration Module with PostgreSQL
+
+The project now includes an `integration` module that drives `sqlBuilder` against a PostgreSQL container preloaded with a richer commerce-style schema (departments, jobs, products, customers, orders, payments, etc.). The module lives under `integration/` and exposes a `IntegrationApp` that you can extend for your own real-world experiments.
+
+1. Start the backing database (ports, credentials, and initial data are defined in `integration/docker/docker-compose.yml` and `integration/docker/init.sql`):
+
+   ```bash
+   docker compose -f integration/docker/docker-compose.yml up -d
+   ```
+
+2. Run the integration harness once the container is ready (make sure the PostgreSQL JDBC driver is installed in your local Maven cache, e.g. `mvn dependency:get -Dartifact=org.postgresql:postgresql:42.6.0`):
+
+   ```bash
+   mvn -pl integration exec:java
+   ```
+
+   `IntegrationApp` picks up `SQLBUILDER_JDBC_URL`, `SQLBUILDER_JDBC_USER`, and `SQLBUILDER_JDBC_PASSWORD` from the environment (`jdbc:postgresql://localhost:5432/sqlbuilder`, `sb_user`, `sb_pass` by default) and prints each DSL-generated SQL statement plus the rows it retrieves.
+
+3. When you finish, stop the database:
+
+   ```bash
+   docker compose -f integration/docker/docker-compose.yml down
+   ```
+
+You are encouraged to modify `integration/src/main/java/org/in/media/res/sqlBuilder/integration/IntegrationApp.java` and add new queries against the provided schema. All Java code runs on the host machine; the container simply provides a PostgreSQL-backed data source.
 
 ## Running Tests
 
