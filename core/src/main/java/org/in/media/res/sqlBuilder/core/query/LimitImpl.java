@@ -2,14 +2,14 @@ package org.in.media.res.sqlBuilder.core.query;
 
 import org.in.media.res.sqlBuilder.api.query.spi.Limit;
 import org.in.media.res.sqlBuilder.api.query.spi.LimitTranspiler;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultLimitTranspiler;
 
 final class LimitImpl implements Limit {
 
 	private Integer limit;
 	private Integer offset;
 
-	private final LimitTranspiler limitTranspiler = TranspilerFactory.instantiateLimitTranspiler();
+	private final LimitTranspiler limitTranspiler = new DefaultLimitTranspiler();
 
 	@Override
 	public String transpile() {

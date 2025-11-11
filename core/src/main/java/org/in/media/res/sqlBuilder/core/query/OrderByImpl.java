@@ -4,20 +4,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.spi.OrderBy;
-import org.in.media.res.sqlBuilder.api.query.spi.OrderByTranspiler;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.api.query.spi.OrderBy;
+import org.in.media.res.sqlBuilder.api.query.spi.OrderByTranspiler;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultOrderByTranspiler;
 
 final class OrderByImpl implements OrderBy, OrderByRawSupport {
 
 	private final List<Ordering> orderings = new ArrayList<>();
 	private final List<RawSqlFragment> rawFragments = new ArrayList<>();
 
-	private final OrderByTranspiler orderByTranspiler = TranspilerFactory.instantiateOrderByTranspiler();
+	private final OrderByTranspiler orderByTranspiler = new DefaultOrderByTranspiler();
 
 	@Override
 	public String transpile() {

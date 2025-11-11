@@ -4,19 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.spi.GroupBy;
-import org.in.media.res.sqlBuilder.api.query.spi.GroupByTranspiler;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupBy;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupByTranspiler;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultGroupByTranspiler;
 
 final class GroupByImpl implements GroupBy, GroupByRawSupport {
 
 	private final List<Column> columns = new ArrayList<>();
 	private final List<RawSqlFragment> rawFragments = new ArrayList<>();
 
-	private final GroupByTranspiler groupByTranspiler = TranspilerFactory.instantiateGroupByTranspiler();
+	private final GroupByTranspiler groupByTranspiler = new DefaultGroupByTranspiler();
 
 	@Override
 	public String transpile() {

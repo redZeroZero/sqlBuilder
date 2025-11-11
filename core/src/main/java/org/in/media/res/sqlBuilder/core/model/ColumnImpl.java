@@ -3,7 +3,7 @@ package org.in.media.res.sqlBuilder.core.model;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.spi.ColumnTranspiler;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultColumnTranspiler;
 
 public class ColumnImpl implements Column {
 
@@ -13,7 +13,7 @@ public class ColumnImpl implements Column {
 
 	private Table table;
 
-	private ColumnTranspiler transpiler = TranspilerFactory.instantiateColumnTranspiler();
+	private ColumnTranspiler transpiler = new DefaultColumnTranspiler();
 
 	public String transpile() {
 		return this.transpile(true);

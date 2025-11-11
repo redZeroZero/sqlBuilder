@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.model.TableImpl;
 
 /**

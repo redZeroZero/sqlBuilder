@@ -2,9 +2,6 @@ package org.in.media.res.sqlBuilder.api.model;
 
 import java.util.Objects;
 
-import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-
 public final class ColumnRef<T> implements TableDescriptor<ColumnRef<T>> {
 
 	private final String name;

@@ -8,12 +8,12 @@ import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
-import org.in.media.res.sqlBuilder.api.query.spi.ConditionTranspiler;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.spi.ConditionTranspiler;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultConditionTranspiler;
 
 /**
  * Immutable representation of a boolean condition. Use {@link Builder} to
@@ -21,7 +21,7 @@ import org.in.media.res.sqlBuilder.api.query.Query;
  */
 public final class ConditionImpl implements Condition {
 
-	private static final ConditionTranspiler TRANSPILER = TranspilerFactory.instantiateConditionTranspiler();
+	private static final ConditionTranspiler TRANSPILER = new DefaultConditionTranspiler();
 
 	private final Operator startOperator;
 	private final ConditionSide left;

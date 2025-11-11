@@ -7,13 +7,13 @@ import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.api.query.spi.From;
-import org.in.media.res.sqlBuilder.api.query.spi.FromTranspiler;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
+import org.in.media.res.sqlBuilder.api.query.spi.From;
+import org.in.media.res.sqlBuilder.api.query.spi.FromTranspiler;
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
+import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultFromTranspiler;
 
 final class FromImpl implements From, FromRawSupport {
 
@@ -21,7 +21,7 @@ final class FromImpl implements From, FromRawSupport {
 	private RawSqlFragment rawBase;
 	private final List<RawJoinFragment> rawJoins = new ArrayList<>();
 
-    private FromTranspiler fromTranspiler = TranspilerFactory.instantiateFromTranspiler();
+    private FromTranspiler fromTranspiler = new DefaultFromTranspiler();
 
     public Map<Table, JoinSpec> joins() {
         return joins;
