@@ -1,9 +1,10 @@
 package org.in.media.res.sqlBuilder.api.query;
 
+import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.query.spi.From;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 /**
  * Stage exposing {@code FROM} and {@code JOIN} operations. Extends

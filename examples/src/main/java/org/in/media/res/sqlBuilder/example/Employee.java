@@ -2,7 +2,7 @@ package org.in.media.res.sqlBuilder.example;
 
 import org.in.media.res.sqlBuilder.api.model.annotation.SqlColumn;
 import org.in.media.res.sqlBuilder.api.model.annotation.SqlTable;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 @SqlTable(name = "Employee", alias = "E")
 public final class Employee {

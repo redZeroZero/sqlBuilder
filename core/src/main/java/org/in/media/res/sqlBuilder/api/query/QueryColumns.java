@@ -3,7 +3,7 @@ package org.in.media.res.sqlBuilder.api.query;
 import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.core.model.ScannedSchema;
+import org.in.media.res.sqlBuilder.api.model.ScannedSchema;
 
 /**
  * Convenience wrapper that bundles a table handle and its generated column view

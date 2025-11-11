@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
-import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
+import org.in.media.res.sqlBuilder.api.query.spi.Where;
 import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.junit.jupiter.api.Test;
 

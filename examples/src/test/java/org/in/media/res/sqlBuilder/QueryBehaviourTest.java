@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
+import org.in.media.res.sqlBuilder.api.query.Dialects;
 import org.in.media.res.sqlBuilder.api.query.QueryColumns;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
 import org.in.media.res.sqlBuilder.api.query.SqlFormatter;
@@ -36,9 +37,7 @@ import org.in.media.res.sqlBuilder.example.ProductColumns;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.QueryHelper;
-import org.in.media.res.sqlBuilder.api.query.Select;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
-import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -206,7 +205,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectResetClearsState() {
-		Select select = SqlQuery.newQuery().asQuery();
+		Query select = SqlQuery.newQuery().asQuery();
 		select.select(Employee.C_FIRST_NAME);
 		select.select(AggregateOperator.MAX, Employee.C_FIRST_NAME);
 
@@ -221,7 +220,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectSupportsDescriptorShortcut() {
-		Select select = SqlQuery.newQuery().asQuery();
+		Query select = SqlQuery.newQuery().asQuery();
 		select.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME);
 
 		String sql = select.transpile();

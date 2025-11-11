@@ -8,10 +8,9 @@ import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.api.query.From;
-import org.in.media.res.sqlBuilder.api.query.From.JoinSpec;
-import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
-import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
+import org.in.media.res.sqlBuilder.api.query.spi.From;
+import org.in.media.res.sqlBuilder.api.query.spi.From.JoinSpec;
+import org.in.media.res.sqlBuilder.api.query.spi.FromTranspiler;
 import org.in.media.res.sqlBuilder.constants.JoinOperator;
 import org.in.media.res.sqlBuilder.core.query.FromRawSupport;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;

@@ -5,15 +5,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
 
-import org.in.media.res.sqlBuilder.api.query.ColumnTranspiler;
-import org.in.media.res.sqlBuilder.api.query.ConditionTranspiler;
-import org.in.media.res.sqlBuilder.api.query.FromTranspiler;
-import org.in.media.res.sqlBuilder.api.query.GroupByTranspiler;
-import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
-import org.in.media.res.sqlBuilder.api.query.LimitTranspiler;
-import org.in.media.res.sqlBuilder.api.query.OrderByTranspiler;
-import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
-import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ColumnTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ConditionTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.FromTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupByTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.HavingTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.LimitTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.OrderByTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.SelectTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.WhereTranspiler;
 
 public final class TranspilerFactory {
 
@@ -24,39 +24,39 @@ public final class TranspilerFactory {
     private TranspilerFactory() {
     }
 
-    public static ConditionTranspiler instanciateConditionTranspiler() {
+	public static ConditionTranspiler instantiateConditionTranspiler() {
         return resolve(ConditionTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultConditionTranspiler", ConditionTranspiler.class));
     }
 
-    public static ColumnTranspiler instanciateColumnTranspiler() {
+	public static ColumnTranspiler instantiateColumnTranspiler() {
         return resolve(ColumnTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultColumnTranspiler", ColumnTranspiler.class));
     }
 
-    public static SelectTranspiler instanciateSelectTranspiler() {
+	public static SelectTranspiler instantiateSelectTranspiler() {
         return resolve(SelectTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultSelectTranspiler", SelectTranspiler.class));
     }
 
-    public static FromTranspiler instanciateFromTranspiler() {
+	public static FromTranspiler instantiateFromTranspiler() {
         return resolve(FromTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultFromTranspiler", FromTranspiler.class));
     }
 
-    public static WhereTranspiler instanciateWhereTranspiler() {
+	public static WhereTranspiler instantiateWhereTranspiler() {
         return resolve(WhereTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultWhereTranspiler", WhereTranspiler.class));
     }
 
-    public static GroupByTranspiler instanciateGroupByTranspiler() {
+	public static GroupByTranspiler instantiateGroupByTranspiler() {
         return resolve(GroupByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultGroupByTranspiler", GroupByTranspiler.class));
     }
 
-    public static OrderByTranspiler instanciateOrderByTranspiler() {
+	public static OrderByTranspiler instantiateOrderByTranspiler() {
         return resolve(OrderByTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultOrderByTranspiler", OrderByTranspiler.class));
     }
 
-    public static HavingTranspiler instanciateHavingTranspiler() {
+	public static HavingTranspiler instantiateHavingTranspiler() {
         return resolve(HavingTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultHavingTranspiler", HavingTranspiler.class));
     }
 
-    public static LimitTranspiler instanciateLimitTranspiler() {
+	public static LimitTranspiler instantiateLimitTranspiler() {
         return resolve(LimitTranspiler.class, () -> instantiate(DEFAULT_PACKAGE + "DefaultLimitTranspiler", LimitTranspiler.class));
     }
 

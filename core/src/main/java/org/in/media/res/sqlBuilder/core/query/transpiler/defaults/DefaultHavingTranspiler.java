@@ -1,8 +1,8 @@
 package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.query.Condition;
-import org.in.media.res.sqlBuilder.api.query.Having;
-import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
+import org.in.media.res.sqlBuilder.api.query.spi.HavingTranspiler;
 
 public class DefaultHavingTranspiler implements HavingTranspiler {
 

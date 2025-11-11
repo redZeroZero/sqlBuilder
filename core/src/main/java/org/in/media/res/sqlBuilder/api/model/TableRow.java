@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 /**
  * Simple typed container for row values keyed by {@link ColumnRef}s.

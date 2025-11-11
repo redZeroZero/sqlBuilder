@@ -10,8 +10,8 @@ import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
-import org.in.media.res.sqlBuilder.api.query.Select;
-import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Select;
+import org.in.media.res.sqlBuilder.api.query.spi.SelectTranspiler;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
@@ -68,7 +68,7 @@ final class SelectImpl implements Select, SelectProjectionSupport {
 	private final List<String> hints = new ArrayList<>();
 	private boolean distinct;
 
-	private final SelectTranspiler selectTranspiler = TranspilerFactory.instanciateSelectTranspiler();
+	private final SelectTranspiler selectTranspiler = TranspilerFactory.instantiateSelectTranspiler();
 
 	@Override
 	public String transpile() {

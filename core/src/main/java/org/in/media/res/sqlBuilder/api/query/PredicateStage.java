@@ -4,8 +4,13 @@ import java.util.Date;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupBy;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
+import org.in.media.res.sqlBuilder.api.query.spi.Limit;
+import org.in.media.res.sqlBuilder.api.query.spi.OrderBy;
+import org.in.media.res.sqlBuilder.api.query.spi.Where;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.OptionalConditions;
 
 /**

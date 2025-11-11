@@ -1,11 +1,11 @@
 package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.GroupBy;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupBy;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.in.media.res.sqlBuilder.api.query.GroupByTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupByTranspiler;
 import org.in.media.res.sqlBuilder.core.query.GroupByRawSupport;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 

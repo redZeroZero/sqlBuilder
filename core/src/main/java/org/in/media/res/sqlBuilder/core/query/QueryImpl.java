@@ -15,24 +15,24 @@ import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.api.query.Clause;
+import org.in.media.res.sqlBuilder.api.query.spi.Clause;
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
-import org.in.media.res.sqlBuilder.api.query.From;
-import org.in.media.res.sqlBuilder.api.query.GroupBy;
-import org.in.media.res.sqlBuilder.api.query.Having;
+import org.in.media.res.sqlBuilder.api.query.spi.From;
+import org.in.media.res.sqlBuilder.api.query.spi.GroupBy;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
 import org.in.media.res.sqlBuilder.api.query.QueryHavingBuilder;
-import org.in.media.res.sqlBuilder.api.query.Limit;
-import org.in.media.res.sqlBuilder.api.query.OrderBy;
+import org.in.media.res.sqlBuilder.api.query.spi.Limit;
+import org.in.media.res.sqlBuilder.api.query.spi.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
-import org.in.media.res.sqlBuilder.api.query.Select;
+import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
-import org.in.media.res.sqlBuilder.api.query.Where;
+import org.in.media.res.sqlBuilder.api.query.spi.Where;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 
@@ -77,13 +77,13 @@ public class QueryImpl implements Query {
 
 	private QueryImpl(Dialect dialect) {
 		this.dialect = Objects.requireNonNull(dialect, "dialect");
-		this.selectClause = CLauseFactory.instanciateSelect(dialect);
-		this.fromClause = CLauseFactory.instanciateFrom(dialect);
-		this.whereClause = CLauseFactory.instanciateWhere(dialect);
-		this.groupByClause = CLauseFactory.instanciateGroupBy(dialect);
-		this.orderByClause = CLauseFactory.instanciateOrderBy(dialect);
-		this.havingClause = CLauseFactory.instanciateHaving(dialect);
-		this.limitClause = CLauseFactory.instanciateLimit(dialect);
+		this.selectClause = ClauseFactory.instantiateSelect(dialect);
+		this.fromClause = ClauseFactory.instantiateFrom(dialect);
+		this.whereClause = ClauseFactory.instantiateWhere(dialect);
+		this.groupByClause = ClauseFactory.instantiateGroupBy(dialect);
+		this.orderByClause = ClauseFactory.instantiateOrderBy(dialect);
+		this.havingClause = ClauseFactory.instantiateHaving(dialect);
+		this.limitClause = ClauseFactory.instantiateLimit(dialect);
 	}
 
 	public static Query fromTable(Table table) {
@@ -187,13 +187,13 @@ public class QueryImpl implements Query {
 	}
 
 	public void reset() {
-		this.selectClause = CLauseFactory.instanciateSelect(dialect);
-		this.fromClause = CLauseFactory.instanciateFrom(dialect);
-		this.whereClause = CLauseFactory.instanciateWhere(dialect);
-		this.groupByClause = CLauseFactory.instanciateGroupBy(dialect);
-		this.orderByClause = CLauseFactory.instanciateOrderBy(dialect);
-		this.havingClause = CLauseFactory.instanciateHaving(dialect);
-		this.limitClause = CLauseFactory.instanciateLimit(dialect);
+		this.selectClause = ClauseFactory.instantiateSelect(dialect);
+		this.fromClause = ClauseFactory.instantiateFrom(dialect);
+		this.whereClause = ClauseFactory.instantiateWhere(dialect);
+		this.groupByClause = ClauseFactory.instantiateGroupBy(dialect);
+		this.orderByClause = ClauseFactory.instantiateOrderBy(dialect);
+		this.havingClause = ClauseFactory.instantiateHaving(dialect);
+		this.limitClause = ClauseFactory.instantiateLimit(dialect);
 		this.setOperations.clear();
 		this.ctes = List.of();
 	}

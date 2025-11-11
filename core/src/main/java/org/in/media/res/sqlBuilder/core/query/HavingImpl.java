@@ -8,9 +8,9 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
-import org.in.media.res.sqlBuilder.api.query.Having;
 import org.in.media.res.sqlBuilder.api.query.HavingBuilder;
-import org.in.media.res.sqlBuilder.api.query.HavingTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
+import org.in.media.res.sqlBuilder.api.query.spi.HavingTranspiler;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
@@ -28,7 +28,7 @@ final class HavingImpl implements Having {
     private final ClauseConditionBuffer buffer = new ClauseConditionBuffer(conditions,
             "Cannot apply operators without a HAVING condition. Call having(...) first.");
 
-	private final HavingTranspiler havingTranspiler = TranspilerFactory.instanciateHavingTranspiler();
+	private final HavingTranspiler havingTranspiler = TranspilerFactory.instantiateHavingTranspiler();
 
 	private final Dialect dialect;
 

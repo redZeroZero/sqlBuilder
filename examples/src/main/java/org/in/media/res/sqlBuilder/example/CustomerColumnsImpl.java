@@ -3,8 +3,8 @@ package org.in.media.res.sqlBuilder.example;
 import java.time.LocalDate;
 import java.util.Objects;
 
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
-import org.in.media.res.sqlBuilder.core.model.TableFacets;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.TableFacets;
 
 /**
  * Companion implementation used by {@link TableFacets#columns(Class, Class)} to

@@ -2,8 +2,8 @@ package org.in.media.res.sqlBuilder.example;
 
 import java.time.LocalDate;
 
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
-import org.in.media.res.sqlBuilder.core.model.TableFacets;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.TableFacets;
 
 /**
  * Generated customer column view (checked in so tests can reference typed

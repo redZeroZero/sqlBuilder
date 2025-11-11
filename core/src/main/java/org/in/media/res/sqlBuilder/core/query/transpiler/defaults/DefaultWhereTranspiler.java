@@ -1,7 +1,7 @@
 package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
-import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Where;
+import org.in.media.res.sqlBuilder.api.query.spi.WhereTranspiler;
 
 public class DefaultWhereTranspiler implements WhereTranspiler {
 

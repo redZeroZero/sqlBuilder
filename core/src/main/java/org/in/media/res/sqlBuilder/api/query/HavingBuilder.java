@@ -4,6 +4,7 @@ import java.util.Date;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.query.spi.Having;
 
 public interface HavingBuilder {
 

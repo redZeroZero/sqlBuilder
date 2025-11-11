@@ -7,7 +7,7 @@ import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
-import org.in.media.res.sqlBuilder.api.query.ConditionTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ConditionTranspiler;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;

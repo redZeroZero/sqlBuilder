@@ -1,7 +1,7 @@
 package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.ColumnTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ColumnTranspiler;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 
 public class DefaultColumnTranspiler implements ColumnTranspiler {

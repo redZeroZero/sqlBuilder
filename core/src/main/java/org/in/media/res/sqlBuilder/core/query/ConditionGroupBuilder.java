@@ -17,11 +17,10 @@ import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
 import org.in.media.res.sqlBuilder.core.query.predicate.PredicateValues;
 import org.in.media.res.sqlBuilder.core.query.util.SqlEscapers;
-import org.in.media.res.sqlBuilder.core.query.RawCondition;
 
 /**
  * Builder for grouped boolean expressions that can be used inside WHERE / HAVING clauses.

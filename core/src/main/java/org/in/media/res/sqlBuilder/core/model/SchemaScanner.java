@@ -10,8 +10,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
+import org.in.media.res.sqlBuilder.api.model.TableFacets;
 import org.in.media.res.sqlBuilder.api.model.annotation.SqlColumn;
 import org.in.media.res.sqlBuilder.api.model.annotation.SqlTable;
 

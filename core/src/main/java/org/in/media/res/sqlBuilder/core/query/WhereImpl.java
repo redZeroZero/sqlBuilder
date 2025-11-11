@@ -16,18 +16,18 @@ import java.util.Date;
 import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.Aggregator;
-import org.in.media.res.sqlBuilder.api.query.Comparator;
+import org.in.media.res.sqlBuilder.api.query.spi.Aggregator;
+import org.in.media.res.sqlBuilder.api.query.spi.Comparator;
 import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
-import org.in.media.res.sqlBuilder.api.query.Connector;
+import org.in.media.res.sqlBuilder.api.query.spi.Connector;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.RawSql;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
-import org.in.media.res.sqlBuilder.api.query.Where;
-import org.in.media.res.sqlBuilder.api.query.WhereTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Where;
+import org.in.media.res.sqlBuilder.api.query.spi.WhereTranspiler;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
@@ -41,7 +41,7 @@ final class WhereImpl implements Where {
 	private final ClauseConditionBuffer buffer = new ClauseConditionBuffer(filters,
 			"Cannot apply operators without a starting condition. Call where(...) first.");
 
-	private final WhereTranspiler whereTranspiler = TranspilerFactory.instanciateWhereTranspiler();
+	private final WhereTranspiler whereTranspiler = TranspilerFactory.instantiateWhereTranspiler();
 
 	private final Dialect dialect;
 

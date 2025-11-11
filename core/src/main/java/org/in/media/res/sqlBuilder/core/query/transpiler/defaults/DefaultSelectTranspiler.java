@@ -7,8 +7,8 @@ import java.util.List;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.api.model.Column;
-import org.in.media.res.sqlBuilder.api.query.Select;
-import org.in.media.res.sqlBuilder.api.query.SelectTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Select;
+import org.in.media.res.sqlBuilder.api.query.spi.SelectTranspiler;
 import org.in.media.res.sqlBuilder.core.query.SelectProjectionSupport;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 

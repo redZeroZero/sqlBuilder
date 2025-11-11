@@ -11,7 +11,7 @@ import org.in.media.res.sqlBuilder.constants.Operator;
 import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
-import org.in.media.res.sqlBuilder.api.query.ConditionTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ConditionTranspiler;
 import org.in.media.res.sqlBuilder.api.query.ConditionValue;
 import org.in.media.res.sqlBuilder.api.query.Query;
 
@@ -21,7 +21,7 @@ import org.in.media.res.sqlBuilder.api.query.Query;
  */
 public final class ConditionImpl implements Condition {
 
-	private static final ConditionTranspiler TRANSPILER = TranspilerFactory.instanciateConditionTranspiler();
+	private static final ConditionTranspiler TRANSPILER = TranspilerFactory.instantiateConditionTranspiler();
 
 	private final Operator startOperator;
 	private final ConditionSide left;

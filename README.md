@@ -605,7 +605,7 @@ If annotation scanning is not an option, declare tables programmatically via `Ta
 ```java
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.Tables;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 ColumnRef<Integer> EMP_ID = ColumnRef.of("ID", Integer.class);
 ColumnRef<String> EMP_FIRST_NAME = ColumnRef.of("FIRST_NAME", String.class);

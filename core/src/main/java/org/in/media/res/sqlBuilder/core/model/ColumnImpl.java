@@ -1,9 +1,9 @@
 package org.in.media.res.sqlBuilder.core.model;
 
-import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.api.query.ColumnTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.ColumnTranspiler;
+import org.in.media.res.sqlBuilder.core.query.factory.TranspilerFactory;
 
 public class ColumnImpl implements Column {
 
@@ -13,7 +13,7 @@ public class ColumnImpl implements Column {
 
 	private Table table;
 
-	private ColumnTranspiler transpiler = TranspilerFactory.instanciateColumnTranspiler();
+	private ColumnTranspiler transpiler = TranspilerFactory.instantiateColumnTranspiler();
 
 	public String transpile() {
 		return this.transpile(true);

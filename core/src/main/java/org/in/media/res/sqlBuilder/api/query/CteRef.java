@@ -3,7 +3,7 @@ package org.in.media.res.sqlBuilder.api.query;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 /**
  * Table-like reference returned when registering a Common Table Expression (CTE).

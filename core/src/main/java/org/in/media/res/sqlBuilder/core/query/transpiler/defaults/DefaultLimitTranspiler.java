@@ -1,7 +1,7 @@
 package org.in.media.res.sqlBuilder.core.query.transpiler.defaults;
 
-import org.in.media.res.sqlBuilder.api.query.Limit;
-import org.in.media.res.sqlBuilder.api.query.LimitTranspiler;
+import org.in.media.res.sqlBuilder.api.query.spi.Limit;
+import org.in.media.res.sqlBuilder.api.query.spi.LimitTranspiler;
 
 public class DefaultLimitTranspiler implements LimitTranspiler {
 

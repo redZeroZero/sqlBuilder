@@ -3,8 +3,8 @@ package org.in.media.res.sqlBuilder.example;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
-import org.in.media.res.sqlBuilder.core.model.TableFacets;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.TableFacets;
 
 final class OrderLineColumnsImpl implements OrderLineColumns {
 

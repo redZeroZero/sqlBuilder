@@ -3,8 +3,8 @@ package org.in.media.res.sqlBuilder.example;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
-import org.in.media.res.sqlBuilder.core.model.TableFacets;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.model.TableFacets;
 
 public interface OrderHeaderColumns {
 

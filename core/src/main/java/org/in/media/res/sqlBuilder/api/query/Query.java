@@ -3,12 +3,13 @@ package org.in.media.res.sqlBuilder.api.query;
 import java.util.Date;
 import java.util.List;
 
-import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.core.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.query.spi.Clause;
+import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.constants.SortDirection;
+import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 
 public interface Query extends SelectStage, FromStage {
 
