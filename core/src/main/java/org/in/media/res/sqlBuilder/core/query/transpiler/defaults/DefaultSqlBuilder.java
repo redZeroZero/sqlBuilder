@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
+import org.in.media.res.sqlBuilder.api.model.DerivedTable;
 import org.in.media.res.sqlBuilder.api.model.Table;
 
 final class DefaultSqlBuilder {
@@ -31,7 +32,12 @@ final class DefaultSqlBuilder {
 	}
 
 	DefaultSqlBuilder appendTable(Table table) {
-		delegate.append(org.in.media.res.sqlBuilder.core.query.dialect.DialectContext.current().quoteIdent(table.getName()));
+		if (table instanceof DerivedTable) {
+			delegate.append(table.getName());
+		} else {
+			delegate.append(
+					org.in.media.res.sqlBuilder.core.query.dialect.DialectContext.current().quoteIdent(table.getName()));
+		}
 		return this;
 	}
 

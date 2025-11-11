@@ -31,6 +31,8 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
   - [Typed Rows & Builders](#typed-rows--builders)
   - [Manual Table Registration](#manual-table-registration)
 - [Integration Module with PostgreSQL](#integration-module-with-postgresql)
+- [Spring JDBC integration](#spring-jdbc-integration)
+- [Running Tests](#running-tests)
 - [Running Tests](#running-tests)
 
 ## Getting Started
@@ -672,10 +674,50 @@ The project now includes an `integration` module that drives `sqlBuilder` agains
 
 You are encouraged to modify `integration/src/main/java/org/in/media/res/sqlBuilder/integration/IntegrationApp.java` and add new queries against the provided schema. All Java code runs on the host machine; the container simply provides a PostgreSQL-backed data source.
 
+### Spring JDBC integration
+
+The new `spring-jdbc` module exposes `SqlBuilderJdbcTemplate`, a minimal wrapper around Spring's `JdbcTemplate` that accepts `SqlAndParams` / `CompiledQuery` pairs without forcing you to rehydrate arrays yourself. Add the dependency:
+
+```xml
+<dependency>
+  <groupId>org.in.media.res</groupId>
+  <artifactId>sqlbuilder-spring-jdbc</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+Configuration is just wiring:
+
+```java
+@Bean
+SqlBuilderJdbcTemplate sqlBuilderJdbcTemplate(JdbcTemplate jdbcTemplate) {
+    return new SqlBuilderJdbcTemplate(jdbcTemplate);
+}
+```
+
+Then reuse the DSL output like this:
+
+```java
+CompiledQuery cq = SqlQuery.newQuery()
+    .select(...)
+    .from(...)
+    .compile();
+
+SqlAndParams sap = cq.bind(Map.of("id", 42));
+
+List<MyDto> rows = sqlBuilderJdbcTemplate.query(sap, (rs, rowNum) -> new MyDto(...));
+```
+
+All methods simply delegate to the underlying `JdbcTemplate` / `NamedParameterJdbcTemplate`, so transactions, error handling, and exceptions behave exactly like Spring's APIs.
+
 ## Running Tests
 
 ```
 mvn -o test
 ```
+
+## Coverage
+
+JaCoCo is wired into the parent build via `jacoco-maven-plugin`. Run the tests normally and the HTML report will be generated under `target/site/jacoco/index.html` for each module (core, examples, integration, spring-jdbc). On the next build `mvn test`, coverage data is refreshed automatically.
 
 This executes the regression suite in `src/test/java` that covers the examples above.
