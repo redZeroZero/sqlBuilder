@@ -28,7 +28,7 @@ class ColumnImplTest {
 	@Test
 	void columnDescriptorBindingUsesColumnAlias() {
 		ColumnRef<Long> id = ColumnRef.of("ID", "id", Long.class);
-		Table table = Tables.builder("Employee", null)
+		Tables.builder("Employee", null)
 				.column(id)
 				.build();
 

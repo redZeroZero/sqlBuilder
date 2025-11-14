@@ -78,7 +78,7 @@ class TableFacetsTest {
 		assertThat(row.get(EmployeeDescriptor.ID)).isEqualTo(42L);
 		assertThat(row.asMap()).hasSize(2);
 
-		@SuppressWarnings({ "rawtypes", "unchecked" })
+		@SuppressWarnings({ "rawtypes" })
 		ColumnRef rawId = (ColumnRef) EmployeeDescriptor.ID;
 		assertThatThrownBy(() -> employeeFacet.rowBuilder().set(rawId, "bad"))
 				.isInstanceOf(IllegalArgumentException.class);
