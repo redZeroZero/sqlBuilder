@@ -7,8 +7,10 @@ import org.junit.jupiter.api.Test;
 
 class TableRowTest {
 
+    @SuppressWarnings("unchecked")
     @Test
     void builderRejectsIncompatibleValues() {
+        @SuppressWarnings("rawtypes")
         ColumnRef raw = ColumnRef.of("ID", Long.class);
         assertThatThrownBy(() -> TableRow.builder().set(raw, "bad"))
                 .isInstanceOf(IllegalArgumentException.class);

@@ -37,12 +37,14 @@ public final class SqlBuilderJdbcTemplate {
         return namedParameterJdbcTemplate;
     }
 
+    @SuppressWarnings("deprecation")
     public <T> List<T> query(SqlAndParams sqlAndParams, RowMapper<T> rowMapper) {
         Objects.requireNonNull(sqlAndParams, "sqlAndParams");
         Objects.requireNonNull(rowMapper, "rowMapper");
         return jdbcTemplate.query(sqlAndParams.sql(), toArray(sqlAndParams.params()), rowMapper);
     }
 
+    @SuppressWarnings("deprecation")
     public <T> T queryForObject(SqlAndParams sqlAndParams, RowMapper<T> rowMapper) {
         Objects.requireNonNull(sqlAndParams, "sqlAndParams");
         Objects.requireNonNull(rowMapper, "rowMapper");

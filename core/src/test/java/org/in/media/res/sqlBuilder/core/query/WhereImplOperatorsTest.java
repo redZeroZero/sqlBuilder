@@ -8,8 +8,6 @@ import java.util.List;
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
-import org.in.media.res.sqlBuilder.api.query.SqlParameter;
-import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.testutil.TestSchema;
 import org.junit.jupiter.api.Test;

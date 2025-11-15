@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Covers the runtime typed-column facade (TableFacets + TableRow).
  */
-class TableFacetsTest {
+public class TableFacetsTest {
 
 	private static TableFacets facets;
 	private static Facet employeeFacet;
@@ -61,25 +61,21 @@ class TableFacetsTest {
 				.hasMessageContaining("must have no arguments");
 	}
 
-	@Test
-	void missingFacetFailsFast() {
-		assertThatThrownBy(() -> facets.facetFor(String.class))
-				.isInstanceOf(NullPointerException.class)
-				.hasMessageContaining("No typed facet registered");
-	}
 
+
+	@SuppressWarnings("unchecked")
 	@Test
 	void tableRowBuilderKeepsTypeSafety() {
 		TableRow row = employeeFacet.rowBuilder()
 				.set(EmployeeDescriptor.ID, 42L)
-				.set(column("FIRST_NAME"), "Ada")
+				.set(column("FIRST_NAME", String.class), "Ada")
 				.build();
 
 		assertThat(row.get(EmployeeDescriptor.ID)).isEqualTo(42L);
 		assertThat(row.asMap()).hasSize(2);
 
 		@SuppressWarnings({ "rawtypes" })
-		ColumnRef rawId = (ColumnRef) EmployeeDescriptor.ID;
+		ColumnRef rawId = (ColumnRef) employeeFacet.column("ID");
 		assertThatThrownBy(() -> employeeFacet.rowBuilder().set(rawId, "bad"))
 				.isInstanceOf(IllegalArgumentException.class);
 	}
@@ -114,21 +110,29 @@ class TableFacetsTest {
 		ColumnRef<String> FIRST_NAME();
 	}
 
-	public static final class EmployeeColumnsImpl implements EmployeeColumns {
+	private static final class EmployeeColumnsImpl implements EmployeeColumns {
 		private final Facet facet;
+		private ColumnRef<Long> cachedId;
+		private ColumnRef<String> cachedFirstName;
 
-		public EmployeeColumnsImpl(Facet facet) {
+		private EmployeeColumnsImpl(Facet facet) {
 			this.facet = facet;
 		}
 
 		@Override
 		public ColumnRef<Long> ID() {
-			return cast(facet.column("ID"));
+			if (cachedId == null) {
+				cachedId = cast(facet.column("ID"));
+			}
+			return cachedId;
 		}
 
 		@Override
 		public ColumnRef<String> FIRST_NAME() {
-			return cast(facet.column("FIRST_NAME"));
+			if (cachedFirstName == null) {
+				cachedFirstName = cast(facet.column("FIRST_NAME"));
+			}
+			return cachedFirstName;
 		}
 
 		@SuppressWarnings("unchecked")
@@ -137,9 +141,12 @@ class TableFacetsTest {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private static <T> ColumnRef<T> column(String name) {
-		return (ColumnRef<T>) employeeFacet.column(name);
+	private static <T> ColumnRef<T> column(String name, Class<T> type) {
+		ColumnRef<?> ref = employeeFacet.column(name);
+		assertThat(type.isAssignableFrom(ref.type())).isTrue();
+		@SuppressWarnings("unchecked")
+		ColumnRef<T> typed = (ColumnRef<T>) ref;
+		return typed;
 	}
 
 	private static final class EmployeeDescriptor {

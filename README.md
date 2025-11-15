@@ -721,3 +721,13 @@ mvn -o test
 JaCoCo is wired into the parent build via `jacoco-maven-plugin`. Run the tests normally and the HTML report will be generated under `target/site/jacoco/index.html` for each module (core, examples, integration, spring-jdbc). On the next build `mvn test`, coverage data is refreshed automatically.
 
 This executes the regression suite in `src/test/java` that covers the examples above.
+
+## Appendix: Thread Safety Contract
+
+`sqlBuilder` follows a clear separation between mutable builders and immutable artefacts (see `THREAD_SAFETY.md` for the detailed contract):
+
+- **Builders are not thread-safe.** Each `Query`, `With/CTE`, `ConditionGroup`, etc. instance must live on a single thread/request. Create them per call (or via prototype-scoped beans/factories) instead of registering them as singletons.
+- **Compiled artefacts are safe to share.** `CompiledQuery` and `SqlParameter` instances are immutable, so you can publish them as Spring beans or cache them globally without synchronization.
+- **Bindings are disposable.** Every `bind(...)` call returns a fresh `SqlAndParams` object. Use it for one JDBC execution and then drop it; parameter lists are immutable to avoid accidental mutation.
+- **Dialect scope relies on `ThreadLocal`.** Always wrap compilation in `try (var ignored = Dialects.use(...)) { ... }` (or use an explicit `compile(dialect)` overload) so that each builder resolves the right dialect, especially in reactive or async environments where threads may hop.
+- **Recommended lifecycle:** build (per request) → compile (once) → bind (per execution) → execute with JDBC. This is the pattern that keeps the DSL thread-safe while letting you reuse precompiled SQL templates.

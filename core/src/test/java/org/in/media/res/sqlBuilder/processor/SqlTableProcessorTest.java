@@ -96,10 +96,6 @@ class SqlTableProcessorTest {
 		return builder.toString();
 	}
 
-	private static String buildClasspath() {
-		return System.getProperty("java.class.path");
-	}
-
 	private static final class InMemorySource extends SimpleJavaFileObject {
 		private final String source;
 

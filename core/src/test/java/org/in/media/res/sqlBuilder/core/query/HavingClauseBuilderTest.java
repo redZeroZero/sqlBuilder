@@ -2,7 +2,6 @@ package org.in.media.res.sqlBuilder.core.query;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Date;
 import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;

@@ -16,7 +16,6 @@ import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.constants.Operator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder;
 
 class ClauseConditionBufferTest {
 
