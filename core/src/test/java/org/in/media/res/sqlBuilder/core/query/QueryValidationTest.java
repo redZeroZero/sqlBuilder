@@ -30,14 +30,14 @@ class QueryValidationTest {
 
     @Test
     void requireScalarSubqueryAllowsSingleProjection() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
         sub.select(employee.get("ID")).from(employee);
         QueryValidation.requireScalarSubquery(sub, "scalar");
     }
 
     @Test
     void requireScalarSubqueryThrowsWhenMultipleColumns() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
         sub.select(employee.get("ID"))
                 .select(employee.get("FIRST_NAME"))
                 .from(employee);
@@ -49,7 +49,7 @@ class QueryValidationTest {
 
     @Test
     void requireAnyProjectionThrowsWhenNoColumns() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> QueryValidation.requireAnyProjection(sub, "any"));

@@ -29,6 +29,11 @@ public final class CompiledQuery {
 
     public SqlAndParams bind(Object... values) {
         Objects.requireNonNull(values, "values");
+        List<SqlParameter<?>> duplicateNames = findDuplicateParameters();
+        if (!duplicateNames.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Varargs binding disallowed when parameters repeat: " + duplicateNames.get(0).name());
+        }
         List<Object> params = new ArrayList<>(placeholders.size());
         int index = 0;
         for (Placeholder placeholder : placeholders) {
@@ -52,6 +57,7 @@ public final class CompiledQuery {
 
     public SqlAndParams bind(Map<String, ?> values) {
         Objects.requireNonNull(values, "values");
+        validateUnknownKeys(values);
         List<Object> params = new ArrayList<>(placeholders.size());
         for (Placeholder placeholder : placeholders) {
             if (placeholder.parameter() == null) {
@@ -71,6 +77,38 @@ public final class CompiledQuery {
 
     private static void validateBindingValue(SqlParameter<?> parameter, Object value) {
         // Null values are permitted so optional predicates can be toggled at bind-time.
+    }
+
+    private void validateUnknownKeys(Map<String, ?> values) {
+        for (String key : values.keySet()) {
+            boolean known = placeholders.stream()
+                    .filter(ph -> ph.parameter() != null)
+                    .anyMatch(ph -> ph.parameter().name().equals(key));
+            if (!known) {
+                throw new IllegalArgumentException("Unknown parameter '" + key + "'");
+            }
+        }
+    }
+
+    private List<SqlParameter<?>> findDuplicateParameters() {
+        List<SqlParameter<?>> duplicates = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        java.util.Set<String> repeated = new java.util.HashSet<>();
+        for (Placeholder placeholder : placeholders) {
+            if (placeholder.parameter() == null) {
+                continue;
+            }
+            String name = placeholder.parameter().name();
+            if (!seen.add(name)) {
+                repeated.add(name);
+            }
+        }
+        for (Placeholder placeholder : placeholders) {
+            if (placeholder.parameter() != null && repeated.contains(placeholder.parameter().name())) {
+                duplicates.add(placeholder.parameter());
+            }
+        }
+        return duplicates;
     }
 
     public static record Placeholder(SqlParameter<?> parameter, Object fixedValue) {

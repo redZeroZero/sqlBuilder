@@ -17,7 +17,7 @@ class HavingClauseBuilderTest {
 
 	@Test
 	void fluentHavingBuilderSupportsAggregatesAndSubqueries() {
-		Query subquery = SqlQuery.newQuery().asQuery();
+		Query subquery = SqlQuery.query();
 		subquery.select(TestSchema.EMP_SALARY.column())
 				.from(TestSchema.EMPLOYEES)
 				.groupBy(TestSchema.EMP_DEPT_ID.column())
@@ -26,7 +26,7 @@ class HavingClauseBuilderTest {
 		SqlParameter<Double> lowerBound = SqlParameters.param("lowerBound", Double.class);
 		SqlParameter<Double> upperBound = SqlParameters.param("upperBound", Double.class);
 
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		QueryHavingBuilder havingBuilder = query.select(TestSchema.EMP_DEPT_ID.column())
 				.from(TestSchema.EMPLOYEES)
 				.groupBy(TestSchema.EMP_DEPT_ID.column())

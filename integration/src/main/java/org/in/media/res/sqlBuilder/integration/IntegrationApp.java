@@ -40,7 +40,7 @@ public final class IntegrationApp {
         Table employees = IntegrationTables.EMPLOYEES;
         Table departments = IntegrationTables.DEPARTMENTS;
 
-        Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
         query.select(employees.get("first_name"))
                 .select(employees.get("last_name"))
                 .select(departments.get("name"))
@@ -57,7 +57,7 @@ public final class IntegrationApp {
         Table customers = IntegrationTables.CUSTOMERS;
         Table orders = IntegrationTables.ORDERS;
 
-        Query query = SqlQuery.newQuery().asQuery();
+        Query query = SqlQuery.query();
         query.select(customers.get("first_name"))
                 .select(customers.get("last_name"))
                 .select(AggregateOperator.SUM, orders.get("total"))

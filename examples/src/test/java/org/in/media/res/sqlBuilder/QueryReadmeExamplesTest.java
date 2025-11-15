@@ -76,7 +76,7 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void aggregationExampleProducesGroupedAverage() {
-		Query aggregate = SqlQuery.newQuery().asQuery();
+		Query aggregate = SqlQuery.query();
 		aggregate.select(Employee.C_FIRST_NAME)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)
@@ -113,7 +113,7 @@ class QueryReadmeExamplesTest {
 	void quickCountAndPrettyPrintExampleMatchesReadme() {
 		assertEquals("SELECT COUNT(*)", SqlQuery.countAll().transpile());
 
-		Query printable = SqlQuery.newQuery().asQuery();
+		Query printable = SqlQuery.query();
 		printable.select(Employee.C_FIRST_NAME);
 		printable.from(employee);
 		printable.where(Employee.C_FIRST_NAME).eq("Alice");

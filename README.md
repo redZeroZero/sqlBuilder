@@ -72,14 +72,21 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 - `core/` — the distributable DSL, factories, validators, and annotation processor (compiles with `-proc:none` but packages the processor for downstream use).
 - `examples/` — the sample schema, `MainApp`, benchmarks, and integration-style tests. This module depends on `sqlBuilder-core`, runs the annotation processor to generate column facades, and mirrors the usage documented below. Run `mvn -pl examples -q test` when you only want to exercise the sample project.
 
-Once the dependency is available, you can start composing queries immediately:
+Once the dependency is available, you can start composing queries immediately. The DSL offers two entry points:
+
+- `SqlQuery.newQuery()` returns the staged builder (`SelectStage` → `FromStage`), which is useful when you want compile-time guidance about which clauses are available at each step.
+- `SqlQuery.query()` returns the fully widened `Query` interface right away. This is handy when you prefer a terser syntax or you already know you’ll access most clauses (it simply calls `newQuery().asQuery()` under the hood).
+
+Both entry points are equivalent once you reach the `Query` surface; choose whichever style matches your team’s preferences.
+
+### Example: building a query with either entry point
 
 ```java
 EmployeeSchema schema = new EmployeeSchema();
 Table employee = schema.getTableBy(Employee.class);
 Table job = schema.getTableBy(Job.class);
 
-SqlAndParams sp = SqlQuery.newQuery()
+SqlAndParams sp = SqlQuery.query()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
     .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -154,6 +161,8 @@ CompiledQuery salaryFilter = SqlQuery.newQuery()
 SqlAndParams firstRun = salaryFilter.bind(Map.of("minSalary", 80_000));
 SqlAndParams secondRun = salaryFilter.bind(90_000); // positional binding
 ```
+> Map-based binding now rejects unknown parameter names, and positional (`bind(...)`) bindings are only allowed when each placeholder name appears once. Prefer `bind(Map)` when parameters repeat.
+
 
 ### 1. Simple Projection
 

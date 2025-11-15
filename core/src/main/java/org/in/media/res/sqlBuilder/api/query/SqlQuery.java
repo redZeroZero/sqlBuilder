@@ -34,6 +34,18 @@ public final class SqlQuery {
 		return (SelectStage) QueryImpl.newQuery(schema.getDialect());
 	}
 
+	public static Query query() {
+		return (Query) QueryImpl.newQuery();
+	}
+
+	public static Query query(Dialect dialect) {
+		return (Query) QueryImpl.newQuery(dialect);
+	}
+
+	public static Query query(org.in.media.res.sqlBuilder.api.model.Schema schema) {
+		return (Query) QueryImpl.newQuery(schema.getDialect());
+	}
+
 	public static FromStage fromTable(Table table) {
 		return (FromStage) QueryImpl.fromTable(Objects.requireNonNull(table, "table"));
 	}

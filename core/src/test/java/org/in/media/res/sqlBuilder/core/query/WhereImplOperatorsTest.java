@@ -20,7 +20,7 @@ class WhereImplOperatorsTest {
 		Date hiredTo = new Date(1_000_000);
 		Date hiredOn = new Date(2_000_000);
 
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(TestSchema.EMP_ID.column()).from(TestSchema.EMPLOYEES)
 				.where(TestSchema.EMP_NAME.column()).eq("Alice")
 				.and(TestSchema.EMP_NAME.column()).notEq("Bob")
@@ -56,12 +56,12 @@ class WhereImplOperatorsTest {
 
 	@Test
 	void subqueriesAndConnectorsAreSupported() {
-		Query salarySubquery = SqlQuery.newQuery().asQuery();
+		Query salarySubquery = SqlQuery.query();
 		salarySubquery.select(TestSchema.EMP_ID.column())
 				.from(TestSchema.EMPLOYEES)
 				.where(TestSchema.EMP_SALARY.column()).supTo(500.0);
 
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(TestSchema.EMP_ID.column()).from(TestSchema.EMPLOYEES)
 				.where(TestSchema.EMP_ID.column()).col(TestSchema.EMP_DEPT_ID.column()).eq(99)
 				.and(TestSchema.EMP_ID.column()).supTo(TestSchema.EMP_DEPT_ID.column())

@@ -26,7 +26,7 @@ public final class QueryBenchmark {
 		var employee = schema.getTableBy(Employee.class);
 		var job = schema.getTableBy(Job.class);
 
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)

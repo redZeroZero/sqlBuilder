@@ -35,7 +35,7 @@ class ConditionGroupBuilderTest {
 
 	@Test
 	void aggregatesAndMultipleValueTypesAreRendered() {
-		var subquery = org.in.media.res.sqlBuilder.api.query.SqlQuery.newQuery().asQuery();
+		var subquery = org.in.media.res.sqlBuilder.api.query.SqlQuery.query();
 		subquery.select(employee.get("FIRST_NAME")).from(employee);
 
 		var group = QueryHelper.group()

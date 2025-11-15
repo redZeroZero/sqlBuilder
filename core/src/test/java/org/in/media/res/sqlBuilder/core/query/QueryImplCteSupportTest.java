@@ -18,13 +18,13 @@ class QueryImplCteSupportTest {
 
     @Test
     void withClauseRendersBeforeMainQuery() {
-        Query cteQuery = SqlQuery.newQuery().asQuery();
+        Query cteQuery = SqlQuery.query();
         cteQuery.select(employee.get("ID")).from(employee);
 
         WithBuilder with = SqlQuery.with();
         var cte = with.cte("ids", cteQuery, "ID");
 
-        Query main = SqlQuery.newQuery().asQuery();
+        Query main = SqlQuery.query();
         main.select(cte.column("ID")).from(cte);
 
         String sql = with.main(main).asQuery().transpile();

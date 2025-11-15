@@ -18,7 +18,7 @@ class StageInterfaceDefaultsTest {
 		selectStage.select(AggregateOperator.COUNT, TestSchema.EMP_ID);
 		FromStage fromStage = selectStage.from(TestSchema.EMPLOYEES);
 
-		Query subquery = SqlQuery.newQuery().asQuery();
+		Query subquery = SqlQuery.query();
 		subquery.select(TestSchema.EMP_ID.column()).from(TestSchema.EMPLOYEES);
 
 		fromStage.from(subquery, "derived_from", "EMP_ID");
@@ -35,7 +35,7 @@ class StageInterfaceDefaultsTest {
 
 	@Test
 	void predicateAndQueryColumnRefWrappersApplyConsistentPredicates() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(TestSchema.EMP_ID.column()).from(TestSchema.EMPLOYEES);
 		query.where(TestSchema.EMP_NAME).eq("Alice");
 		query.whereOptionalEquals(TestSchema.EMP_NAME, SqlParameters.param("optName", String.class));

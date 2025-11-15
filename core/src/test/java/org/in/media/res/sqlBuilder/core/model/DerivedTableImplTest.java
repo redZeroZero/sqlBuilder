@@ -19,7 +19,7 @@ class DerivedTableImplTest {
 			.build();
 
 	private Query baseQuery() {
-		return SqlQuery.newQuery().asQuery()
+		return SqlQuery.query()
 				.select(employee.get("ID"))
 				.select(employee.get("SALARY"))
 				.from(employee);

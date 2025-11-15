@@ -18,7 +18,7 @@ class QueryRenderingIntegrationTest {
 	@Test
 	void compileCollectsPlaceholdersAcrossClausesAndSetOperations() {
 		SqlParameter<Integer> cteParam = SqlParameters.param("cteFilter", Integer.class);
-		Query cteQuery = SqlQuery.newQuery().asQuery();
+		Query cteQuery = SqlQuery.query();
 		cteQuery.select(TestSchema.EMP_ID.column())
 				.from(TestSchema.EMPLOYEES)
 				.where(TestSchema.EMP_ID.column()).eq(cteParam);
@@ -34,7 +34,7 @@ class QueryRenderingIntegrationTest {
 		SqlParameter<Integer> orderParam = SqlParameters.param("orderFilter", Integer.class);
 		SqlParameter<Integer> unionParam = SqlParameters.param("unionFilter", Integer.class);
 
-		Query main = with.main(SqlQuery.newQuery().asQuery());
+		Query main = with.main(SqlQuery.query());
 		main.selectRaw("? AS tag", selectParam);
 		main.select(cte.column("EMP_ID"));
 		main.from(cte);
@@ -45,7 +45,7 @@ class QueryRenderingIntegrationTest {
 		main.whereRaw("EXISTS (SELECT 1 FROM dual WHERE value = ?)", whereParam);
 		main.limitAndOffset(3, 5);
 
-		Query union = SqlQuery.newQuery().asQuery();
+		Query union = SqlQuery.query();
 		union.select(TestSchema.EMP_ID.column())
 				.from(TestSchema.EMPLOYEES)
 				.where(TestSchema.EMP_ID.column()).eq(unionParam);

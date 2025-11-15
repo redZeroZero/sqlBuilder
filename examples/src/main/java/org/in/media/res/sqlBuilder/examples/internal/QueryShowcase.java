@@ -41,7 +41,7 @@ public final class QueryShowcase {
     }
 
     private static void demoQueryDsl(Table employee, Table job) {
-        Query query = SqlQuery.newQuery().asQuery();
+        Query query = SqlQuery.query();
         query.select(employee)
                 .from(employee)
                 .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -55,7 +55,7 @@ public final class QueryShowcase {
     }
 
     private static void demoDerivedTables(Table employee, Table job) {
-        Query salarySummary = SqlQuery.newQuery().asQuery();
+        Query salarySummary = SqlQuery.query();
         salarySummary.select(Employee.C_ID)
                 .select(AVG, Job.C_SALARY)
                 .from(employee)
@@ -64,7 +64,7 @@ public final class QueryShowcase {
 
         Table salaryAvg = SqlQuery.toTable(salarySummary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
 
-        Query derived = SqlQuery.newQuery().asQuery();
+        Query derived = SqlQuery.query();
         derived.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
@@ -74,25 +74,25 @@ public final class QueryShowcase {
     }
 
     private static void demoSubqueryPredicates(Table employee, Table job) {
-        Query highSalaryIds = SqlQuery.newQuery().asQuery();
+        Query highSalaryIds = SqlQuery.query();
         highSalaryIds.select(Job.C_EMPLOYEE_ID)
                 .from(job)
                 .where(Job.C_SALARY).supOrEqTo(60000);
 
-        Query inSubquery = SqlQuery.newQuery().asQuery();
+        Query inSubquery = SqlQuery.query();
         inSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .where(Employee.C_ID).in(highSalaryIds);
         System.out.println("IN SUBQUERY -> " + inSubquery.transpile());
 
-        Query existsSubquery = SqlQuery.newQuery().asQuery();
+        Query existsSubquery = SqlQuery.query();
         existsSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .exists(SqlQuery.newQuery().select(Job.C_ID).from(job).asQuery());
         System.out.println("EXISTS SUBQUERY -> " + existsSubquery.transpile());
 
         // Condition demonstration using the fluent DSL
-        Query whereDemo = SqlQuery.newQuery().asQuery();
+        Query whereDemo = SqlQuery.query();
         whereDemo.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID);

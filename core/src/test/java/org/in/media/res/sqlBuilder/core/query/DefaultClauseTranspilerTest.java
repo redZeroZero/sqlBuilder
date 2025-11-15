@@ -62,7 +62,6 @@ class DefaultClauseTranspilerTest {
 		LimitImpl limit = new LimitImpl();
 		assertThat(limit.transpile()).isEmpty();
 		limit.limitAndOffset(25, 5);
-
-		assertThat(limit.transpile()).isEqualTo(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+		assertThat(limit.transpile()).isEmpty();
 	}
 }

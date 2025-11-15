@@ -18,10 +18,10 @@ class SubqueryPredicateTest {
 
     @Test
     void inSubqueryRendersScalarComparison() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
         sub.select(employee.get("ID")).from(employee).where(employee.get("SALARY")).supOrEqTo(100);
 
-        Query query = SqlQuery.newQuery().asQuery();
+        Query query = SqlQuery.query();
         query.select(employee.get("ID")).from(employee).where(employee.get("ID")).in(sub);
 
         String sql = query.transpile();
@@ -31,10 +31,10 @@ class SubqueryPredicateTest {
 
     @Test
     void greaterThanSubqueryRequiresScalarProjection() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
         sub.select(employee.get("SALARY")).from(employee);
 
-        Query query = SqlQuery.newQuery().asQuery();
+        Query query = SqlQuery.query();
         query.select(employee.get("ID")).from(employee).where(employee.get("SALARY")).supTo(sub);
 
         String sql = query.transpile();
@@ -43,13 +43,13 @@ class SubqueryPredicateTest {
 
     @Test
     void invalidSubqueryThrows() {
-        Query invalid = SqlQuery.newQuery().asQuery();
+        Query invalid = SqlQuery.query();
         invalid.select(employee.get("ID"))
                 .select(employee.get("SALARY"))
                 .from(employee);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            Query query = SqlQuery.newQuery().asQuery();
+            Query query = SqlQuery.query();
             query.select(employee.get("ID")).from(employee).where(employee.get("ID")).in(invalid);
         });
 }

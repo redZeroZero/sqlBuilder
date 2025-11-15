@@ -22,10 +22,10 @@ class QueryImplSetOperationsTest {
 
     @Test
     void unionRendersJoinOfTwoQueries() {
-        Query left = SqlQuery.newQuery().asQuery();
+        Query left = SqlQuery.query();
         left.select(employee.get("ID")).from(employee);
 
-		Query right = SqlQuery.newQuery().asQuery();
+		Query right = SqlQuery.query();
 		right.select(manager.get("ID")).from(manager);
 
         String sql = left.union(right).transpile();
@@ -37,12 +37,12 @@ class QueryImplSetOperationsTest {
 
     @Test
     void unionAllChainsMultipleQueries() {
-        Query base = SqlQuery.newQuery().asQuery();
+        Query base = SqlQuery.query();
         base.select(employee.get("ID")).from(employee);
 
-		Query q2 = SqlQuery.newQuery().asQuery();
+		Query q2 = SqlQuery.query();
 		q2.select(manager.get("ID")).from(manager);
-		Query q3 = SqlQuery.newQuery().asQuery();
+		Query q3 = SqlQuery.query();
 		q3.select(manager.get("ID")).from(manager);
 
 		String sql = base.unionAll(q2).unionAll(q3).transpile();
@@ -53,12 +53,12 @@ class QueryImplSetOperationsTest {
 
     @Test
     void intersectAndExceptAreSupported() {
-        Query q = SqlQuery.newQuery().asQuery();
+        Query q = SqlQuery.query();
         q.select(employee.get("ID")).from(employee);
 
-		Query intersect = SqlQuery.newQuery().asQuery();
+		Query intersect = SqlQuery.query();
 		intersect.select(manager.get("ID")).from(manager);
-		Query except = SqlQuery.newQuery().asQuery();
+		Query except = SqlQuery.query();
 		except.select(manager.get("ID")).from(manager);
 
 		String sql = q.intersect(intersect).except(except).transpile();

@@ -93,7 +93,7 @@ class QueryBehaviourTest {
 		assertEquals(Long.class, id.type());
 		assertEquals(customer.getName(), id.column().table().getName());
 
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(columns.ID(), columns.FIRST_NAME())
 				.from(customer)
 				.where(columns.LAST_NAME()).like("%son")
@@ -122,7 +122,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void hintsAppearAfterSelectKeyword() {
-		Query hinted = SqlQuery.newQuery().asQuery();
+		Query hinted = SqlQuery.query();
 		hinted.hint("/*+ INDEX(E EMP_ID_IDX) */")
 				.select(Employee.C_FIRST_NAME)
 				.from(employee);
@@ -150,7 +150,7 @@ class QueryBehaviourTest {
 
 		assertEquals(customer, helper.table());
 
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(helper.columns().ID())
 				.from(helper.table())
 				.like(helper.columns().LAST_NAME(), "%son")
@@ -162,7 +162,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromVarargsIncludesAllTables() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.from(employee, job);
 
 		String sql = query.transpile();
@@ -173,7 +173,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orConnectorReturnsSameQueryInstance() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 
 		assertSame(query, query.where(Employee.C_FIRST_NAME).eq("Alice").or(Employee.C_LAST_NAME));
 		assertSame(query, query.or());
@@ -181,7 +181,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereTranspilerSkipsEmptyClauses() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME);
 		String sql = query.transpile();
 		assertFalse(sql.contains(" WHERE "));
@@ -190,7 +190,7 @@ class QueryBehaviourTest {
 	@Test
 	void compiledQueriesBindNamedParameters() {
 		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
@@ -205,7 +205,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectResetClearsState() {
-		Query select = SqlQuery.newQuery().asQuery();
+		Query select = SqlQuery.query();
 		select.select(Employee.C_FIRST_NAME);
 		select.select(AggregateOperator.MAX, Employee.C_FIRST_NAME);
 
@@ -220,7 +220,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectSupportsDescriptorShortcut() {
-		Query select = SqlQuery.newQuery().asQuery();
+		Query select = SqlQuery.query();
 		select.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME);
 
 		String sql = select.transpile();
@@ -231,7 +231,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectRegistersBaseTableAutomatically() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		String sql = query.select(employee).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -240,7 +240,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void querySelectColumnRegistersBaseTableAutomatically() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		String sql = query.select(Employee.C_FIRST_NAME).transpile();
 
 		assertTrue(sql.contains(" FROM "));
@@ -249,7 +249,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void joinSupportsDescriptorShortcut() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).transpile();
 
 		assertTrue(sql.contains(" JOIN "));
@@ -259,7 +259,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void crossJoinProducesCrossJoinKeyword() {
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(employee)
 				.crossJoin(job)
 				.transpile();
@@ -270,7 +270,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fullOuterJoinRendersKeywordAndRequiresOnClause() {
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(employee)
 				.fullOuterJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
 				.transpile();
@@ -281,7 +281,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void fromSubqueryCreatesDerivedTableWithAlias() {
-		Query salarySummary = SqlQuery.newQuery().asQuery()
+		Query salarySummary = SqlQuery.query()
 				.select(Employee.C_ID)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)
@@ -290,7 +290,7 @@ class QueryBehaviourTest {
 
 		var salaryView = SqlQuery.toTable(salarySummary);
 
-		Query outer = SqlQuery.newQuery().asQuery()
+		Query outer = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.join(salaryView).on(Employee.C_ID, salaryView.get("ID"))
@@ -307,12 +307,12 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereInSubqueryTranslatesToInClause() {
-		Query highSalaryIds = SqlQuery.newQuery().asQuery()
+		Query highSalaryIds = SqlQuery.query()
 				.select(Job.C_EMPLOYEE_ID)
 				.from(job)
 				.where(Job.C_SALARY).supOrEqTo(60000);
 
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.where(Employee.C_ID).in(highSalaryIds)
@@ -324,11 +324,11 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereScalarSubqueryComparison() {
-		Query averageSalary = SqlQuery.newQuery().asQuery()
+		Query averageSalary = SqlQuery.query()
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(job);
 
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.where(Employee.C_ID).eq(averageSalary)
@@ -339,11 +339,11 @@ class QueryBehaviourTest {
 
 	@Test
 	void whereExistsSubqueryAppendsExistsClause() {
-		Query anyJob = SqlQuery.newQuery().asQuery()
+		Query anyJob = SqlQuery.query()
 				.select(Job.C_ID)
 				.from(job);
 
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.exists(anyJob)
@@ -354,13 +354,13 @@ class QueryBehaviourTest {
 
 	@Test
 	void scalarSubqueryRequiresSingleColumn() {
-		Query invalid = SqlQuery.newQuery().asQuery()
+		Query invalid = SqlQuery.query()
 				.select(Employee.C_ID)
 				.select(Employee.C_FIRST_NAME)
 				.from(employee);
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SqlQuery.newQuery().asQuery().select(Employee.C_FIRST_NAME)
+				() -> SqlQuery.query().select(Employee.C_FIRST_NAME)
 						.from(employee)
 						.where(Employee.C_ID).eq(invalid));
 		assertTrue(ex.getMessage().contains("expected 1 column"));
@@ -369,21 +369,21 @@ class QueryBehaviourTest {
 	@Test
 	void existsSubqueryMustProjectColumns() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SqlQuery.newQuery().asQuery().select(Employee.C_FIRST_NAME)
+				() -> SqlQuery.query().select(Employee.C_FIRST_NAME)
 						.from(employee)
-						.exists(SqlQuery.newQuery().asQuery()));
+						.exists(SqlQuery.query()));
 		assertTrue(ex.getMessage().contains("subquery selects no columns"));
 	}
 
 	@Test
 	void whereOperatorsRequireExistingCondition() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		assertThrows(IllegalStateException.class, () -> query.eq("value"));
 	}
 
 	@Test
 	void whereSupportsDescriptorShortcut() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.where(Employee.C_FIRST_NAME).eq("Alice");
 
 		String sql = query.transpile();
@@ -399,7 +399,7 @@ class QueryBehaviourTest {
 					.where(Employee.C_LAST_NAME).eq("Smith")
 				.endGroup();
 
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(employee)
 				.from(employee)
 				.where(nameGroup);
@@ -417,7 +417,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void likeOperatorFormatsStringLiteral() {
-		SqlAndParams rendered = SqlQuery.newQuery().asQuery()
+		SqlAndParams rendered = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.where(Employee.C_FIRST_NAME).like("%ice%")
 				.render();
@@ -438,7 +438,7 @@ class QueryBehaviourTest {
 					.where(Job.C_SALARY).between(80_000, 90_000)
 				.endGroup();
 
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(employee)
 				.from(employee)
 				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID);
@@ -464,7 +464,7 @@ class QueryBehaviourTest {
 		var fallbackAverage = QueryHelper.group()
 				.where(Job.C_SALARY).avg(Job.C_SALARY).supOrEqTo(55_000);
 
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(Employee.C_ID)
 				.select(AggregateOperator.AVG, Job.C_SALARY)
 				.from(employee)
@@ -485,7 +485,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void customerPaymentAggregations() {
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(customerColumns.ID())
 				.select(customerColumns.FIRST_NAME())
 				.select(AggregateOperator.SUM, paymentColumns.AMOUNT())
@@ -505,7 +505,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orderLineJoinProductProducesJoinClause() {
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(productColumns.NAME())
 				.select(orderLineColumns.QUANTITY())
 				.from(orderLine)
@@ -520,7 +520,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void customersWithAverageOrderValueAboveThreshold() {
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(customerColumns.ID())
 				.select(customerColumns.FIRST_NAME())
 				.from(customer)
@@ -536,7 +536,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void betweenOperatorProducesRangeClause() {
-		SqlAndParams rendered = SqlQuery.newQuery().asQuery()
+		SqlAndParams rendered = SqlQuery.query()
 				.select(Employee.C_ID)
 				.where(Employee.C_ID).between(1, 10)
 				.render();
@@ -547,7 +547,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void isNullOperatorOmitsParentheses() {
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.select(Employee.C_LAST_NAME)
 				.where(Employee.C_LAST_NAME).isNull()
 				.transpile();
@@ -558,7 +558,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void notInOperatorRendersNotInClause() {
-		SqlAndParams rendered = SqlQuery.newQuery().asQuery()
+		SqlAndParams rendered = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.where(Employee.C_FIRST_NAME).notIn("Alice", "Bob")
 				.render();
@@ -570,7 +570,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void groupByClauseAppearsAfterWhere() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME);
 
 		String sql = query.transpile();
@@ -581,7 +581,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void orderBySupportsAscendingAndDescending() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_LAST_NAME)
 				.orderBy(Employee.C_ID, SortDirection.DESC);
 
@@ -594,7 +594,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingClauseFollowsGroupBy() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME)
 				.having(Employee.C_FIRST_NAME).eq("Alice");
 
@@ -608,7 +608,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingBuilderSupportsAggregates() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Job.C_EMPLOYEE_ID).select(AggregateOperator.AVG, Job.C_SALARY)
 				.groupBy(Job.C_EMPLOYEE_ID)
 				.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(50000);
@@ -624,7 +624,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void havingBetweenSupportsNumericRange() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Job.C_EMPLOYEE_ID)
 				.select(AggregateOperator.SUM, Job.C_SALARY)
 				.from(employee)
@@ -642,7 +642,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void limitAndOffsetRenderWithOracleSyntax() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_FIRST_NAME)
 				.limitAndOffset(10, 5);
 
@@ -656,7 +656,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void selectTranspilerKeepsAggregateFormatting() {
-		String sql = SqlQuery.newQuery().asQuery().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
+		String sql = SqlQuery.query().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
 				.select(Employee.C_LAST_NAME).transpile();
 
 		assertTrue(sql.startsWith("SELECT MAX("));
@@ -672,7 +672,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void distinctSelectsRenderDistinctKeyword() {
-		String sql = SqlQuery.newQuery().asQuery()
+		String sql = SqlQuery.query()
 				.distinct()
 				.select(Employee.C_FIRST_NAME)
 				.transpile();
@@ -683,7 +683,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void countColumnRegistersTable() {
-		Query query = SqlQuery.newQuery().asQuery().count(Employee.C_ID);
+		Query query = SqlQuery.query().count(Employee.C_ID);
 		String sql = query.transpile();
 		assertTrue(sql.contains("COUNT(" + Employee.C_ID.column().transpile(false) + ")"));
 		assertTrue(sql.contains(" FROM "));
@@ -691,7 +691,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void prettyPrintBreaksClausesAcrossLines() {
-		Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME);
 		query.from(employee);
 		query.where(Employee.C_FIRST_NAME);
@@ -706,8 +706,8 @@ class QueryBehaviourTest {
 
 	@Test
 	void unionCombinesQueries() {
-		Query left = SqlQuery.newQuery().asQuery().select(employee);
-		Query right = SqlQuery.newQuery().asQuery().select(job);
+		Query left = SqlQuery.query().select(employee);
+		Query right = SqlQuery.query().select(job);
 
 		String sql = left.union(right).transpile();
 
@@ -726,8 +726,8 @@ class QueryBehaviourTest {
 
 	@Test
 	void unionAllKeepsDuplicates() {
-		Query base = SqlQuery.newQuery().asQuery().select(Employee.C_FIRST_NAME);
-		Query other = SqlQuery.newQuery().asQuery().select(Employee.C_FIRST_NAME);
+		Query base = SqlQuery.query().select(Employee.C_FIRST_NAME);
+		Query other = SqlQuery.query().select(Employee.C_FIRST_NAME);
 
 		String sql = base.unionAll(other).transpile();
 
@@ -736,8 +736,8 @@ class QueryBehaviourTest {
 
 	@Test
 	void intersectProducesIntersection() {
-		Query left = SqlQuery.newQuery().asQuery().select(Employee.C_ID);
-		Query right = SqlQuery.newQuery().asQuery().select(Job.C_EMPLOYEE_ID);
+		Query left = SqlQuery.query().select(Employee.C_ID);
+		Query right = SqlQuery.query().select(Job.C_EMPLOYEE_ID);
 
 		String sql = left.intersect(right).transpile();
 		assertTrue(sql.contains("INTERSECT"));
@@ -745,8 +745,8 @@ class QueryBehaviourTest {
 
 	@Test
 	void exceptUsesMinusForOracle() {
-		Query left = SqlQuery.newQuery().asQuery().select(employee);
-		Query right = SqlQuery.newQuery().asQuery().select(job);
+		Query left = SqlQuery.query().select(employee);
+		Query right = SqlQuery.query().select(job);
 
 		String sql = left.except(right).transpile();
 		assertTrue(sql.contains("MINUS"));
@@ -754,8 +754,8 @@ class QueryBehaviourTest {
 
 	@Test
 	void exceptAllThrowsUnsupported() {
-		Query left = SqlQuery.newQuery().asQuery().select(employee);
-		Query right = SqlQuery.newQuery().asQuery().select(job);
+		Query left = SqlQuery.query().select(employee);
+		Query right = SqlQuery.query().select(job);
 
 		assertThrows(UnsupportedOperationException.class, () -> left.exceptAll(right).transpile());
 	}
@@ -805,7 +805,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void inlineFormatterProducesLiteralSql() {
-		SqlAndParams sp = SqlQuery.newQuery().asQuery()
+		SqlAndParams sp = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.where(Employee.C_FIRST_NAME).eq("Alice")
 				.render();

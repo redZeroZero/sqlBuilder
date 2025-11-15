@@ -4,8 +4,6 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
-import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
-import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 
 /**
  * Fluent DSL for building {@code INSERT} statements.

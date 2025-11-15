@@ -21,7 +21,7 @@ class SelectionAliasResolverTest {
 
 	@Test
 	void derivesAliasesFromAggregatesAndColumnAliases() {
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(AggregateOperator.AVG, employee.get("SALARY"))
 				.select(employee.get("SALARY"))
 				.select(employee.get("ID"))
@@ -34,7 +34,7 @@ class SelectionAliasResolverTest {
 
 	@Test
 	void rejectsMismatchedAliasCounts() {
-		Query query = SqlQuery.newQuery().asQuery()
+		Query query = SqlQuery.query()
 				.select(employee.get("ID"))
 				.select(employee.get("SALARY"))
 				.from(employee);
@@ -46,7 +46,7 @@ class SelectionAliasResolverTest {
 
 	@Test
 	void requiresAtLeastOneProjectedColumn() {
-		Query empty = SqlQuery.newQuery().asQuery();
+		Query empty = SqlQuery.query();
 
 		assertThatThrownBy(() -> SelectionAliasResolver.resolve(empty))
 				.isInstanceOf(IllegalArgumentException.class)

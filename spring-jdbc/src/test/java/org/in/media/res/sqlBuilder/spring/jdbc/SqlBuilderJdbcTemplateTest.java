@@ -50,7 +50,7 @@ class SqlBuilderJdbcTemplateTest {
 
     @Test
     void queryReturnsRows() {
-        Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
         query.select(employees.get("FIRST_NAME"))
                 .select(employees.get("LAST_NAME"))
                 .from(employees)
@@ -64,7 +64,7 @@ class SqlBuilderJdbcTemplateTest {
 
     @Test
     void queryForObjectReturnsSingleRow() {
-        Query query = SqlQuery.newQuery().asQuery();
+		Query query = SqlQuery.query();
         query.select(employees.get("SALARY"))
                 .from(employees)
                 .where(employees.get("ID")).eq(2);

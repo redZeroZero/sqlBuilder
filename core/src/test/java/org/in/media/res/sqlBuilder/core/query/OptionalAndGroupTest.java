@@ -35,7 +35,7 @@ class OptionalAndGroupTest {
                 .where(employee.get("ID")).supOrEqTo(1)
                 .or(employee.get("ID")).eq(2);
 
-        Query query = SqlQuery.newQuery().asQuery()
+        Query query = SqlQuery.query()
                 .select(employee)
                 .from(employee)
                 .where(nameGroup)
@@ -55,7 +55,7 @@ class OptionalAndGroupTest {
     void optionalEqualsBindsParameterTwice() {
         SqlParameter<String> nameParam = SqlParameters.param("name");
 
-        Query query = SqlQuery.newQuery().asQuery();
+        Query query = SqlQuery.query();
         query.select(employee.get("ID"))
                 .from(employee)
                 .whereOptionalEquals(employee.get("FIRST_NAME"), nameParam);
@@ -70,10 +70,10 @@ class OptionalAndGroupTest {
 
     @Test
     void existsAppendsSubqueryPredicate() {
-        Query sub = SqlQuery.newQuery().asQuery();
+        Query sub = SqlQuery.query();
         sub.select(employee.get("ID")).from(employee).where(employee.get("ID")).eq(1);
 
-        Query main = SqlQuery.newQuery().asQuery();
+        Query main = SqlQuery.query();
         main.select(employee.get("FIRST_NAME"))
                 .from(employee)
                 .exists(sub);

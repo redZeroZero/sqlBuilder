@@ -22,7 +22,7 @@ class ManualTableBuilderTest {
 				.column("LAST_NAME")
 				.build();
 
-		SqlAndParams sp = SqlQuery.newQuery().asQuery()
+		SqlAndParams sp = SqlQuery.query()
 				.select(firstName)
 				.from(employees)
 				.where(id).eq(42)
