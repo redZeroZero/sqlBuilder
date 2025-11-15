@@ -8,6 +8,7 @@ import org.in.media.res.sqlBuilder.api.query.spi.Limit;
 import org.in.media.res.sqlBuilder.api.query.spi.OrderBy;
 import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.api.query.spi.Where;
+import org.in.media.res.sqlBuilder.api.query.spi.SetClause;
 
 final class ClauseFactory {
 
@@ -38,7 +39,11 @@ final class ClauseFactory {
         return new HavingImpl(dialect);
     }
 
-    public static Limit instantiateLimit(Dialect dialect) {
-        return new LimitImpl();
-    }
+	public static Limit instantiateLimit(Dialect dialect) {
+		return new LimitImpl();
+	}
+
+	public static SetClause instantiateSet(Dialect dialect) {
+		return new SetClauseImpl();
+	}
 }

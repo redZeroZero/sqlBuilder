@@ -1240,7 +1240,7 @@ public class QueryImpl implements Query {
 		return this;
 	}
 
-	private List<CompiledQuery.Placeholder> collectPlaceholders() {
+	List<CompiledQuery.Placeholder> collectPlaceholders() {
 		List<CompiledQuery.Placeholder> placeholders = new ArrayList<>();
 		appendCtePlaceholders(placeholders);
 		appendSelectPlaceholders(placeholders);

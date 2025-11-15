@@ -23,6 +23,9 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
   - [Optional Filters for Compiled Queries](#10-optional-filters-for-compiled-queries)
   - [Grouped Filters (Nested AND / OR Trees)](#11-grouped-filters-nested-and--or-trees)
   - [Raw SQL Fragments](#12-raw-sql-fragments)
+  - [Updates (DML)](#13-updates-dml)
+  - [Inserts (DML)](#14-inserts-dml)
+  - [Deletes (DML)](#15-deletes-dml)
 - [Dialects & SQL Functions](#dialects--sql-functions)
   - [Using a Different Dialect](#using-a-different-dialect)
   - [Registering Functions](#registering-functions)
@@ -399,6 +402,60 @@ String sql = SqlQuery.newQuery()
     .transpile();
 ```
 
+### 13. Updates (DML)
+
+`SqlQuery.update(table)` exposes the same predicate DSL while focusing on `SET` assignments. Builders remain non-thread-safe, but compiled `UpdateQuery` artefacts can be cached just like `SELECT` statements.
+
+```java
+SqlParameter<Integer> empId = SqlParameters.param("empId");
+SqlParameter<Double> newSalary = SqlParameters.param("newSalary");
+
+CompiledQuery updateSalary = SqlQuery.update(employee)
+    .set(Employee.C_SALARY, newSalary)
+    .set(Employee.C_UPDATED_AT, LocalDateTime.now())
+    .where(Employee.C_ID).eq(empId)
+    .compile();
+
+SqlAndParams bound = updateSalary.bind(Map.of("empId", 42, "newSalary", 120_000d));
+jdbcTemplate.update(bound.sql(), bound.params().toArray());
+```
+
+Need a custom expression? Call `setRaw("SALARY = SALARY + ?", SqlParameters.param("bonus"))` to append fragments verbatim (parameters are merged into the compiled placeholder list in order).
+
+### 14. Inserts (DML)
+
+Use `SqlQuery.insertInto(table)` to build single-row, multi-row, or `INSERT ... SELECT` statements. Columns must be declared up front; each `values(...)` call supplies a row of literals or `SqlParameter` placeholders.
+
+```java
+SqlParameter<Integer> empId = SqlParameters.param("empId");
+SqlParameter<String> empName = SqlParameters.param("empName");
+
+CompiledQuery insertEmp = SqlQuery.insertInto(employee)
+    .columns(Employee.C_ID, Employee.C_FIRST_NAME, Employee.C_DEPT_ID)
+    .values(empId, empName, 42)
+    .compile();
+
+sqlBuilderJdbcTemplate.insert(insertEmp, Map.of("empId", 7, "empName", "Alice"));
+```
+
+Need to hydrate from another query? Call `select(subquery)` instead of `values(...)`. Raw fragments are available via `valuesRaw("(<expr>)", params...)` when you need to inject vendor-specific expressions.
+
+### 15. Deletes (DML)
+
+`SqlQuery.deleteFrom(table)` mirrors the predicate API from updates. Use it when you need to build guarded deletes or reuse `OptionalConditions`.
+
+```java
+SqlParameter<Integer> dept = SqlParameters.param("dept");
+
+CompiledQuery pruneDept = SqlQuery.deleteFrom(employee)
+    .whereOptionalEquals(Employee.C_DEPT_ID, dept)
+    .compile();
+
+sqlBuilderJdbcTemplate.delete(pruneDept, Map.of("dept", 42));
+```
+
+As with updates, builders are not thread-safe, but compiled deletes are immutable and can be cached across threads.
+
 Use `RawSql.of(sql, params...)` anywhere you want to prebuild a fragment and reuse it across queries. Because raw snippets bypass validation, keep them focused and prefer the typed DSL when possible—the raw APIs are an escape hatch, not the primary authoring style.
 
 ## Dialects & SQL Functions
@@ -706,6 +763,24 @@ CompiledQuery cq = SqlQuery.newQuery()
 SqlAndParams sap = cq.bind(Map.of("id", 42));
 
 List<MyDto> rows = sqlBuilderJdbcTemplate.query(sap, (rs, rowNum) -> new MyDto(...));
+```
+
+Need to run DML? The same facade works with the `UpdateQuery` DSL:
+
+```java
+SqlParameter<Integer> id = SqlParameters.param("id");
+SqlParameter<BigDecimal> salary = SqlParameters.param("salary");
+
+UpdateQuery updateSalary = SqlQuery.update(employee)
+    .set(Employee.C_SALARY, salary)
+    .where(Employee.C_ID).eq(id);
+
+sqlBuilderJdbcTemplate.update(updateSalary, Map.of("salary", new BigDecimal("90000"), "id", 42));
+
+DeleteQuery deleteInactive = SqlQuery.deleteFrom(employee)
+    .where(Employee.C_STATUS).eq("INACTIVE");
+
+sqlBuilderJdbcTemplate.delete(deleteInactive);
 ```
 
 All methods simply delegate to the underlying `JdbcTemplate` / `NamedParameterJdbcTemplate`, so transactions, error handling, and exceptions behave exactly like Spring's APIs.

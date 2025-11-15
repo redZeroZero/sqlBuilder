@@ -6,7 +6,10 @@ import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.core.query.DeleteQueryImpl;
+import org.in.media.res.sqlBuilder.core.query.InsertQueryImpl;
 import org.in.media.res.sqlBuilder.core.query.QueryImpl;
+import org.in.media.res.sqlBuilder.core.query.UpdateQueryImpl;
 import org.in.media.res.sqlBuilder.core.query.cte.WithBuilderImpl;
 
 /**
@@ -61,5 +64,45 @@ public final class SqlQuery {
 
 	public static Table toTable(Query query) {
 		return QueryImpl.toTable(query);
+	}
+
+	public static UpdateQuery update(Table table) {
+		return UpdateQueryImpl.update(Objects.requireNonNull(table, "table"));
+	}
+
+	public static UpdateQuery update(Table table, Dialect dialect) {
+		return UpdateQueryImpl.update(Objects.requireNonNull(table, "table"),
+				Objects.requireNonNull(dialect, "dialect"));
+	}
+
+	public static UpdateQuery update(org.in.media.res.sqlBuilder.api.model.Schema schema, Table table) {
+		Objects.requireNonNull(schema, "schema");
+		return UpdateQueryImpl.update(Objects.requireNonNull(table, "table"), schema.getDialect());
+	}
+
+	public static InsertQuery insertInto(Table table) {
+		return InsertQueryImpl.into(Objects.requireNonNull(table, "table"));
+	}
+
+	public static InsertQuery insertInto(Table table, Dialect dialect) {
+		return InsertQueryImpl.into(Objects.requireNonNull(table, "table"), Objects.requireNonNull(dialect, "dialect"));
+	}
+
+	public static InsertQuery insertInto(org.in.media.res.sqlBuilder.api.model.Schema schema, Table table) {
+		Objects.requireNonNull(schema, "schema");
+		return InsertQueryImpl.into(Objects.requireNonNull(table, "table"), schema.getDialect());
+	}
+
+	public static DeleteQuery deleteFrom(Table table) {
+		return DeleteQueryImpl.from(Objects.requireNonNull(table, "table"));
+	}
+
+	public static DeleteQuery deleteFrom(Table table, Dialect dialect) {
+		return DeleteQueryImpl.from(Objects.requireNonNull(table, "table"), Objects.requireNonNull(dialect, "dialect"));
+	}
+
+	public static DeleteQuery deleteFrom(org.in.media.res.sqlBuilder.api.model.Schema schema, Table table) {
+		Objects.requireNonNull(schema, "schema");
+		return DeleteQueryImpl.from(Objects.requireNonNull(table, "table"), schema.getDialect());
 	}
 }

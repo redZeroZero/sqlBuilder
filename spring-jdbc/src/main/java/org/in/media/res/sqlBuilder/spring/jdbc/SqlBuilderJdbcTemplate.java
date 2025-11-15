@@ -5,7 +5,10 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
+import org.in.media.res.sqlBuilder.api.query.DeleteQuery;
+import org.in.media.res.sqlBuilder.api.query.InsertQuery;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
+import org.in.media.res.sqlBuilder.api.query.UpdateQuery;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -56,9 +59,40 @@ public final class SqlBuilderJdbcTemplate {
         return jdbcTemplate.update(sqlAndParams.sql(), toArray(sqlAndParams.params()));
     }
 
+    public int update(UpdateQuery updateQuery) {
+        Objects.requireNonNull(updateQuery, "updateQuery");
+        return update(updateQuery.render());
+    }
+
+    public int insert(InsertQuery insertQuery) {
+        Objects.requireNonNull(insertQuery, "insertQuery");
+        return update(insertQuery.render());
+    }
+
+    public int delete(DeleteQuery deleteQuery) {
+        Objects.requireNonNull(deleteQuery, "deleteQuery");
+        return update(deleteQuery.render());
+    }
+
     public int update(CompiledQuery compiledQuery, Map<String, ?> paramValues) {
+        Objects.requireNonNull(compiledQuery, "compiledQuery");
         Objects.requireNonNull(paramValues, "paramValues");
         return update(compiledQuery.bind(paramValues));
+    }
+
+    public int update(UpdateQuery updateQuery, Map<String, ?> paramValues) {
+        Objects.requireNonNull(updateQuery, "updateQuery");
+        return update(updateQuery.compile(), paramValues);
+    }
+
+    public int insert(InsertQuery insertQuery, Map<String, ?> paramValues) {
+        Objects.requireNonNull(insertQuery, "insertQuery");
+        return update(insertQuery.compile(), paramValues);
+    }
+
+    public int delete(DeleteQuery deleteQuery, Map<String, ?> paramValues) {
+        Objects.requireNonNull(deleteQuery, "deleteQuery");
+        return update(deleteQuery.compile(), paramValues);
     }
 
     public <T> List<T> query(CompiledQuery compiledQuery, Map<String, ?> paramValues, RowMapper<T> rowMapper) {
