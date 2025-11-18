@@ -5,6 +5,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 ## Quick navigation
 
 - [Getting Started](#getting-started)
+  - [Public API Surface & Stability](#public-api-surface--stability)
   - [Installation](#installation)
   - [Repository layout](#repository-layout)
 - [Sample Queries to Try](#sample-queries-to-try)
@@ -39,6 +40,18 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
 - [Running Tests](#running-tests)
 
 ## Getting Started
+
+### Public API Surface & Stability
+
+| Package / Namespace | Purpose | Stability |
+| --- | --- | --- |
+| `org.in.media.res.sqlBuilder.api.model` (incl. `.annotation`) | Table, column, and schema descriptors plus the annotation processor contracts. | **Stable** – covered by semantic versioning. |
+| `org.in.media.res.sqlBuilder.api.query` (and sub-packages except `.spi`) | Fluent SQL builders, dialect abstractions, helper utilities, and formatters. | **Stable** – backwards compatible within a minor release. |
+| `org.in.media.res.sqlBuilder.api.query.spi` | Extension hooks for frameworks/integrations that need to plug custom clauses or transpilers. | **Advanced / SPI** – may change between releases; see [AGENTS.md](AGENTS.md) for contribution guidance. |
+| `org.in.media.res.sqlBuilder.api.query.params`, `.helper`, `.format` | Parameter helpers, optional-condition builders, and `SqlFormatter` utilities. | **Stable**. |
+| `org.in.media.res.sqlBuilder.core.*`, `.processor.*`, `.examples.*` | Internal implementations, annotation processor internals, and documentation fixtures. | **Internal** – no compatibility guarantee; avoid depending on these packages from application code. |
+
+Only the packages listed as stable above are considered the public API. Everything else (including generated `*Impl` classes) is an implementation detail that can evolve without notice. If you need to integrate at the SPI layer, keep the dependency isolated so upgrades remain straightforward.
 
 ### Installation
 
@@ -98,7 +111,8 @@ SqlAndParams sp = SqlQuery.query()
 sp.sql();    // SELECT ... WHERE E.FIRST_NAME = ? ORDER BY E.LAST_NAME ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
 sp.params(); // ["Alice", 0, 20]
 
-// Need only the placeholder SQL? call transpile(), which now delegates to render().sql()
+// Need only the placeholder SQL? Just call render().sql() and ignore the params.
+// The legacy transpile() helper remains for SPI integrations but is deprecated.
 String sql = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
     .select(Employee.C_LAST_NAME)
@@ -106,16 +120,16 @@ String sql = SqlQuery.newQuery()
     .where(Employee.C_FIRST_NAME).eq("Alice")
     .orderBy(Employee.C_LAST_NAME)
     .limitAndOffset(20, 0)
-    .transpile();
+    .render().sql();
 ```
 
 ## Sample Queries to Try
 
-The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, `.transpile()` returns SQL with `?` placeholders—call `.render()` when you need both SQL and the bound parameter values. Identifiers are quoted according to the active dialect (e.g., Oracle emits `"Employee"`); examples keep the unquoted form for readability.
+The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, call `.render()` to obtain both SQL and bind parameters; access just the SQL text via `.render().sql()`. The legacy `.transpile()` method still exists for SPI/internal code but is deprecated in user-facing flows. Identifiers are quoted according to the active dialect (e.g., Oracle emits `"Employee"`); examples keep the unquoted form for readability.
 
 ### Rendering SQL & parameters
 
-`render()` is the primary way to execute a query: it returns a `SqlAndParams` pair containing the SQL text (with `?` placeholders) and the ordered parameter list. `transpile()` is still available when you just need the SQL string, but it now emits placeholders instead of literal values.
+`render()` is the primary way to execute a query: it returns a `SqlAndParams` pair containing the SQL text (with `?` placeholders) and the ordered parameter list.
 
 ```java
 SqlAndParams selectByName = SqlQuery.newQuery()
@@ -169,7 +183,7 @@ SqlAndParams secondRun = salaryFilter.bind(90_000); // positional binding
 ```java
 SqlQuery.newQuery()
     .select(employee) // or rely on descriptor shortcuts
-    .transpile();
+    .render().sql();
 ```
 
 Expected SQL:
@@ -186,7 +200,7 @@ String sql = Query.newQuery()
     .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
     .leftJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(Job.C_SALARY).supOrEqTo(50000)
-    .transpile();
+    .render().sql();
 ```
 
 ### 3. Aggregations with GROUP BY / HAVING
@@ -199,7 +213,7 @@ String sql = Query.newQuery()
     .groupBy(Employee.C_FIRST_NAME)
     .having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000)
     .orderBy(Employee.C_FIRST_NAME)
-    .transpile();
+    .render().sql();
 ```
 
 ### 4. Pagination (Oracle-style)
@@ -210,13 +224,13 @@ String sql = Query.newQuery()
     .from(job)
     .orderBy(Job.C_SALARY, SortDirection.DESC)
     .limitAndOffset(10, 20)
-    .transpile();
+    .render().sql();
 ```
 
 ### 5. Quick Count / Pretty Print
 
 ```java
-String sql = SqlQuery.countAll().transpile();             // SELECT COUNT(*)
+String sql = SqlQuery.countAll().render().sql();             // SELECT COUNT(*)
 
 Query printable = SqlQuery.newQuery()
     .select(Employee.C_FIRST_NAME)
@@ -242,7 +256,7 @@ String sql = SqlQuery.newQuery()
             .select(job)
             .asQuery()
     )
-    .transpile();
+    .render().sql();
 ```
 
 This renders `UNION` between the two subqueries. Use `unionAll`, `intersect`, or `except` for the other set operators. The default Oracle-oriented dialect maps `except` to `MINUS`; `exceptAll` currently throws because `MINUS ALL` is not available.
@@ -267,7 +281,7 @@ String sql = SqlQuery.newQuery()
     .from(employee)
     .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
     .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(60000)
-    .transpile();
+    .render().sql();
 ```
 
 Call `SqlQuery.toTable(query)` to auto-generate aliases (or supply your own as above). Each column alias you provide or that is inferred is available via `salaryAvg.get("ALIAS")`, so subsequent clauses can reference the derived table just like any other.
@@ -317,7 +331,7 @@ String sql = SqlQuery.newQuery()
     .from(employee)
     .where(Employee.C_ID).in(highSalaryIds)
     .exists(SqlQuery.newQuery().select(Job.C_ID).from(job).asQuery())
-    .transpile();
+    .render().sql();
 ```
 
 Scalar comparisons, `IN` / `NOT IN`, and `EXISTS` / `NOT EXISTS` all accept subqueries. `exists(subquery)` can be called directly on the fluent query DSL, and it will emit `WHERE EXISTS (...)` without requiring a placeholder column.
@@ -382,7 +396,7 @@ String sql = SqlQuery.newQuery()
     .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
     .where(stateGroup)          // WHERE (E.STATE = 'CA' OR E.STATE = 'OR')
     .and(salaryGroup)           //   AND (J.SALARY >= 120000 OR (J.SALARY BETWEEN 80000 AND 90000))
-    .transpile();
+    .render().sql();
 ```
 
 Call `QueryHelper.group()` without arguments when you want an inline builder that can be passed straight into `.where(...)`, `.and(...)`, or `.having(...)`. Chain `.andGroup()` / `.orGroup()` whenever you need nested parentheses, then finish the nested block with `.endGroup()`—no lambdas required. (The consumer overload remains available if you prefer that style.)
@@ -408,7 +422,7 @@ String sql = SqlQuery.newQuery()
     .whereRaw("EXISTS (SELECT 1 FROM HR.PROJECT p WHERE p.EMP_ID = emp.ID AND p.STATE = 'ACTIVE')")
     .andRaw("emp.PROJECT_COUNT >= ?", minProjects)
     .orderByRaw("emp.HIRE_DATE DESC NULLS LAST")
-    .transpile();
+    .render().sql();
 ```
 
 ### 13. Updates (DML)
@@ -493,7 +507,7 @@ sp.sql();    // SELECT "employee"."first_name" ...
 sp.params(); // ["Do%"]
 ```
 
-Implement `Dialect` (see `core/.../OracleDialect` or `PostgresDialect`) to customize quoting, pagination, and function rendering. Because the core query engine (used by `SqlQuery`) and all transpilers consult the dialect via `DialectContext`, the rest of the DSL automatically respects your rules. The helpers in `Dialects` expose the built-in implementations (e.g., `Dialects.postgres()`), and you can set a schema-wide default via `schema.setDialect(...)`.
+Implement `Dialect` (see `core/.../OracleDialect` or `PostgresDialect`) to customize quoting, pagination, set operators, and function rendering. Internally the DSL propagates the active dialect through a `ThreadLocal` helper called `DialectContext`; it is an implementation detail, so application code should stick to the public `Dialect` API (`SqlQuery.newQuery(myDialect)`, `schema.setDialect(...)`, etc.) instead of interacting with the context directly. The helpers in `Dialects` expose the built-in implementations (e.g., `Dialects.postgres()`), and you can set a schema-wide default via `schema.setDialect(...)`.
 
 ### Registering Functions
 
@@ -579,7 +593,7 @@ ColumnRef<String> lastName = manual.LAST_NAME();
 SqlQuery.newQuery()
     .select(cols.ID(), cols.FIRST_NAME())
     .where(cols.LAST_NAME()).like("%son")
-    .transpile();
+    .render().sql();
 ```
 
 If you prefer a cleaner POJO, you can also declare plain static fields (e.g., `public static Long ID;`) and specify `@SqlColumn(javaType = Long.class)`. During compilation the `SqlTableProcessor` generates both a `<TableName>Columns` interface and a matching `...ColumnsImpl` implementation with a static `of(TableFacets.Facet)` factory. `TableFacets.columns(...)` will automatically instantiate that implementation (falling back to a dynamic proxy only if no generated class exists), so you can simply call `schema.facets().columns(CustomerPlain.class, CustomerPlainColumns.class)` and stay type-safe without hand-writing any plumbing.
@@ -594,7 +608,7 @@ String sql = SqlQuery.newQuery()
     .select(customer.columns().ID())
     .from(customer.table())
     .like(customer.columns().LAST_NAME(), "%son")
-    .transpile();
+    .render().sql();
 ```
 
 > The sample schema ships with the generated `CustomerColumns` / `CustomerColumnsImpl` pair checked into source control so the build remains stable even when annotation processing is disabled. In your own modules you can rely on the processor to emit the same code automatically.
@@ -653,7 +667,7 @@ String sql = SqlQuery.newQuery()
     .select(Customer.C_ID, Customer.C_FIRST_NAME)
     .from(customer)
     .where(Customer.C_LAST_NAME).like("%son")
-    .transpile();
+    .render().sql();
 ```
 
 Fluent helpers now accept typed descriptors directly, so you can skip intermediate `where(...)` calls when it reads better. For example:
@@ -664,8 +678,22 @@ String sql = SqlQuery.newQuery()
     .from(customer)
     .like(Customer.C_LAST_NAME, "%son")
     .isNull(Customer.C_MAIL)
-    .transpile();
+    .render().sql();
 ```
+
+### ColumnRef lifecycle & schema immutability
+
+`ColumnRef` instances are just descriptors (name + Java type) until they are bound to a `Table`. Binding happens automatically when `SchemaScanner` discovers annotated tables or when you pass the descriptor to `Tables.builder(...).column(...)`. Skip that step and the DSL will throw `IllegalStateException` the first time you try to use the column because the owning table/alias is unknown.
+
+Safe binding checklist:
+
+1. Declare descriptors (`ColumnRef<T>` fields or `@SqlColumn(javaType = ...)` metadata).
+2. Bind them via `SchemaScanner` or `Tables.builder(...)`. This step assigns aliases, schema names, and registers the column with a concrete `Table`.
+3. Only after binding should the `ColumnRef` be passed into queries.
+
+`ColumnRef.of(...)` is therefore an advanced escape hatch for builders/tests—always feed the result into a schema builder so it becomes usable, rather than piping it straight to `where(...)`.
+
+Once a schema is wired, treat it as effectively immutable. `Tables.builder(...).build()` returns tables with unmodifiable column collections, and `Schema` implementations expose read-only views to discourage runtime mutation. If you need to adjust a schema (add/remove columns or tables), create a new schema instance or table descriptor instead of mutating a shared singleton. This pattern keeps multi-threaded apps safe: bootstrap the schema during application startup, then reuse the descriptors everywhere without worrying about concurrent modifications.
 
 ### Typed Rows & Builders
 
@@ -705,12 +733,16 @@ Table employee = Tables.builder("Employee", "E")
     .column("ACTIVE", "isActive")
     .build();
 
+// employee.columns() is now unmodifiable; rebuild if you need to add/remove descriptors later.
+
 String sql = SqlQuery.newQuery()
     .select(EMP_FIRST_NAME)
     .from(employee)
     .where(EMP_ID).eq(42)
-    .transpile();
+    .render().sql();
 ```
+
+> `ColumnRef.of(...)` is shown here solely to create descriptors for the builder. Always let `Tables.builder` (or `SchemaScanner`) bind them before handing the column to `Query`.
 
 This manual approach avoids classpath scanning entirely while still delivering typed ColumnRefs to the DSL. Combine it with `QueryColumns` if you want to distribute table/column bundles throughout your application.
 
@@ -752,6 +784,8 @@ The new `spring-jdbc` module exposes `SqlBuilderJdbcTemplate`, a minimal wrapper
 </dependency>
 ```
 
+> The module is built and tested against Spring Framework 6.1.x / Jakarta EE 9+ baselines, so it aligns with Spring Boot 3.x out of the box.
+
 Configuration is just wiring:
 
 ```java
@@ -773,6 +807,20 @@ SqlAndParams sap = cq.bind(Map.of("id", 42));
 
 List<MyDto> rows = sqlBuilderJdbcTemplate.query(sap, (rs, rowNum) -> new MyDto(...));
 ```
+
+#### Debug logging with `SqlFormatter.inlineLiterals`
+
+When reporting issues or reviewing SQL locally, render the query once, inline the literals strictly for debugging, and keep the original `SqlAndParams` for JDBC execution:
+
+```java
+SqlAndParams sap = query.render();
+String debugSql = SqlFormatter.inlineLiterals(sap, dialect);
+log.debug("Executing sqlBuilder query: {}", debugSql);
+
+List<MyDto> rows = sqlBuilderJdbcTemplate.query(sap, rowMapper);
+```
+
+The string returned by `inlineLiterals(...)` is **not** meant to be executed directly because it inlines parameters and disables JDBC binding. Restrict it to logging/troubleshooting so you avoid SQL injection risks while still sharing readable SQL in bug reports or support tickets.
 
 Need to run DML? The same facade works with the `UpdateQuery` DSL:
 
@@ -813,5 +861,5 @@ This executes the regression suite in `src/test/java` that covers the examples a
 - **Builders are not thread-safe.** Each `Query`, `With/CTE`, `ConditionGroup`, etc. instance must live on a single thread/request. Create them per call (or via prototype-scoped beans/factories) instead of registering them as singletons.
 - **Compiled artefacts are safe to share.** `CompiledQuery` and `SqlParameter` instances are immutable, so you can publish them as Spring beans or cache them globally without synchronization.
 - **Bindings are disposable.** Every `bind(...)` call returns a fresh `SqlAndParams` object. Use it for one JDBC execution and then drop it; parameter lists are immutable to avoid accidental mutation.
-- **Dialect scope relies on `ThreadLocal`.** Always wrap compilation in `try (var ignored = Dialects.use(...)) { ... }` (or use an explicit `compile(dialect)` overload) so that each builder resolves the right dialect, especially in reactive or async environments where threads may hop.
+- **Dialect scope relies on an internal `ThreadLocal`.** Each call to `render()`/`compile()` captures the dialect that was passed to `SqlQuery.newQuery(...)` (or the schema default) and stores it in `DialectContext` behind the scenes. Do not poke the context directly; instead, build a fresh query per thread with the dialect you need so the internal scope stays consistent.
 - **Recommended lifecycle:** build (per request) → compile (once) → bind (per execution) → execute with JDBC. This is the pattern that keeps the DSL thread-safe while letting you reuse precompiled SQL templates.

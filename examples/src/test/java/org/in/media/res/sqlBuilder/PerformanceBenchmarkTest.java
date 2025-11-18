@@ -31,7 +31,8 @@ class PerformanceBenchmarkTest {
 					.groupBy(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
 					.orderBy(Employee.C_LAST_NAME)
 					.limitAndOffset(25, 0)
-					.transpile();
+					.asQuery()
+					.render().sql();
 		}
 		long elapsed = System.nanoTime() - start;
 		double perQueryMicros = (elapsed / 1_000.0) / iterations;
@@ -41,9 +42,9 @@ class PerformanceBenchmarkTest {
 
 	@Test
 	void mainAppStartupTiming() {
-		long start = System.nanoTime();
-		MainApp.main(new String[0]);
-		long elapsed = System.nanoTime() - start;
-		System.out.printf("MainApp startup + execution: %.2f ms%n", elapsed / 1_000_000.0);
+        long start = System.nanoTime();
+        MainApp.main(new String[0]);
+        long elapsed = System.nanoTime() - start;
+        System.out.printf("MainApp startup + execution: %.2f ms%n", elapsed / 1_000_000.0);
 	}
 }

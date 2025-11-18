@@ -19,6 +19,14 @@ public interface Query extends SelectStage, FromStage {
 
 	CompiledQuery compile();
 
+	/**
+	 * Internal/SPI entry point that returns SQL with placeholders without binding.
+	 * Application code should call {@link #render()} or {@link #compile()} instead.
+	 */
+	default String transpile() {
+		return render().sql();
+	}
+
 	Table as(String alias, String... columnAliases);
 
 	Query select(Column column);

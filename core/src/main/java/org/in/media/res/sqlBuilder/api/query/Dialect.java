@@ -17,8 +17,12 @@ public interface Dialect {
     /** Character to use when rendering {@code ... LIKE ? ESCAPE '<char>'}. */
     char likeEscapeChar();
 
-    /** Resolve the keyword/operator for EXCEPT/MINUS style set operations. */
-    String exceptOperator(boolean all);
+    /**
+     * Resolve the SQL keyword for a set operator. Implementations may throw
+     * {@link UnsupportedOperationException} if a specific operator cannot be
+     * represented (e.g., EXCEPT ALL in Oracle).
+     */
+    String setOperator(SetOperator operator);
 
     /** Render a dialect-specific function call using already-rendered arguments. */
     String renderFunction(String logicalName, List<String> argsSql);

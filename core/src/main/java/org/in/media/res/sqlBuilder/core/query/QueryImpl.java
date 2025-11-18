@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
-import org.in.media.res.sqlBuilder.constants.SetOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.core.model.DerivedTableImpl;
 import org.in.media.res.sqlBuilder.core.query.predicate.ConditionGroup;
@@ -31,10 +30,12 @@ import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
+import org.in.media.res.sqlBuilder.api.query.SqlFormatter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.spi.Where;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
+import org.in.media.res.sqlBuilder.api.query.SetOperator;
 
 public class QueryImpl implements Query {
 
@@ -176,14 +177,7 @@ public class QueryImpl implements Query {
 	}
 
 	public String prettyPrint() {
-		String sql = transpile();
-		return sql.replace(" FROM ", "\nFROM ")
-				.replace(" WHERE ", "\nWHERE ")
-				.replace(" GROUP BY ", "\nGROUP BY ")
-				.replace(" HAVING ", "\nHAVING ")
-				.replace(" ORDER BY ", "\nORDER BY ")
-				.replace(" OFFSET ", "\nOFFSET ")
-				.replace(" FETCH ", "\nFETCH ");
+		return SqlFormatter.prettyPrint(transpile()).stripLeading();
 	}
 
 	public void reset() {
@@ -1353,27 +1347,7 @@ public class QueryImpl implements Query {
 	}
 
 	private String resolveSetOperator(SetOperator operator) {
-		return switch (operator) {
-		case UNION -> SetOperator.UNION.sql();
-		case UNION_ALL -> SetOperator.UNION_ALL.sql();
-		case INTERSECT -> SetOperator.INTERSECT.sql();
-		case INTERSECT_ALL -> SetOperator.INTERSECT_ALL.sql();
-		case EXCEPT -> supportsExcept() ? SetOperator.EXCEPT.sql() : "MINUS";
-		case EXCEPT_ALL -> {
-			if (supportsExceptAll()) {
-				yield SetOperator.EXCEPT_ALL.sql();
-			}
-			throw new UnsupportedOperationException("EXCEPT ALL/MINUS ALL is not supported by the default dialect");
-		}
-		};
-	}
-
-	private boolean supportsExcept() {
-		return false;
-	}
-
-	private boolean supportsExceptAll() {
-		return false;
+		return dialect.setOperator(operator);
 	}
 
 	public void withClauses(List<CteDeclaration> declaredCtes) {

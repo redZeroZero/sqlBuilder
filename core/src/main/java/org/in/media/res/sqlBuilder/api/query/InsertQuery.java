@@ -10,6 +10,7 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
  */
 public interface InsertQuery {
 
+	/** Internal/SPI helper; prefer {@link #render()} or {@link #compile()}. */
 	String transpile();
 
 	SqlAndParams render();

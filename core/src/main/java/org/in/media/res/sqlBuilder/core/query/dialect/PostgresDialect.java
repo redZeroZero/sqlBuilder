@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.in.media.res.sqlBuilder.api.query.Dialect;
+import org.in.media.res.sqlBuilder.api.query.SetOperator;
 
 final class PostgresDialect implements Dialect {
 
@@ -28,8 +29,8 @@ final class PostgresDialect implements Dialect {
     }
 
     @Override
-    public String exceptOperator(boolean all) {
-        return all ? "EXCEPT ALL" : "EXCEPT";
+    public String setOperator(SetOperator operator) {
+        return operator.sql();
     }
 
     @Override

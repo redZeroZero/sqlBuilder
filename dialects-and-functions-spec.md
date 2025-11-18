@@ -55,13 +55,11 @@ public interface Dialect {
     String renderLimitOffset(Long limit, Long offset);
 
     /**
-     * Return the appropriate keyword/operator for EXCEPT-like set operations.
-     *
-     * @param all whether EXCEPT ALL is requested
-     * @return a SQL fragment such as "EXCEPT", "EXCEPT ALL", "MINUS"
-     * @throws UnsupportedOperationException if the dialect cannot emulate the requested form
+     * Resolve the SQL token for UNION/INTERSECT/EXCEPT style set operators.
+     * Dialects may throw UnsupportedOperationException when the operator
+     * cannot be represented (e.g., Oracle and EXCEPT ALL).
      */
-    String exceptOperator(boolean all);
+    String setOperator(SetOperator operator);
 
     /**
      * Character to use in ESCAPE clauses for LIKE.

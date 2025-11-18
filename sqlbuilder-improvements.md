@@ -467,9 +467,18 @@ These proposals do not change the philosophy of sqlBuilder (fluent DSL, explicit
 ## 9. Complexity-Ordered To‑Do List
 
 1. **Add `SqlQuery.query()` entry point** — quick API convenience method exposing the `Query` view without staged casting.
-2. **Document API boundaries / SPI warnings** — update README/Javadocs to flag public vs. advanced packages.
-3. **Document logging pattern (`SqlFormatter.inlineLiterals`)** — simple doc/example additions.
-4. **Clarify `ColumnRef` lifecycle & schema immutability** — write guidance and minor guard rails around schema builders.
+2. **Document API boundaries / SPI warnings** — update README/Javadocs to flag public vs. advanced packages.  
+   - Add a “Public Surface” table to README referencing the `api.model`, `api.query`, and `api.format` packages along with the guarantee level.  
+   - Under `api.query.spi`, add a banner Javadoc (and package-info) stating it targets framework integrations and may change without notice; link to AGENTS guidelines.  
+   - Call out that anything under `core.*`, `processor.*`, or `examples.*` is unsupported for consumers, to discourage accidental dependencies.
+3. **Document logging pattern (`SqlFormatter.inlineLiterals`)** — simple doc/example additions.  
+   - Extend the Spring JDBC section with a snippet that renders `SqlAndParams`, feeds it to `SqlFormatter.inlineLiterals`, logs the debug SQL, and then hands the same `SqlAndParams` to `SqlBuilderJdbcTemplate`.  
+   - Highlight “debug only” caveats inline so users avoid piping `inlineLiterals` output to JDBC drivers.  
+   - Reference the helper from the troubleshooting section so bug reporters follow a consistent template when sharing SQL.
+4. **Clarify `ColumnRef` lifecycle & schema immutability** — write guidance and minor guard rails around schema builders.  
+   - Document in `Table`/`Schema` Javadocs that descriptors must be bound via `SchemaScanner` or `Tables.builder(...)` before use, and that mutation after initialization is unsupported.  
+   - Make builders return unmodifiable views (and mention it here) so consumers notice when they attempt to mutate post-bootstrap.  
+   - Provide a short “safe binding” How-To that contrasts the discouraged `ColumnRef.of(...)` shortcut with the preferred scanning/builder approaches.
 5. **Add `SqlBuilderJdbcTemplate` overloads (Query, param maps)** — extend Spring helper signatures and tests.
 6. **Introduce `SetOperator` + dialect mapping** — refactor set-operation rendering to go through dialect hooks.
 7. **Route pagination solely through `Dialect.renderLimitOffset(...)` & remove `LimitTranspiler`** — centralize pagination rendering logic.

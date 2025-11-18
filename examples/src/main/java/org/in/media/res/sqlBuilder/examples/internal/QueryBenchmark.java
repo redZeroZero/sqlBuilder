@@ -40,7 +40,7 @@ public final class QueryBenchmark {
 
 		long start = System.nanoTime();
 		for (int i = 0; i < iterations; i++) {
-			query.transpile();
+			query.render().sql();
 		}
 		long elapsed = System.nanoTime() - start;
 		double perQueryMicros = (elapsed / 1_000.0) / iterations;

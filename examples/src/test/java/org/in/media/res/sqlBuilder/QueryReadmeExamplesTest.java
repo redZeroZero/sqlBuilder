@@ -2,6 +2,8 @@ package org.in.media.res.sqlBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.example.Employee;
@@ -36,7 +38,8 @@ class QueryReadmeExamplesTest {
 				.where(Employee.C_FIRST_NAME).eq("Alice")
 				.orderBy(Employee.C_LAST_NAME)
 				.limitAndOffset(20, 0)
-				.transpile();
+				.asQuery()
+				.render().sql();
 
 		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", \"E\".\"LAST_NAME\" as \"lastName\" "
 				+ "FROM \"Employee\" \"E\" INNER JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" "
@@ -50,7 +53,8 @@ class QueryReadmeExamplesTest {
 	void simpleProjectionExampleSelectsAllEmployeeColumns() {
 		String sql = SqlQuery.newQuery()
 				.select(employee)
-				.transpile();
+				.asQuery()
+				.render().sql();
 
 		String expected = "SELECT \"E\".\"ID\", \"E\".\"FIRST_NAME\" as \"firstName\", \"E\".\"LAST_NAME\" as \"lastName\", "
 				+ "\"E\".\"MAIL\" as \"email\", \"E\".\"PASSWORD\" as \"passwd\" FROM \"Employee\" \"E\"";
@@ -65,7 +69,8 @@ class QueryReadmeExamplesTest {
 				.from(employee)
 				.leftJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
 				.where(Job.C_SALARY).supOrEqTo(50000)
-				.transpile();
+				.asQuery()
+				.render().sql();
 
 		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", \"J\".\"DESCRIPTION\" as \"Intitule\" "
 				+ "FROM \"Employee\" \"E\" LEFT JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" "
@@ -85,7 +90,7 @@ class QueryReadmeExamplesTest {
 		aggregate.having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60000);
 		aggregate.orderBy(Employee.C_FIRST_NAME);
 
-		String sql = aggregate.transpile();
+		String sql = aggregate.render().sql();
 
 		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\", AVG(\"J\".\"SALARY\") FROM \"Employee\" \"E\" "
 				+ "JOIN \"Job\" \"J\" ON \"E\".\"ID\" = \"J\".\"EMPLOYEE_ID\" GROUP BY \"E\".\"FIRST_NAME\" "
@@ -101,7 +106,8 @@ class QueryReadmeExamplesTest {
 				.from(job)
 				.orderBy(Job.C_SALARY, SortDirection.DESC)
 				.limitAndOffset(10, 20)
-				.transpile();
+				.asQuery()
+				.render().sql();
 
 		String expected = "SELECT \"J\".\"DESCRIPTION\" as \"Intitule\" FROM \"Job\" \"J\" "
 				+ "ORDER BY \"J\".\"SALARY\" DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
@@ -111,17 +117,24 @@ class QueryReadmeExamplesTest {
 
 	@Test
 	void quickCountAndPrettyPrintExampleMatchesReadme() {
-		assertEquals("SELECT COUNT(*)", SqlQuery.countAll().transpile());
+		assertEquals("SELECT COUNT(*)", SqlQuery.countAll().asQuery().render().sql());
 
 		Query printable = SqlQuery.query();
 		printable.select(Employee.C_FIRST_NAME);
 		printable.from(employee);
 		printable.where(Employee.C_FIRST_NAME).eq("Alice");
 
-		String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\"\n"
-				+ "FROM \"Employee\" \"E\"\n"
-				+ "WHERE \"E\".\"FIRST_NAME\" = ?";
+			String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\"\n"
+					+ "FROM \"Employee\" \"E\"\n"
+					+ "WHERE \"E\".\"FIRST_NAME\" = ?";
 
-		assertEquals(expected, printable.prettyPrint());
-	}
+			String actual = Arrays.stream(printable.prettyPrint().replace("\r", "").split("\n"))
+					.map(String::stripTrailing)
+                    .collect(Collectors.joining("\n"))
+                    .strip();
+            if (Boolean.getBoolean("sqlbuilder.debug.pretty")) {
+                System.out.println("ACTUAL_PRETTY>>>" + actual.replace("\n", "\\n") + "<<<");
+            }
+            assertEquals(expected, actual);
+        }
 }

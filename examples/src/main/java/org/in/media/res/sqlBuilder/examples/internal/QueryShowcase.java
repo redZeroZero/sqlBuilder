@@ -6,7 +6,6 @@ import static org.in.media.res.sqlBuilder.constants.AggregateOperator.MIN;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
-import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.example.Employee;
 import org.in.media.res.sqlBuilder.example.EmployeeSchema;
 import org.in.media.res.sqlBuilder.example.Job;
@@ -33,11 +32,11 @@ public final class QueryShowcase {
     }
 
     private static void demoSelectClause(Table employee, Table job) {
-        Select select = SqlQuery.newQuery();
+        Query select = SqlQuery.query();
         select.select(MAX, Employee.C_FIRST_NAME)
               .select(MIN, Job.C_ID)
               .select(Job.C_SALARY);
-        System.out.println("SELECT CLAUSE -> " + select.transpile());
+        System.out.println("SELECT CLAUSE -> " + select.render().sql());
     }
 
     private static void demoQueryDsl(Table employee, Table job) {
@@ -46,12 +45,12 @@ public final class QueryShowcase {
                 .from(employee)
                 .join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
                 .where(Employee.C_FIRST_NAME).eq("Alphonse");
-        System.out.println("BASIC QUERY -> " + query.transpile());
+        System.out.println("BASIC QUERY -> " + query.render().sql());
 
         Query count = SqlQuery.countAll()
                 .from(employee)
                 .asQuery();
-        System.out.println("COUNT QUERY -> " + count.transpile());
+        System.out.println("COUNT QUERY -> " + count.render().sql());
     }
 
     private static void demoDerivedTables(Table employee, Table job) {
@@ -70,7 +69,7 @@ public final class QueryShowcase {
                 .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
                 .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(60000);
 
-        System.out.println("DERIVED TABLE -> " + derived.transpile());
+        System.out.println("DERIVED TABLE -> " + derived.render().sql());
     }
 
     private static void demoSubqueryPredicates(Table employee, Table job) {
@@ -83,13 +82,13 @@ public final class QueryShowcase {
         inSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .where(Employee.C_ID).in(highSalaryIds);
-        System.out.println("IN SUBQUERY -> " + inSubquery.transpile());
+        System.out.println("IN SUBQUERY -> " + inSubquery.render().sql());
 
         Query existsSubquery = SqlQuery.query();
         existsSubquery.select(Employee.C_FIRST_NAME)
                 .from(employee)
                 .exists(SqlQuery.newQuery().select(Job.C_ID).from(job).asQuery());
-        System.out.println("EXISTS SUBQUERY -> " + existsSubquery.transpile());
+        System.out.println("EXISTS SUBQUERY -> " + existsSubquery.render().sql());
 
         // Condition demonstration using the fluent DSL
         Query whereDemo = SqlQuery.query();
@@ -101,6 +100,6 @@ public final class QueryShowcase {
                 .and(Employee.C_FIRST_NAME)
                 .eq("ULUBERLU")
                 .and(Job.C_ID).eq(42);
-        System.out.println("WHERE CHAIN -> " + whereDemo.transpile());
+        System.out.println("WHERE CHAIN -> " + whereDemo.render().sql());
     }
 }

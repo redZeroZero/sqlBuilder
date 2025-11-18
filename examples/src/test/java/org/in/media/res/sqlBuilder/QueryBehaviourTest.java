@@ -2,7 +2,6 @@ package org.in.media.res.sqlBuilder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
+import org.in.media.res.sqlBuilder.api.query.CteRef;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.Dialects;
 import org.in.media.res.sqlBuilder.api.query.QueryColumns;
@@ -19,6 +19,7 @@ import org.in.media.res.sqlBuilder.api.query.SqlFormatter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
+import org.in.media.res.sqlBuilder.api.query.WithBuilder;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.example.Employee;
@@ -36,6 +37,7 @@ import org.in.media.res.sqlBuilder.example.Product;
 import org.in.media.res.sqlBuilder.example.ProductColumns;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.api.query.SetOperator;
 import org.in.media.res.sqlBuilder.api.query.QueryHelper;
 import org.in.media.res.sqlBuilder.api.model.ColumnRef;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +99,7 @@ class QueryBehaviourTest {
 				.select(columns.ID(), columns.FIRST_NAME())
 				.from(customer)
 				.where(columns.LAST_NAME()).like("%son")
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(quoted("Customer")));
 		assertTrue(sql.contains("WHERE"));
@@ -140,7 +142,9 @@ class QueryBehaviourTest {
 
 		SqlAndParams rendered = pgQuery.limitAndOffset(25, 5).render();
 
-		assertTrue(rendered.sql().contains(" LIMIT ? OFFSET ?"));
+		String expected = "SELECT " + qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName")
+				+ " FROM " + quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " LIMIT ? OFFSET ?";
+		assertEquals(expected, rendered.sql());
 		assertEquals(List.of(25L, 5L), rendered.params());
 	}
 
@@ -154,7 +158,7 @@ class QueryBehaviourTest {
 				.select(helper.columns().ID())
 				.from(helper.table())
 				.like(helper.columns().LAST_NAME(), "%son")
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(quoted(tableRef(helper.table()))));
 		assertTrue(sql.contains("LIKE"));
@@ -165,7 +169,7 @@ class QueryBehaviourTest {
 		Query query = SqlQuery.query();
 		query.from(employee, job);
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains(quoted(tableRef(employee))));
 		assertTrue(sql.contains(quoted(tableRef(job))));
@@ -183,7 +187,7 @@ class QueryBehaviourTest {
 	void whereTranspilerSkipsEmptyClauses() {
 		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME);
-		String sql = query.transpile();
+		String sql = query.render().sql();
 		assertFalse(sql.contains(" WHERE "));
 	}
 
@@ -201,6 +205,25 @@ class QueryBehaviourTest {
 		SqlAndParams run = template.bind(Map.of("minSalary", 80_000));
 		assertTrue(run.sql().contains(qualified(tableRef(job), "SALARY") + " >= ?"));
 		assertEquals(List.of(80_000), run.params());
+	}
+
+	@Test
+	void optionalConditionsGuardPredicatesAndBindTwice() {
+		SqlParameter<String> firstName = SqlParameters.param("firstName");
+		CompiledQuery compiled = SqlQuery.query()
+				.select(Employee.C_FIRST_NAME)
+				.from(employee)
+				.whereOptionalEquals(Employee.C_FIRST_NAME, firstName)
+				.asQuery()
+				.compile();
+
+		String expected = "SELECT " + qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName")
+				+ " FROM " + quoted(employee.getName()) + " " + quoted(tableRef(employee))
+				+ " WHERE (? IS NULL OR " + qualified(tableRef(employee), "FIRST_NAME") + " = ?)";
+		assertEquals(expected, compiled.sql());
+
+		SqlAndParams params = compiled.bind(Map.of("firstName", "Ada"));
+		assertEquals(List.of("Ada", "Ada"), params.params());
 	}
 
 	@Test
@@ -223,7 +246,7 @@ class QueryBehaviourTest {
 		Query select = SqlQuery.query();
 		select.select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME);
 
-		String sql = select.transpile();
+		String sql = select.render().sql();
 
 		assertTrue(sql.contains(employee.get(Employee.C_FIRST_NAME).transpile(false)));
 		assertTrue(sql.contains(employee.get(Employee.C_LAST_NAME).transpile(false)));
@@ -232,7 +255,7 @@ class QueryBehaviourTest {
 	@Test
 	void querySelectRegistersBaseTableAutomatically() {
 		Query query = SqlQuery.query();
-		String sql = query.select(employee).transpile();
+		String sql = query.select(employee).render().sql();
 
 		assertTrue(sql.contains(" FROM "));
 		assertTrue(sql.contains(employee.getName()));
@@ -241,7 +264,7 @@ class QueryBehaviourTest {
 	@Test
 	void querySelectColumnRegistersBaseTableAutomatically() {
 		Query query = SqlQuery.query();
-		String sql = query.select(Employee.C_FIRST_NAME).transpile();
+		String sql = query.select(Employee.C_FIRST_NAME).render().sql();
 
 		assertTrue(sql.contains(" FROM "));
 		assertTrue(sql.contains(employee.getName()));
@@ -250,7 +273,7 @@ class QueryBehaviourTest {
 	@Test
 	void joinSupportsDescriptorShortcut() {
 		Query query = SqlQuery.query();
-		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).transpile();
+		String sql = query.select(Employee.C_FIRST_NAME).innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID).render().sql();
 
 		assertTrue(sql.contains(" JOIN "));
 		assertTrue(sql.contains(Employee.C_ID.column().transpile(false)));
@@ -262,7 +285,7 @@ class QueryBehaviourTest {
 		String sql = SqlQuery.query()
 				.select(employee)
 				.crossJoin(job)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" CROSS JOIN "));
 		assertFalse(sql.contains(" ON "));
@@ -273,7 +296,7 @@ class QueryBehaviourTest {
 		String sql = SqlQuery.query()
 				.select(employee)
 				.fullOuterJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" FULL OUTER JOIN "));
 		assertTrue(sql.contains(" ON "));
@@ -288,21 +311,70 @@ class QueryBehaviourTest {
 				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
 				.groupBy(Employee.C_ID);
 
-		var salaryView = SqlQuery.toTable(salarySummary);
+		var salaryView = SqlQuery.toTable(salarySummary, "SALARY_VIEW", "EMPLOYEE_ID", "AVG_SALARY");
 
 		Query outer = SqlQuery.query()
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
-				.join(salaryView).on(Employee.C_ID, salaryView.get("ID"))
-				.where(salaryView.get("AVG_pay")).supOrEqTo(60000);
+				.join(salaryView).on(Employee.C_ID, salaryView.get("EMPLOYEE_ID"))
+				.where(salaryView.get("AVG_SALARY")).supOrEqTo(60000);
 
-		String sql = outer.transpile();
+		String sql = outer.render().sql();
 
-		assertTrue(sql.contains("(SELECT"));
-		String derivedAlias = quoted(salaryView.tableName());
-		assertTrue(sql.contains(derivedAlias + " ON"));
-		assertNotNull(salaryView.get("AVG_pay"));
-		assertTrue(sql.contains(qualified(salaryView.tableName(), salaryView.get("AVG_pay").getName())));
+		String inner = "SELECT " + qualified(tableRef(employee), "ID") + ", AVG("
+				+ qualified(tableRef(job), "SALARY") + ") FROM " + quoted(employee.getName()) + " "
+				+ quoted(tableRef(employee)) + " JOIN " + quoted(job.getName()) + " " + quoted(tableRef(job)) + " ON "
+				+ qualified(tableRef(employee), "ID") + " = " + qualified(tableRef(job), "EMPLOYEE_ID") + " GROUP BY "
+				+ qualified(tableRef(employee), "ID");
+		String expected = "SELECT " + qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName")
+				+ " FROM " + quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " JOIN (" + inner + ") "
+				+ quoted("SALARY_VIEW") + " ON " + qualified(tableRef(employee), "ID") + " = "
+				+ quoted("SALARY_VIEW") + "." + quoted("EMPLOYEE_ID") + " WHERE " + quoted("SALARY_VIEW") + "."
+				+ quoted("AVG_SALARY") + " >= ?";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	void multipleNestedCtesRenderExpectedSql() {
+		Query salaryDetailsQuery = SqlQuery.query()
+				.select(Employee.C_ID)
+				.select(Job.C_SALARY)
+				.from(employee)
+				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		CteRef salaryDetails = with.cte("salary_details", salaryDetailsQuery, "employee_id", "salary");
+
+		Query avgSalaryQuery = SqlQuery.query()
+				.select(salaryDetails.column("employee_id"))
+				.select(AggregateOperator.AVG, salaryDetails.column("salary"))
+				.from(salaryDetails)
+				.groupBy(salaryDetails.column("employee_id"))
+				.asQuery();
+
+		CteRef avgSalary = with.cte("avg_salary", avgSalaryQuery, "employee_id", "avg_salary");
+
+		Query main = with.main(SqlQuery.query()
+				.select(avgSalary.column("employee_id"))
+				.from(avgSalary)
+				.where(avgSalary.column("avg_salary")).supOrEqTo(90000)
+				.asQuery());
+
+		String sql = main.render().sql();
+
+		String salaryDetailsSql = "SELECT " + qualified(tableRef(employee), "ID") + ", "
+				+ qualified(tableRef(job), "SALARY") + " as " + quoted("pay") + " FROM " + quoted(employee.getName()) + " "
+				+ quoted(tableRef(employee)) + " JOIN " + quoted(job.getName()) + " " + quoted(tableRef(job)) + " ON "
+				+ qualified(tableRef(employee), "ID") + " = " + qualified(tableRef(job), "EMPLOYEE_ID");
+		String avgSalarySql = "SELECT " + quoted("salary_details") + "." + quoted("employee_id") + ", AVG("
+				+ quoted("salary_details") + "." + quoted("salary") + ") FROM " + quoted("salary_details")
+				+ " GROUP BY " + quoted("salary_details") + "." + quoted("employee_id");
+		String expected = "WITH \"salary_details\"(\"employee_id\", \"salary\") AS (" + salaryDetailsSql
+				+ "), \"avg_salary\"(\"employee_id\", \"avg_salary\") AS (" + avgSalarySql + ") SELECT "
+				+ quoted("avg_salary") + "." + quoted("employee_id") + " FROM " + quoted("avg_salary") + " WHERE "
+				+ quoted("avg_salary") + "." + quoted("avg_salary") + " >= ?";
+		assertEquals(expected, sql);
 	}
 
 	@Test
@@ -316,7 +388,7 @@ class QueryBehaviourTest {
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.where(Employee.C_ID).in(highSalaryIds)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" IN ("));
 		assertTrue(sql.contains("SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")));
@@ -332,7 +404,7 @@ class QueryBehaviourTest {
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.where(Employee.C_ID).eq(averageSalary)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" = (SELECT AVG"));
 	}
@@ -347,7 +419,7 @@ class QueryBehaviourTest {
 				.select(Employee.C_FIRST_NAME)
 				.from(employee)
 				.exists(anyJob)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" WHERE EXISTS ("));
 	}
@@ -386,7 +458,7 @@ class QueryBehaviourTest {
 		Query query = SqlQuery.query();
 		query.where(Employee.C_FIRST_NAME).eq("Alice");
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains(employee.get(Employee.C_FIRST_NAME).transpile(false)));
 	}
@@ -495,7 +567,7 @@ class QueryBehaviourTest {
 				.groupBy(customerColumns.ID(), customerColumns.FIRST_NAME())
 				.orderBy(customerColumns.FIRST_NAME());
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains("FROM " + quoted(customer.getName())));
 		assertTrue(sql.contains("JOIN " + quoted(orderHeader.getName())));
@@ -511,7 +583,7 @@ class QueryBehaviourTest {
 				.from(orderLine)
 				.join(product).on(orderLineColumns.PRODUCT_ID(), productColumns.ID());
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains("JOIN " + quoted(product.getName())));
 		assertTrue(sql.contains(qualified(tableRef(orderLine), "PRODUCT_ID") + " = "
@@ -550,7 +622,7 @@ class QueryBehaviourTest {
 		String sql = SqlQuery.query()
 				.select(Employee.C_LAST_NAME)
 				.where(Employee.C_LAST_NAME).isNull()
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.contains(" IS NULL"));
 		assertFalse(sql.contains(" IS NULL()"));
@@ -573,7 +645,7 @@ class QueryBehaviourTest {
 		Query query = SqlQuery.query();
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME);
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains(" GROUP BY "));
 		assertTrue(sql.contains(Employee.C_FIRST_NAME.column().transpile(false)));
@@ -585,7 +657,7 @@ class QueryBehaviourTest {
 		query.select(Employee.C_FIRST_NAME).orderBy(Employee.C_LAST_NAME)
 				.orderBy(Employee.C_ID, SortDirection.DESC);
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		assertTrue(sql.contains(" ORDER BY "));
 		assertTrue(sql.contains(Employee.C_LAST_NAME.column().transpile(false) + " ASC"));
@@ -598,7 +670,7 @@ class QueryBehaviourTest {
 		query.select(Employee.C_FIRST_NAME).groupBy(Employee.C_FIRST_NAME)
 				.having(Employee.C_FIRST_NAME).eq("Alice");
 
-		String sql = query.transpile();
+		String sql = query.render().sql();
 
 		int groupByIndex = sql.indexOf(" GROUP BY ");
 		int havingIndex = sql.indexOf(" HAVING ");
@@ -647,17 +719,17 @@ class QueryBehaviourTest {
 				.limitAndOffset(10, 5);
 
 		SqlAndParams rendered = query.render();
-		String sql = rendered.sql();
-
-		assertTrue(sql.contains(" OFFSET ? ROWS"));
-		assertTrue(sql.contains(" FETCH NEXT ? ROWS ONLY"));
+		String expected = "SELECT " + qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName")
+				+ " FROM " + quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " ORDER BY "
+				+ qualified(tableRef(employee), "FIRST_NAME") + " ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+		assertEquals(expected, rendered.sql());
 		assertEquals(List.of(5L, 10L), rendered.params());
 	}
 
 	@Test
 	void selectTranspilerKeepsAggregateFormatting() {
 		String sql = SqlQuery.query().select(AggregateOperator.MAX, Employee.C_FIRST_NAME)
-				.select(Employee.C_LAST_NAME).transpile();
+				.select(Employee.C_LAST_NAME).render().sql();
 
 		assertTrue(sql.startsWith("SELECT MAX("));
 		assertTrue(sql.contains("), "));
@@ -666,7 +738,7 @@ class QueryBehaviourTest {
 
 	@Test
 	void countAllProducesCountStar() {
-		String sql = SqlQuery.countAll().transpile();
+		String sql = SqlQuery.countAll().asQuery().render().sql();
 		assertTrue(sql.startsWith("SELECT COUNT(*)"));
 	}
 
@@ -675,7 +747,7 @@ class QueryBehaviourTest {
 		String sql = SqlQuery.query()
 				.distinct()
 				.select(Employee.C_FIRST_NAME)
-				.transpile();
+				.render().sql();
 
 		assertTrue(sql.startsWith("SELECT DISTINCT "));
 		assertTrue(sql.contains(Employee.C_FIRST_NAME.column().transpile(false)));
@@ -684,7 +756,7 @@ class QueryBehaviourTest {
 	@Test
 	void countColumnRegistersTable() {
 		Query query = SqlQuery.query().count(Employee.C_ID);
-		String sql = query.transpile();
+		String sql = query.render().sql();
 		assertTrue(sql.contains("COUNT(" + Employee.C_ID.column().transpile(false) + ")"));
 		assertTrue(sql.contains(" FROM "));
 	}
@@ -709,7 +781,7 @@ class QueryBehaviourTest {
 		Query left = SqlQuery.query().select(employee);
 		Query right = SqlQuery.query().select(job);
 
-		String sql = left.union(right).transpile();
+		String sql = left.union(right).render().sql();
 
 		String expected = "SELECT " + qualified(tableRef(employee), "ID") + ", "
 				+ qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName") + ", "
@@ -729,27 +801,72 @@ class QueryBehaviourTest {
 		Query base = SqlQuery.query().select(Employee.C_FIRST_NAME);
 		Query other = SqlQuery.query().select(Employee.C_FIRST_NAME);
 
-		String sql = base.unionAll(other).transpile();
+		String sql = base.unionAll(other).render().sql();
 
-		assertTrue(sql.contains("UNION ALL"));
+		String expected = "SELECT " + qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName")
+				+ " FROM " + quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " UNION ALL (SELECT "
+				+ qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName") + " FROM "
+				+ quoted(employee.getName()) + " " + quoted(tableRef(employee)) + ")";
+		assertEquals(expected, sql);
 	}
 
 	@Test
 	void intersectProducesIntersection() {
-		Query left = SqlQuery.query().select(Employee.C_ID);
-		Query right = SqlQuery.query().select(Job.C_EMPLOYEE_ID);
+		Query left = SqlQuery.query().select(Employee.C_ID).from(employee);
+		Query right = SqlQuery.query().select(Job.C_EMPLOYEE_ID).from(job);
 
-		String sql = left.intersect(right).transpile();
-		assertTrue(sql.contains("INTERSECT"));
+		String sql = left.intersect(right).render().sql();
+		String expected = "SELECT " + qualified(tableRef(employee), "ID") + " FROM " + quoted(employee.getName()) + " "
+				+ quoted(tableRef(employee)) + " INTERSECT (SELECT " + qualified(tableRef(job), "EMPLOYEE_ID") + " as "
+				+ quoted("employeeId") + " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + ")";
+		assertEquals(expected, sql);
 	}
 
 	@Test
 	void exceptUsesMinusForOracle() {
-		Query left = SqlQuery.query().select(employee);
-		Query right = SqlQuery.query().select(job);
+		Query left = SqlQuery.query().select(employee).from(employee);
+		Query right = SqlQuery.query().select(job).from(job);
 
-		String sql = left.except(right).transpile();
-		assertTrue(sql.contains("MINUS"));
+		String sql = left.except(right).render().sql();
+		String expected = "SELECT " + qualified(tableRef(employee), "ID") + ", "
+				+ qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName") + ", "
+				+ qualified(tableRef(employee), "LAST_NAME") + " as " + quoted("lastName") + ", "
+				+ qualified(tableRef(employee), "MAIL") + " as " + quoted("email") + ", "
+				+ qualified(tableRef(employee), "PASSWORD") + " as " + quoted("passwd") + " FROM "
+				+ quoted(employee.getName()) + " " + quoted(tableRef(employee)) + " MINUS (SELECT "
+				+ qualified(tableRef(job), "ID") + ", " + qualified(tableRef(job), "SALARY") + " as " + quoted("pay")
+				+ ", " + qualified(tableRef(job), "DESCRIPTION") + " as " + quoted("Intitule") + ", "
+				+ qualified(tableRef(job), "EMPLOYEE_ID") + " as " + quoted("employeeId") + " FROM "
+				+ quoted(job.getName()) + " " + quoted(tableRef(job)) + ")";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	void intersectAllProducesExpectedSql() {
+		Query left = SqlQuery.query().select(Employee.C_ID).from(employee);
+		Query right = SqlQuery.query().select(Job.C_EMPLOYEE_ID).from(job);
+
+		String sql = left.intersectAll(right).render().sql();
+		String expected = "SELECT " + qualified(tableRef(employee), "ID") + " FROM " + quoted(employee.getName()) + " "
+				+ quoted(tableRef(employee)) + " INTERSECT ALL (SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")
+				+ " as " + quoted("employeeId") + " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + ")";
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	void postgresExceptAllRendersDialectSpecificKeyword() {
+		Query left = SqlQuery.newQuery(Dialects.postgres()).asQuery()
+				.select(Employee.C_ID)
+				.from(employee);
+		Query right = SqlQuery.newQuery(Dialects.postgres()).asQuery()
+				.select(Job.C_EMPLOYEE_ID)
+				.from(job);
+
+		String sql = left.exceptAll(right).render().sql();
+		String expected = "SELECT " + qualified(tableRef(employee), "ID") + " FROM " + quoted(employee.getName()) + " "
+				+ quoted(tableRef(employee)) + " EXCEPT ALL (SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")
+				+ " as " + quoted("employeeId") + " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + ")";
+		assertEquals(expected, sql);
 	}
 
 	@Test
@@ -757,7 +874,7 @@ class QueryBehaviourTest {
 		Query left = SqlQuery.query().select(employee);
 		Query right = SqlQuery.query().select(job);
 
-		assertThrows(UnsupportedOperationException.class, () -> left.exceptAll(right).transpile());
+		assertThrows(UnsupportedOperationException.class, () -> left.exceptAll(right).render().sql());
 	}
 
 	private static final class DialectsTestDialect implements Dialect {
@@ -778,8 +895,8 @@ class QueryBehaviourTest {
 		}
 
 		@Override
-		public String exceptOperator(boolean all) {
-			return all ? "EXCEPT ALL" : "EXCEPT";
+		public String setOperator(SetOperator operator) {
+			return operator.sql();
 		}
 
 		@Override

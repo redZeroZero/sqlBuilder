@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.in.media.res.sqlBuilder.api.query.Dialect;
+import org.in.media.res.sqlBuilder.api.query.SetOperator;
 
 final class OracleDialect implements Dialect {
 
@@ -28,11 +29,13 @@ final class OracleDialect implements Dialect {
     }
 
     @Override
-    public String exceptOperator(boolean all) {
-        if (all) {
-            throw new UnsupportedOperationException("Oracle does not support EXCEPT ALL / MINUS ALL");
-        }
-        return "MINUS";
+    public String setOperator(SetOperator operator) {
+        return switch (operator) {
+            case EXCEPT -> "MINUS";
+            case EXCEPT_ALL -> throw new UnsupportedOperationException(
+                    "Oracle does not support EXCEPT ALL / MINUS ALL");
+            default -> operator.sql();
+        };
     }
 
     @Override

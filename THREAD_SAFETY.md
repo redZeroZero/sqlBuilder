@@ -16,21 +16,23 @@
 
 ## Contexte dialecte
 
-Le dialecte SQL actif est porté par un `ThreadLocal` **pendant la compilation**.  
-Toujours encapsuler la compilation dans un scope avec fermeture garantie :
+Le dialecte SQL actif est stocké dans un `ThreadLocal` interne (`DialectContext`) **pendant la compilation/rendu**.  
+C’est un détail d’implémentation : n’essayez pas de manipuler ce contexte via réflexion ou API internes.
+
+- Choisissez le dialecte au moment de créer le builder (`SqlQuery.newQuery(Dialects.postgres())`, `schema.setDialect(...)`, etc.).
+- Gardez un builder par thread et par dialecte. Dès qu’un builder est partagé entre threads, le `ThreadLocal` ne reflète plus la bonne valeur et la compilation devient indéterministe.
 
 ```java
-try (var ignored = Dialects.use(Dialects.POSTGRES)) {
-  CompiledQuery cq = SqlQuery
-      .select(EMP.ID, EMP.NAME)
-      .from(EMP)
-      .where(EMP.ID).eq(SqlParameter.of("id", Integer.class))
-      .compile(); // utilise le dialecte du scope
-}
+Dialect postgres = Dialects.postgres(); // ou votre impl personnalisée
+CompiledQuery cq = SqlQuery.newQuery(postgres)
+    .select(EMP.ID, EMP.NAME)
+    .from(EMP)
+    .where(EMP.ID).eq(SqlParameter.of("id", Integer.class))
+    .compile(); // le dialecte actif reste local à ce thread
 ```
 
-> En environnement réactif/async, le `ThreadLocal` ne se propage pas entre threads.  
-> Préférer une API explicite (`compile(dialect)`) si disponible, ou s’assurer que la compilation s’effectue dans un contexte monothread.
+> En environnement réactif/async, exécuter `render()` / `compile()` sur le thread qui a instancié la requête.  
+> Sinon, créez un builder dédié par unité de travail et par thread pour éviter toute fuite de contexte.
 
 ## Cycle d’utilisation recommandé
 
@@ -45,13 +47,12 @@ try (var ignored = Dialects.use(Dialects.POSTGRES)) {
 // Au démarrage / cache applicatif
 static final CompiledQuery FIND_EMP_BY_ID;
 static {
-  try (var ignored = Dialects.use(Dialects.POSTGRES)) {
-    FIND_EMP_BY_ID = SqlQuery
-        .select(EMP.ID, EMP.NAME)
-        .from(EMP)
-        .where(EMP.ID).eq(SqlParameter.of("id", Integer.class))
-        .compile();
-  }
+  Dialect postgres = Dialects.postgres();
+  FIND_EMP_BY_ID = SqlQuery.newQuery(postgres)
+      .select(EMP.ID, EMP.NAME)
+      .from(EMP)
+      .where(EMP.ID).eq(SqlParameter.of("id", Integer.class))
+      .compile();
 }
 
 // À chaque requête (multi‑thread)

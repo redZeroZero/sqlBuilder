@@ -13,6 +13,7 @@ import org.in.media.res.sqlBuilder.core.query.OptionalConditions;
  */
 public interface DeleteQuery {
 
+	/** Internal/SPI helper; prefer {@link #render()} or {@link #compile()}. */
 	String transpile();
 
 	SqlAndParams render();

@@ -34,6 +34,9 @@
 				<version>3.11.0</version>
 				<configuration>
 					<release>${maven.compiler.release}</release>
+					<compilerArgs>
+						<arg>-proc:full</arg>
+					</compilerArgs>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.in.media.res</groupId>

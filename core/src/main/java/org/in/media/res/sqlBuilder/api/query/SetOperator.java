@@ -1,5 +1,10 @@
-package org.in.media.res.sqlBuilder.constants;
+package org.in.media.res.sqlBuilder.api.query;
 
+/**
+ * Supported SQL set operators (UNION / INTERSECT / EXCEPT) along with
+ * their standard SQL keywords. Dialects can remap specific entries to
+ * dialect-specific tokens (e.g. Oracle uses MINUS for EXCEPT).
+ */
 public enum SetOperator {
 	UNION("UNION"),
 	UNION_ALL("UNION ALL"),

@@ -20,6 +20,7 @@ import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.api.query.WithBuilder;
+import org.in.media.res.sqlBuilder.api.query.SetOperator;
 import org.in.media.res.sqlBuilder.core.model.ColumnImpl;
 import org.junit.jupiter.api.Test;
 
@@ -143,8 +144,8 @@ class WithQueryTest {
 			}
 
 			@Override
-			public String exceptOperator(boolean all) {
-				return "EXCEPT";
+			public String setOperator(SetOperator operator) {
+				return operator.sql();
 			}
 
 			@Override
