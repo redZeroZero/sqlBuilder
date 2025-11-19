@@ -124,17 +124,22 @@ class QueryReadmeExamplesTest {
 		printable.from(employee);
 		printable.where(Employee.C_FIRST_NAME).eq("Alice");
 
-			String expected = "SELECT \"E\".\"FIRST_NAME\" as \"firstName\"\n"
-					+ "FROM \"Employee\" \"E\"\n"
-					+ "WHERE \"E\".\"FIRST_NAME\" = ?";
+		String expected = """
+SELECT
+  "E"."FIRST_NAME" as "firstName"
+FROM
+  "Employee" "E"
+WHERE
+  "E"."FIRST_NAME" = ?
+				""".strip();
 
-			String actual = Arrays.stream(printable.prettyPrint().replace("\r", "").split("\n"))
-					.map(String::stripTrailing)
-                    .collect(Collectors.joining("\n"))
-                    .strip();
-            if (Boolean.getBoolean("sqlbuilder.debug.pretty")) {
-                System.out.println("ACTUAL_PRETTY>>>" + actual.replace("\n", "\\n") + "<<<");
-            }
-            assertEquals(expected, actual);
-        }
+		String actual = Arrays.stream(printable.prettyPrint().replace("\r", "").split("\n"))
+				.map(String::stripTrailing)
+				.collect(Collectors.joining("\n"))
+				.strip();
+		if (Boolean.getBoolean("sqlbuilder.debug.pretty")) {
+			System.out.println("ACTUAL_PRETTY>>>" + actual.replace("\n", "\\n") + "<<<");
+		}
+		assertEquals(expected, actual);
+	}
 }

@@ -1,8 +1,10 @@
 package org.in.media.res.sqlBuilder.api.query;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 
 /** Utility that renders {@link SqlAndParams} with inline literal values. */
@@ -59,77 +61,19 @@ public final class SqlFormatter {
         }
     }
 
-    /** Pretty print SQL by inserting new lines/indentation around common clauses. */
-    public static String prettyPrint(String sql) {
-        return prettyPrint(sql, PrettyPrintOptions.defaultOptions());
-    }
+	/** Pretty print SQL by inserting new lines/indentation around common clauses. */
+	public static String prettyPrint(String sql) {
+		return prettyPrint(sql, PrettyPrintOptions.defaultOptions());
+	}
 
-    public static String prettyPrint(String sql, PrettyPrintOptions options) {
-        if (sql == null || sql.isBlank()) {
-            return sql;
-        }
-        PrettyPrintOptions opts = options == null ? PrettyPrintOptions.defaultOptions() : options;
-        StringBuilder builder = new StringBuilder(sql.length() + 32);
-        int depth = 0;
-        String upper = sql.toUpperCase(Locale.ROOT);
-        for (int i = 0; i < sql.length(); ) {
-            if (upper.startsWith("SELECT", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("SELECT");
-                i += 6;
-                continue;
-            }
-            if (upper.startsWith("WITH", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("WITH");
-                i += 4;
-                continue;
-            }
-            if (upper.startsWith("FROM", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("FROM");
-                i += 4;
-                continue;
-            }
-            if (upper.startsWith("WHERE", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("WHERE");
-                i += 5;
-                continue;
-            }
-            if (upper.startsWith("GROUP BY", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("GROUP BY");
-                i += 8;
-                continue;
-            }
-            if (upper.startsWith("HAVING", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("HAVING");
-                i += 6;
-                continue;
-            }
-            if (upper.startsWith("ORDER BY", i) && isClauseBoundary(upper, i)) {
-                builder.append('\n').append(opts.indentString(depth)).append("ORDER BY");
-                i += 8;
-                continue;
-            }
-            if (upper.startsWith("UNION", i) || upper.startsWith("INTERSECT", i) || upper.startsWith("EXCEPT", i)) {
-                if (isClauseBoundary(upper, i)) {
-                    builder.append('\n').append(opts.indentString(depth)).append(sql, i, Math.min(sql.length(), i + nextKeywordLength(upper, i)));
-                    i += nextKeywordLength(upper, i);
-                    continue;
-                }
-            }
-            char c = sql.charAt(i);
-            builder.append(c);
-            if (c == '(') {
-                depth++;
-                builder.append('\n').append(opts.indentString(depth));
-            } else if (c == ')') {
-                depth = Math.max(depth - 1, 0);
-                if (i + 1 < sql.length()) {
-                    builder.append('\n').append(opts.indentString(depth));
-                }
-            }
-            i++;
-        }
-        return builder.toString();
-    }
+	public static String prettyPrint(String sql, PrettyPrintOptions options) {
+		if (sql == null || sql.isBlank()) {
+			return sql;
+		}
+		PrettyPrintOptions opts = options == null ? PrettyPrintOptions.defaultOptions() : options;
+		String clausesBroken = breakIntoClauses(sql, opts);
+		return formatClauses(clausesBroken, opts);
+	}
 
     private static boolean isClauseBoundary(String upperSql, int index) {
         if (index > 0 && Character.isLetterOrDigit(upperSql.charAt(index - 1))) {
@@ -143,13 +87,622 @@ public final class SqlFormatter {
                 || upperSql.charAt(end) == '(';
     }
 
-    private static int nextKeywordLength(String upperSql, int index) {
-        int end = index;
-        while (end < upperSql.length() && Character.isLetter(upperSql.charAt(end))) {
-            end++;
-        }
-        return end - index;
-    }
+	private static int nextKeywordLength(String upperSql, int index) {
+		int end = index;
+		while (end < upperSql.length() && Character.isLetter(upperSql.charAt(end))) {
+			end++;
+		}
+		return end - index;
+	}
+
+	private static String formatClauses(String rawSql, PrettyPrintOptions opts) {
+		String normalized = rawSql.replace("\r", "");
+		String[] lines = normalized.stripLeading().split("\n");
+		StringBuilder builder = new StringBuilder(normalized.length() + 32);
+		for (String line : lines) {
+			if (line.isBlank()) {
+				continue;
+			}
+			if (builder.length() > 0) {
+				builder.append('\n');
+			}
+			builder.append(formatClauseLine(line, opts));
+		}
+		return builder.toString().stripTrailing();
+	}
+
+	private static String formatClauseLine(String line, PrettyPrintOptions opts) {
+		String trimmedTrailing = line.stripTrailing();
+		String withoutLeading = trimmedTrailing.stripLeading();
+		int leadingLength = trimmedTrailing.length() - withoutLeading.length();
+		String leading = trimmedTrailing.substring(0, leadingLength);
+		String upper = withoutLeading.toUpperCase(Locale.ROOT);
+		if (upper.startsWith("SELECT")) {
+			String rest = withoutLeading.substring("SELECT".length()).trim();
+			return formatSelectClause(leading, rest, opts);
+		}
+		if (upper.startsWith("FROM")) {
+			String rest = withoutLeading.substring("FROM".length()).trim();
+			return formatFromClause(leading, rest, opts);
+		}
+		if (upper.startsWith("WHERE")) {
+			String rest = withoutLeading.substring("WHERE".length()).trim();
+			return formatPredicateClause(leading, "WHERE", rest, opts);
+		}
+		if (upper.startsWith("HAVING")) {
+			String rest = withoutLeading.substring("HAVING".length()).trim();
+			return formatPredicateClause(leading, "HAVING", rest, opts);
+		}
+		if (upper.startsWith("GROUP BY")) {
+			String rest = withoutLeading.substring("GROUP BY".length()).trim();
+			return formatGroupedClause(leading, "GROUP BY", rest, opts);
+		}
+		if (upper.startsWith("ORDER BY")) {
+			String rest = withoutLeading.substring("ORDER BY".length()).trim();
+			return formatGroupedClause(leading, "ORDER BY", rest, opts);
+		}
+		if (upper.startsWith("WITH")) {
+			String rest = withoutLeading.substring("WITH".length()).trim();
+			return formatWithClause(leading, rest, opts);
+		}
+		return leading + withoutLeading;
+	}
+
+	private static String formatSelectClause(String leading, String rest, PrettyPrintOptions opts) {
+		StringBuilder clause = new StringBuilder();
+		clause.append(leading).append("SELECT");
+		ClauseHeader header = extractSelectHeader(rest);
+		if (!header.extras().isBlank()) {
+			clause.append(' ').append(header.extras().trim());
+		}
+		if (header.body().isBlank()) {
+			return clause.toString();
+		}
+		clause.append('\n');
+		appendItems(clause, splitTopLevel(header.body(), ','), leading + opts.indentString(1), true);
+		return clause.toString();
+	}
+
+	private static String formatFromClause(String leading, String rest, PrettyPrintOptions opts) {
+		StringBuilder clause = new StringBuilder();
+		clause.append(leading).append("FROM");
+		if (rest.isBlank()) {
+			return clause.toString();
+		}
+		List<String> sources = splitFromSources(rest);
+		if (sources.isEmpty()) {
+			return clause.append(' ').append(rest).toString();
+		}
+		clause.append('\n');
+		appendFromItems(clause, sources, leading + opts.indentString(1), opts);
+		return clause.toString();
+	}
+
+	private static String formatPredicateClause(String leading, String keyword, String rest,
+			PrettyPrintOptions opts) {
+		StringBuilder clause = new StringBuilder();
+		clause.append(leading).append(keyword);
+		if (rest.isBlank()) {
+			return clause.toString();
+		}
+		List<PredicateExpression> expressions = splitLogicalExpressions(rest);
+		if (expressions.isEmpty()) {
+			return clause.toString();
+		}
+		clause.append('\n');
+		appendPredicateItems(clause, expressions, leading + opts.indentString(1), opts);
+		return clause.toString();
+	}
+
+	private static String formatGroupedClause(String leading, String keyword, String rest, PrettyPrintOptions opts) {
+		StringBuilder clause = new StringBuilder();
+		clause.append(leading).append(keyword);
+		if (rest.isBlank()) {
+			return clause.toString();
+		}
+		clause.append('\n');
+		appendItems(clause, splitTopLevel(rest, ','), leading + opts.indentString(1), true);
+		return clause.toString();
+	}
+
+	private static String formatWithClause(String leading, String rest, PrettyPrintOptions opts) {
+		StringBuilder clause = new StringBuilder();
+		clause.append(leading).append("WITH");
+		if (rest.isBlank()) {
+			return clause.toString();
+		}
+		clause.append('\n');
+		appendItems(clause, splitTopLevel(rest, ','), leading + opts.indentString(1), true);
+		return clause.toString();
+	}
+
+	private static void appendItems(StringBuilder target, List<String> items, String indent, boolean commaSeparated) {
+		for (int i = 0; i < items.size(); i++) {
+			String item = items.get(i).trim();
+			target.append(indent).append(item);
+			if (commaSeparated && i < items.size() - 1) {
+				target.append(',');
+			}
+			if (i < items.size() - 1) {
+				target.append('\n');
+			}
+		}
+	}
+
+	private static void appendFromItems(StringBuilder target, List<String> items, String indent,
+			PrettyPrintOptions opts) {
+		for (int i = 0; i < items.size(); i++) {
+			String formatted = formatFromItem(items.get(i), indent, opts);
+			target.append(formatted);
+			if (i < items.size() - 1) {
+				target.append('\n');
+			}
+		}
+	}
+
+	private static String formatFromItem(String item, String indent, PrettyPrintOptions opts) {
+		String trimmed = item.trim();
+		if (trimmed.isEmpty()) {
+			return "";
+		}
+		String upper = trimmed.toUpperCase(Locale.ROOT);
+		int joinKeywordLength = matchJoinKeyword(upper, 0, trimmed);
+		if (joinKeywordLength > 0) {
+			String keyword = trimmed.substring(0, joinKeywordLength).trim();
+			String remainder = trimmed.substring(joinKeywordLength).trim();
+			int onIndex = findKeywordOutsideParens(remainder, "ON");
+			String relation = onIndex >= 0 ? remainder.substring(0, onIndex).trim() : remainder;
+			String condition = onIndex >= 0 ? remainder.substring(onIndex).trim() : "";
+			StringBuilder formatted = new StringBuilder();
+			formatted.append(indent).append(keyword);
+			String relationIndent = indent + opts.indentString(1);
+			if (!relation.isBlank()) {
+				formatted.append('\n')
+						.append(relationIndent)
+						.append(indentMultiline(relation, relationIndent));
+			}
+			if (!condition.isBlank()) {
+				formatted.append('\n')
+						.append(relationIndent)
+						.append(indentMultiline(condition, relationIndent));
+			}
+			return formatted.toString();
+		}
+		return indent + trimmed;
+	}
+
+	private static void appendPredicateItems(StringBuilder target, List<PredicateExpression> expressions, String indent,
+			PrettyPrintOptions opts) {
+		for (int i = 0; i < expressions.size(); i++) {
+			PredicateExpression expression = expressions.get(i);
+			appendPredicateExpression(target, indent, expression.connector(), expression.expression(), opts);
+			if (i < expressions.size() - 1) {
+				target.append('\n');
+			}
+		}
+	}
+
+	private static void appendPredicateExpression(StringBuilder target, String indent, String connector,
+			String expression, PrettyPrintOptions opts) {
+		String prefix = connector.isBlank() ? indent : indent + connector + " ";
+		String trimmed = expression.trim();
+		if (trimmed.isEmpty()) {
+			return;
+		}
+		if (isWrappedInParentheses(trimmed)) {
+			String inner = trimmed.substring(1, trimmed.length() - 1).trim();
+			String innerIndent = indent + opts.indentString(1);
+			target.append(prefix).append('(');
+			if (!inner.isEmpty()) {
+				target.append('\n')
+						.append(innerIndent)
+						.append(indentMultiline(inner, innerIndent))
+						.append('\n')
+						.append(indent).append(')');
+			} else {
+				target.append(')');
+			}
+		} else {
+			target.append(prefix).append(trimmed);
+		}
+	}
+
+	private static String indentMultiline(String text, String indent) {
+		return text.replace("\n", "\n" + indent);
+	}
+
+	private static ClauseHeader extractSelectHeader(String text) {
+		int index = 0;
+		String upper = text.toUpperCase(Locale.ROOT);
+		StringBuilder extras = new StringBuilder();
+		while (index < text.length()) {
+			index = skipWhitespace(text, index);
+			if (index >= text.length()) {
+				break;
+			}
+			if (upper.startsWith("DISTINCT", index) && isWord(text, index, "DISTINCT".length())) {
+				int next = index + "DISTINCT".length();
+				appendHeaderToken(extras, text.substring(index, next));
+				index = next;
+				continue;
+			}
+			if (upper.startsWith("ALL", index) && isWord(text, index, "ALL".length())) {
+				int next = index + "ALL".length();
+				appendHeaderToken(extras, text.substring(index, next));
+				index = next;
+				continue;
+			}
+			if (text.startsWith("/*", index)) {
+				int end = consumeBlockComment(text, index);
+				appendHeaderToken(extras, text.substring(index, Math.min(end, text.length())));
+				index = end;
+				continue;
+			}
+			break;
+		}
+		return new ClauseHeader(extras.toString(), text.substring(index).trim());
+	}
+
+	private static void appendHeaderToken(StringBuilder builder, String token) {
+		if (!token.isBlank()) {
+			builder.append(' ').append(token.trim());
+		}
+	}
+
+	private static List<String> splitTopLevel(String text, char delimiter) {
+		List<String> parts = new ArrayList<>();
+		if (text == null || text.isBlank()) {
+			return parts;
+		}
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		StringBuilder current = new StringBuilder();
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '\'') {
+					current.append(text.charAt(i + 1));
+					i++;
+					continue;
+				}
+				inSingle = !inSingle;
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '"') {
+					current.append(text.charAt(i + 1));
+					i++;
+					continue;
+				}
+				inDouble = !inDouble;
+				continue;
+			}
+			if (inSingle || inDouble) {
+				current.append(c);
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+				current.append(c);
+				continue;
+			}
+			if (c == ')') {
+				depth = Math.max(depth - 1, 0);
+				current.append(c);
+				continue;
+			}
+			if (c == delimiter && depth == 0) {
+				String value = current.toString().trim();
+				if (!value.isEmpty()) {
+					parts.add(value);
+				}
+				current.setLength(0);
+				continue;
+			}
+			current.append(c);
+		}
+		String tail = current.toString().trim();
+		if (!tail.isEmpty()) {
+			parts.add(tail);
+		}
+		return parts;
+	}
+
+	private static List<String> splitFromSources(String text) {
+		List<String> sources = new ArrayList<>();
+		if (text.isBlank()) {
+			return sources;
+		}
+		String upper = text.toUpperCase(Locale.ROOT);
+		StringBuilder current = new StringBuilder();
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '\'') {
+					current.append(text.charAt(i + 1));
+					i++;
+				} else {
+					inSingle = !inSingle;
+				}
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '"') {
+					current.append(text.charAt(i + 1));
+					i++;
+				} else {
+					inDouble = !inDouble;
+				}
+				continue;
+			}
+			if (inSingle || inDouble) {
+				current.append(c);
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+				current.append(c);
+				continue;
+			}
+			if (c == ')') {
+				depth = Math.max(depth - 1, 0);
+				current.append(c);
+				continue;
+			}
+			if (depth == 0) {
+				int joinLen = matchJoinKeyword(upper, i, text);
+				if (joinLen > 0) {
+					String base = current.toString().trim();
+					if (!base.isEmpty()) {
+						sources.add(base);
+					}
+					current.setLength(0);
+					current.append(text, i, i + joinLen).append(' ');
+					i += joinLen - 1;
+					while (i + 1 < text.length() && Character.isWhitespace(text.charAt(i + 1))) {
+						i++;
+					}
+					continue;
+				}
+			}
+			current.append(c);
+		}
+		String tail = current.toString().trim();
+		if (!tail.isEmpty()) {
+			sources.add(tail);
+		}
+		return sources;
+	}
+
+	private static int matchJoinKeyword(String upper, int index, String original) {
+		String[][] patterns = {
+				{ "LEFT", "OUTER", "JOIN" },
+				{ "LEFT", "JOIN" },
+				{ "RIGHT", "OUTER", "JOIN" },
+				{ "RIGHT", "JOIN" },
+				{ "FULL", "OUTER", "JOIN" },
+				{ "FULL", "JOIN" },
+				{ "INNER", "JOIN" },
+				{ "CROSS", "JOIN" },
+				{ "JOIN" }
+		};
+		for (String[] pattern : patterns) {
+			int length = matchCompositeKeyword(upper, original, index, pattern);
+			if (length > 0) {
+				return length;
+			}
+		}
+		return -1;
+	}
+
+	private static List<PredicateExpression> splitLogicalExpressions(String text) {
+		List<PredicateExpression> expressions = new ArrayList<>();
+		if (text.isBlank()) {
+			return expressions;
+		}
+		String upper = text.toUpperCase(Locale.ROOT);
+		StringBuilder current = new StringBuilder();
+		String pendingConnector = "";
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '\'') {
+					current.append(text.charAt(i + 1));
+					i++;
+				} else {
+					inSingle = !inSingle;
+				}
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				current.append(c);
+				if (i + 1 < text.length() && text.charAt(i + 1) == '"') {
+					current.append(text.charAt(i + 1));
+					i++;
+				} else {
+					inDouble = !inDouble;
+				}
+				continue;
+			}
+			if (inSingle || inDouble) {
+				current.append(c);
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+				current.append(c);
+				continue;
+			}
+			if (c == ')') {
+				depth = Math.max(depth - 1, 0);
+				current.append(c);
+				continue;
+			}
+			if (depth == 0) {
+				if (upper.startsWith("AND", i) && isWord(text, i, 3)) {
+					addPredicateExpression(expressions, pendingConnector, current.toString());
+					pendingConnector = "AND";
+					current.setLength(0);
+					i += 3;
+					i = skipWhitespace(text, i) - 1;
+					continue;
+				}
+				if (upper.startsWith("OR", i) && isWord(text, i, 2)) {
+					addPredicateExpression(expressions, pendingConnector, current.toString());
+					pendingConnector = "OR";
+					current.setLength(0);
+					i += 2;
+					i = skipWhitespace(text, i) - 1;
+					continue;
+				}
+			}
+			current.append(c);
+		}
+		addPredicateExpression(expressions, pendingConnector, current.toString());
+		return expressions;
+	}
+
+	private static void addPredicateExpression(List<PredicateExpression> expressions, String connector,
+			String expression) {
+		String trimmed = expression.trim();
+		if (!trimmed.isEmpty()) {
+			expressions.add(new PredicateExpression(connector == null ? "" : connector, trimmed));
+		}
+	}
+
+	private static boolean isWord(String text, int start, int length) {
+		int end = start + length;
+		boolean leadingBoundary = start <= 0 || !isIdentifierChar(text.charAt(start - 1));
+		boolean trailingBoundary = end >= text.length() || !isIdentifierChar(text.charAt(end));
+		return leadingBoundary && trailingBoundary;
+	}
+
+	private static int matchCompositeKeyword(String upper, String original, int index, String[] words) {
+		int pos = index;
+		for (int i = 0; i < words.length; i++) {
+			String word = words[i];
+			if (!upper.startsWith(word, pos)) {
+				return -1;
+			}
+			if (!isWord(original, pos, word.length())) {
+				return -1;
+			}
+			pos += word.length();
+			if (i < words.length - 1) {
+				pos = skipWhitespace(original, pos);
+			}
+		}
+		return pos - index;
+	}
+
+	private static int findKeywordOutsideParens(String text, String keyword) {
+		if (text.isBlank()) {
+			return -1;
+		}
+		String upper = text.toUpperCase(Locale.ROOT);
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				inSingle = !inSingle;
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				inDouble = !inDouble;
+				continue;
+			}
+			if (inSingle || inDouble) {
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+				continue;
+			}
+			if (c == ')') {
+				depth = Math.max(depth - 1, 0);
+				continue;
+			}
+			if (depth == 0 && upper.startsWith(keyword, i) && isWord(text, i, keyword.length())) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private static int skipWhitespace(String text, int index) {
+		int pos = index;
+		while (pos < text.length() && Character.isWhitespace(text.charAt(pos))) {
+			pos++;
+		}
+		return pos;
+	}
+
+	private static boolean isIdentifierChar(char c) {
+		return Character.isLetterOrDigit(c) || c == '_';
+	}
+
+	private static int consumeBlockComment(String text, int start) {
+		int end = start + 2;
+		while (end < text.length()) {
+			if (text.charAt(end) == '*' && end + 1 < text.length() && text.charAt(end + 1) == '/') {
+				return end + 2;
+			}
+			end++;
+		}
+		return text.length();
+	}
+
+	private static boolean isWrappedInParentheses(String text) {
+		if (text.length() < 2 || text.charAt(0) != '(' || text.charAt(text.length() - 1) != ')') {
+			return false;
+		}
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				inSingle = !inSingle;
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				inDouble = !inDouble;
+				continue;
+			}
+			if (inSingle || inDouble) {
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+			} else if (c == ')') {
+				depth--;
+				if (depth == 0 && i < text.length() - 1) {
+					return false;
+				}
+			}
+		}
+		return depth == 0;
+	}
+
+	private record ClauseHeader(String extras, String body) {
+	}
+
+	private record PredicateExpression(String connector, String expression) {
+	}
 
     private static String formatLiteral(Object value, Dialect dialect) {
         if (value == null) {
@@ -166,4 +719,69 @@ public final class SqlFormatter {
         }
         return "'" + value.toString().replace("'", "''") + "'";
     }
+
+	private static String breakIntoClauses(String sql, PrettyPrintOptions opts) {
+		StringBuilder builder = new StringBuilder(sql.length() + 32);
+		int depth = 0;
+		String upper = sql.toUpperCase(Locale.ROOT);
+		for (int i = 0; i < sql.length();) {
+			if (upper.startsWith("SELECT", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("SELECT");
+				i += 6;
+				continue;
+			}
+			if (upper.startsWith("WITH", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("WITH");
+				i += 4;
+				continue;
+			}
+			if (upper.startsWith("FROM", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("FROM");
+				i += 4;
+				continue;
+			}
+			if (upper.startsWith("WHERE", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("WHERE");
+				i += 5;
+				continue;
+			}
+			if (upper.startsWith("GROUP BY", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("GROUP BY");
+				i += 8;
+				continue;
+			}
+			if (upper.startsWith("HAVING", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("HAVING");
+				i += 6;
+				continue;
+			}
+			if (upper.startsWith("ORDER BY", i) && isClauseBoundary(upper, i)) {
+				builder.append('\n').append(opts.indentString(depth)).append("ORDER BY");
+				i += 8;
+				continue;
+			}
+			if (upper.startsWith("UNION", i) || upper.startsWith("INTERSECT", i) || upper.startsWith("EXCEPT", i)) {
+				if (isClauseBoundary(upper, i)) {
+					builder.append('\n').append(opts.indentString(depth)).append(sql, i,
+							Math.min(sql.length(), i + nextKeywordLength(upper, i)));
+					i += nextKeywordLength(upper, i);
+					continue;
+				}
+			}
+			char c = sql.charAt(i);
+			builder.append(c);
+			if (c == '(') {
+				depth++;
+				builder.append('\n').append(opts.indentString(depth));
+			} else if (c == ')') {
+				depth = Math.max(depth - 1, 0);
+				if (i + 1 < sql.length()) {
+					builder.append('\n').append(opts.indentString(depth));
+				}
+			}
+			i++;
+		}
+		return builder.toString();
+	}
+
 }

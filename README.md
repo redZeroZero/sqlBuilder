@@ -240,9 +240,12 @@ printable.where(Employee.C_FIRST_NAME).eq("Alice");
 
 System.out.println(printable.prettyPrint());
 /*
-SELECT Employee.FIRST_NAME as firstName
-FROM Employee
-WHERE Employee.FIRST_NAME = ?
+SELECT
+  Employee.FIRST_NAME as firstName
+FROM
+  Employee
+WHERE
+  Employee.FIRST_NAME = ?
 */
 ```
 

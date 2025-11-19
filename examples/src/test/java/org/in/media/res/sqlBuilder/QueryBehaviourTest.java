@@ -770,10 +770,23 @@ class QueryBehaviourTest {
 		query.eq("Alice");
 		query.orderBy(Employee.C_FIRST_NAME);
 
-		String pretty = query.prettyPrint();
-		assertTrue(pretty.contains("\nFROM "));
-		assertTrue(pretty.contains("\nWHERE "));
-		assertTrue(pretty.contains("\nORDER BY "));
+		String pretty = query.prettyPrint().strip();
+		String expected = """
+SELECT
+  %s
+FROM
+  %s
+WHERE
+  %s = ?
+ORDER BY
+  %s ASC
+				"""
+				.formatted(
+						qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName"),
+						quoted(employee.getName()) + " " + quoted(tableRef(employee)),
+						qualified(tableRef(employee), "FIRST_NAME"),
+						qualified(tableRef(employee), "FIRST_NAME"));
+		assertEquals(expected.strip(), pretty);
 	}
 
 	@Test
