@@ -30,15 +30,21 @@ public final class ConditionGroupBuilder implements Condition {
 	private final List<Condition> conditions = new ArrayList<>();
 	private final ConditionGroupBuilder parent;
 	private final Operator parentConnector;
+	private final boolean forceParentheses;
 	private boolean closed;
 
 	public ConditionGroupBuilder() {
-		this(null, null);
+		this(null, null, false);
 	}
 
-	private ConditionGroupBuilder(ConditionGroupBuilder parent, Operator parentConnector) {
+	public ConditionGroupBuilder(boolean forceParentheses) {
+		this(null, null, forceParentheses);
+	}
+
+	private ConditionGroupBuilder(ConditionGroupBuilder parent, Operator parentConnector, boolean forceParentheses) {
 		this.parent = parent;
 		this.parentConnector = parentConnector;
+		this.forceParentheses = forceParentheses;
 	}
 
 	public ConditionGroupBuilder where(Column column) {
@@ -521,7 +527,8 @@ public final class ConditionGroupBuilder implements Condition {
 		if (conditions.isEmpty()) {
 			throw new IllegalStateException("Condition group must contain at least one predicate");
 		}
-		return new ConditionGroup(List.copyOf(conditions), null);
+		boolean parenthesize = forceParentheses || conditions.size() > 1;
+		return new ConditionGroup(List.copyOf(conditions), null, parenthesize);
 	}
 
 	private ConditionGroupBuilder addGroup(Operator connector, Consumer<ConditionGroupBuilder> consumer) {
@@ -533,7 +540,7 @@ public final class ConditionGroupBuilder implements Condition {
 	}
 
 	private ConditionGroupBuilder beginNested(Operator connector) {
-		return new ConditionGroupBuilder(this, connector);
+		return new ConditionGroupBuilder(this, connector, true);
 	}
 
 	private void addCondition(Condition condition) {

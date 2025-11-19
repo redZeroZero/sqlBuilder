@@ -790,6 +790,37 @@ ORDER BY
 	}
 
 	@Test
+	void prettyPrintOmitsParenthesesForImplicitSingletonGroup() {
+		Query query = SqlQuery.query();
+		query.select(Employee.C_FIRST_NAME);
+		query.from(employee);
+
+		var implicitGroup = new org.in.media.res.sqlBuilder.core.query.ConditionGroupBuilder()
+				.where(Employee.C_FIRST_NAME)
+				.eq("Alice")
+				.build();
+
+		query.where(implicitGroup);
+
+		String pretty = query.prettyPrint().strip();
+		System.out.println("prettyPrintOmitsParenthesesForImplicitSingletonGroup:\n" + pretty + "\n");
+		String expected = """
+SELECT
+  %s
+FROM
+  %s
+WHERE
+  %s = ?
+				"""
+				.formatted(
+						qualified(tableRef(employee), "FIRST_NAME") + " as " + quoted("firstName"),
+						quoted(employee.getName()) + " " + quoted(tableRef(employee)),
+						qualified(tableRef(employee), "FIRST_NAME"));
+
+		assertEquals(expected.strip(), pretty);
+	}
+
+	@Test
 	void unionCombinesQueries() {
 		Query left = SqlQuery.query().select(employee);
 		Query right = SqlQuery.query().select(job);

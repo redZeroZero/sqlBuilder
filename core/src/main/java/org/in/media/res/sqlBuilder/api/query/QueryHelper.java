@@ -15,11 +15,11 @@ public final class QueryHelper {
 	}
 
 	public static ConditionGroupBuilder group() {
-		return new ConditionGroupBuilder();
+		return new ConditionGroupBuilder(true);
 	}
 
     public static ConditionGroup group(Consumer<ConditionGroupBuilder> consumer) {
-        ConditionGroupBuilder builder = new ConditionGroupBuilder();
+        ConditionGroupBuilder builder = new ConditionGroupBuilder(true);
         consumer.accept(builder);
         return builder.build();
     }

@@ -16,13 +16,15 @@ public final class ConditionGroup implements Condition {
 
 	private final List<Condition> children;
 	private final Operator startOperator;
+	private final boolean forceParentheses;
 
-	public ConditionGroup(List<Condition> children, Operator startOperator) {
+	public ConditionGroup(List<Condition> children, Operator startOperator, boolean forceParentheses) {
 		if (children == null || children.isEmpty()) {
 			throw new IllegalArgumentException("Condition group must contain at least one predicate");
 		}
 		this.children = List.copyOf(children);
 		this.startOperator = startOperator;
+		this.forceParentheses = forceParentheses;
 	}
 
 	public List<Condition> children() {
@@ -33,11 +35,15 @@ public final class ConditionGroup implements Condition {
 		return startOperator;
 	}
 
+	public boolean forceParentheses() {
+		return forceParentheses;
+	}
+
 	public ConditionGroup withStartOperator(Operator operator) {
 		if (Objects.equals(operator, this.startOperator)) {
 			return this;
 		}
-		return new ConditionGroup(children, operator);
+		return new ConditionGroup(children, operator, forceParentheses);
 	}
 
 	@Override
@@ -81,7 +87,10 @@ public final class ConditionGroup implements Condition {
 		if (startOperator != null) {
 			builder.append(startOperator.value());
 		}
-		builder.append('(');
+		boolean renderParentheses = forceParentheses || children.size() > 1;
+		if (renderParentheses) {
+			builder.append('(');
+		}
 		boolean first = true;
 		for (Condition condition : children) {
 			String rendered = condition.transpile();
@@ -91,7 +100,9 @@ public final class ConditionGroup implements Condition {
 			builder.append(rendered);
 			first = false;
 		}
-		builder.append(')');
+		if (renderParentheses) {
+			builder.append(')');
+		}
 		return builder.toString();
 	}
 
