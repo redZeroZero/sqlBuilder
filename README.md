@@ -35,6 +35,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It
   - [Typed Rows & Builders](#typed-rows--builders)
   - [Manual Table Registration](#manual-table-registration)
 - [Integration Module with PostgreSQL](#integration-module-with-postgresql)
+- [Spring Boot demo API](#spring-boot-demo-api)
 - [Spring JDBC integration](#spring-jdbc-integration)
 - [Running Tests](#running-tests)
 - [Running Tests](#running-tests)
@@ -751,7 +752,7 @@ This manual approach avoids classpath scanning entirely while still delivering t
 
 ### Integration Module with PostgreSQL
 
-The project now includes an `integration` module that drives `sqlBuilder` against a PostgreSQL container preloaded with a richer commerce-style schema (departments, jobs, products, customers, orders, payments, etc.). The module lives under `integration/` and exposes a `IntegrationApp` that you can extend for your own real-world experiments.
+The project now includes an `integration` module that drives `sqlBuilder` against a PostgreSQL container preloaded with a richer commerce-style schema (departments, jobs, products, customers, orders, payments, etc.). The module lives under `integration/` and exposes both a console runner (`IntegrationApp`) and a Spring Boot REST surface for exploring the DSL.
 
 1. Start the backing database (ports, credentials, and initial data are defined in `integration/docker/docker-compose.yml` and `integration/docker/init.sql`):
 
@@ -774,6 +775,26 @@ The project now includes an `integration` module that drives `sqlBuilder` agains
    ```
 
 You are encouraged to modify `integration/src/main/java/org/in/media/res/sqlBuilder/integration/IntegrationApp.java` and add new queries against the provided schema. All Java code runs on the host machine; the container simply provides a PostgreSQL-backed data source.
+
+### Spring Boot demo API
+
+The `integration` module also ships a lightweight Spring Boot app that exposes the same sample queries over HTTP and executes them directly against the containerized PostgreSQL database.
+
+1. Ensure the Postgres container is running (see steps above).
+2. Start the app:
+
+   ```bash
+   mvn -pl integration spring-boot:run
+   ```
+
+   Configuration uses the same environment variables as the console runner (`SQLBUILDER_JDBC_URL`, `SQLBUILDER_JDBC_USER`, `SQLBUILDER_JDBC_PASSWORD`). The server binds to `${PORT:-8080}`.
+
+3. Explore the endpoints:
+
+   - `GET /queries` — lists the available demos (id, title, description).
+   - `GET /queries/{id}` — runs the selected query and returns `sql`, `params`, and `rows` as JSON.
+
+The catalog includes the original integration scenarios (projections, joins, aggregates, pagination, CTEs, grouped/optional filters, raw fragments) plus new demos such as department salary totals, top-paid employees, order/customer joins, and per-product revenue. See `integration/SPRING_BOOT_APP.md` for a concise module guide. Optionally set `SQLBUILDER_IT=true` and run `mvn -pl integration test` to exercise the REST layer against the live database.
 
 ### Spring JDBC integration
 

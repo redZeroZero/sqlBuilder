@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: sqlbuilder-integration
+  datasource:
+    url: ${SQLBUILDER_JDBC_URL:jdbc:postgresql://localhost:5432/sqlbuilder}
+    username: ${SQLBUILDER_JDBC_USER:sb_user}
+    password: ${SQLBUILDER_JDBC_PASSWORD:sb_pass}
+    driver-class-name: org.postgresql.Driver
+  jackson:
+    serialization:
+      indent_output: true
+
+server:
+  port: ${PORT:8080}
+
+sqlbuilder:
+  integration:
+    max-rows: 100
+
+logging:
+  level:
+    org.in.media.res.sqlBuilder.integration.boot: INFO
