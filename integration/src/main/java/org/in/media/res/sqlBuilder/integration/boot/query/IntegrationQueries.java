@@ -324,7 +324,7 @@ public final class IntegrationQueries {
 				.from(orderLines)
 				.join(products).on(OrderLinesTable.C_PRODUCT_ID, ProductsTable.C_ID)
 				.join(orders).on(OrderLinesTable.C_ORDER_ID, OrdersTable.C_ID)
-				.leftJoin(payments).on(PaymentsTable.C_ORDER_ID, OrdersTable.C_ID)
+				.leftJoin(payments).on(PaymentsTable.C_ORDER_ID, OrderLinesTable.C_ORDER_ID)
 				.groupBy(ProductsTable.C_NAME)
 				.orderByRaw("line_total DESC");
 

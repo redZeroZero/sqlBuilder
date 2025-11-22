@@ -23,7 +23,7 @@ public class QueryController {
 	}
 
 	@GetMapping("/{id}")
-	public QueryExecution run(@PathVariable String id) {
+	public QueryExecution run(@PathVariable("id") String id) {
 		return queryService.run(id);
 	}
 }

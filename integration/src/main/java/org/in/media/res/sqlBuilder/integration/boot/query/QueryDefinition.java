@@ -1,5 +1,7 @@
 package org.in.media.res.sqlBuilder.integration.boot.query;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,10 +49,11 @@ public final class QueryDefinition {
 		List<Map<String, Object>> rows = jdbcTemplate.queryForList(sqlAndParams.sql(),
 				sqlAndParams.params().toArray());
 		LOGGER.info("Executing {} -> {}", id, sqlAndParams.sql());
-		if (!sqlAndParams.params().isEmpty()) {
-			LOGGER.info("Params: {}", sqlAndParams.params());
+		List<Object> params = Collections.unmodifiableList(new ArrayList<>(sqlAndParams.params()));
+		if (!params.isEmpty()) {
+			LOGGER.info("Params: {}", params);
 		}
 		return new QueryExecution(id, title, description, sqlAndParams.sql(),
-				List.copyOf(sqlAndParams.params()), rows);
+				params, rows);
 	}
 }
