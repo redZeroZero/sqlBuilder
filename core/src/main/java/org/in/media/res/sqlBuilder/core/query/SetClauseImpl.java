@@ -56,13 +56,17 @@ final class SetClauseImpl implements SetClause {
 			if (assignment.isRaw()) {
 				builder.append(assignment.rawFragment().sql());
 			} else {
-				builder.append(assignment.column().transpile()).append(valueExpression(assignment.value()));
+				builder.append(quoteColumnName(assignment.column())).append(valueExpression(assignment.value()));
 			}
 			if (i < assignments.size() - 1) {
 				builder.append(", ");
 			}
 		}
 		return builder.toString();
+	}
+
+	private String quoteColumnName(Column column) {
+		return org.in.media.res.sqlBuilder.core.query.dialect.DialectContext.current().quoteIdent(column.getName());
 	}
 
 	private String valueExpression(AssignmentValue value) {

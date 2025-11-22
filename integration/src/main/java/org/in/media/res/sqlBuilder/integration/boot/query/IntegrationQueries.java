@@ -14,7 +14,6 @@ import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.integration.model.CustomersTable;
-import org.in.media.res.sqlBuilder.integration.model.DepartmentsTable;
 import org.in.media.res.sqlBuilder.integration.model.EmployeesTable;
 import org.in.media.res.sqlBuilder.integration.model.IntegrationSchema;
 import org.in.media.res.sqlBuilder.integration.model.JobsTable;
@@ -22,6 +21,7 @@ import org.in.media.res.sqlBuilder.integration.model.OrderLinesTable;
 import org.in.media.res.sqlBuilder.integration.model.OrdersTable;
 import org.in.media.res.sqlBuilder.integration.model.PaymentsTable;
 import org.in.media.res.sqlBuilder.integration.model.ProductsTable;
+import org.in.media.res.sqlBuilder.integration.model.DepartmentsTable;
 
 public final class IntegrationQueries {
 
@@ -147,14 +147,14 @@ public final class IntegrationQueries {
 				.groupBy(EmployeesTable.C_ID)
 				.asQuery();
 
-		Table salaryAvg = SqlQuery.toTable(salarySummary, "salary_avg", "EMPLOYEE_ID", "AVG_SALARY");
+		Table salaryAvg = SqlQuery.toTable(salarySummary, "salary_avg", "id", "avg");
 
 		Query query = SqlQuery.query();
 		query.select(EmployeesTable.C_FIRST_NAME)
 				.select(EmployeesTable.C_LAST_NAME)
 				.from(employees)
-				.join(salaryAvg).on(EmployeesTable.C_ID, salaryAvg.get("EMPLOYEE_ID"))
-				.where(salaryAvg.get("AVG_SALARY")).supOrEqTo(80_000)
+				.join(salaryAvg).on(EmployeesTable.C_ID, salaryAvg.get("id"))
+				.where(salaryAvg.get("avg")).supOrEqTo(80_000)
 				.orderBy(EmployeesTable.C_LAST_NAME);
 
 		return query.render();
@@ -331,13 +331,84 @@ public final class IntegrationQueries {
 		return query.render();
 	}
 
+	public static SqlAndParams topEarnersByDepartment() {
+		Table employees = IntegrationSchema.employees();
+		Table departments = IntegrationSchema.departments();
+		Table jobs = IntegrationSchema.jobs();
+
+		Query ranking = SqlQuery.newQuery()
+				.select(DepartmentsTable.C_NAME)
+				.select(EmployeesTable.C_FIRST_NAME)
+				.select(EmployeesTable.C_LAST_NAME)
+				.select(JobsTable.C_SALARY)
+				.selectRaw("ROW_NUMBER() OVER(PARTITION BY d.id ORDER BY j.salary DESC) AS rn")
+				.from(employees)
+				.join(departments).on(EmployeesTable.C_DEPARTMENT_ID, DepartmentsTable.C_ID)
+				.join(jobs).on(EmployeesTable.C_ID, JobsTable.C_EMPLOYEE_ID)
+				.asQuery();
+
+		Table ranked = SqlQuery.toTable(ranking, "ranked", "name", "firstName", "lastName", "salary", "rn");
+
+		Query top = SqlQuery.query();
+		top.select(ranked.get("name"))
+				.select(ranked.get("firstName"))
+				.select(ranked.get("lastName"))
+				.select(ranked.get("salary"))
+				.from(ranked)
+				.where(ranked.get("rn")).eq(1)
+				.orderBy(ranked.get("name"));
+
+		return top.render();
+	}
+
+	public static SqlAndParams customerOrderSummaries() {
+		Table customers = IntegrationSchema.customers();
+		Table orders = IntegrationSchema.orders();
+		Table payments = IntegrationSchema.payments();
+
+		Query aggregated = SqlQuery.query()
+				.select(CustomersTable.C_FIRST_NAME)
+				.select(CustomersTable.C_LAST_NAME)
+				.selectRaw("SUM(o.total) AS total_sum")
+				.selectRaw("SUM(pay.amount) AS paid_sum")
+				.from(customers)
+				.join(orders).on(CustomersTable.C_ID, OrdersTable.C_CUSTOMER_ID)
+				.leftJoin(payments).on(PaymentsTable.C_ORDER_ID, OrdersTable.C_ID)
+				.groupBy(CustomersTable.C_FIRST_NAME, CustomersTable.C_LAST_NAME)
+				.having(OrdersTable.C_TOTAL).sum(OrdersTable.C_TOTAL).supTo(300)
+				.orderByAlias("total_sum", SortDirection.DESC);
+
+		return aggregated.render();
+	}
+
+	public static SqlAndParams aboveDepartmentAverage() {
+		Table employees = IntegrationSchema.employees();
+
+		Query query = SqlQuery.query();
+		query.select(EmployeesTable.C_FIRST_NAME)
+				.select(EmployeesTable.C_LAST_NAME)
+				.select(EmployeesTable.C_SALARY)
+				.from(employees)
+				.whereRaw("""
+						e.salary > (
+							SELECT AVG(j.salary)
+							FROM jobs j
+							JOIN employees e2 ON j.employee_id = e2.id
+							WHERE e2.department_id = e.department_id
+						)
+						""")
+				.orderBy(EmployeesTable.C_SALARY, SortDirection.DESC);
+
+		return query.render();
+	}
+
 	private static SqlAndParams optionalFilters(String nameFilter, String cityFilter, Integer minSalaryFilter) {
 		Table employees = IntegrationSchema.employees();
 		Table departments = IntegrationSchema.departments();
 
-		SqlParameter<String> name = SqlParameters.param("nameFilter");
-		SqlParameter<String> city = SqlParameters.param("cityFilter");
-		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
+		SqlParameter<String> name = SqlParameters.param("nameFilter", String.class);
+		SqlParameter<String> city = SqlParameters.param("cityFilter", String.class);
+		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary", Integer.class);
 
 		Query query = SqlQuery.newQuery()
 				.select(EmployeesTable.C_FIRST_NAME)

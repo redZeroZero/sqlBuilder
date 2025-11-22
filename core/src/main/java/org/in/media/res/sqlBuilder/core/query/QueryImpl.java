@@ -108,11 +108,26 @@ public class QueryImpl implements Query {
 	}
 
 	public static Table toTable(Query query, String alias, String... columnAliases) {
+		validateRawAliases(query, columnAliases);
 		return deriveTable(query, alias, columnAliases);
 	}
 
 	public static Table toTable(Query query) {
 		return deriveTable(query, null);
+	}
+
+	private static void validateRawAliases(Query query, String... columnAliases) {
+		if (columnAliases != null && columnAliases.length > 0) {
+			return;
+		}
+		if (query instanceof QueryImpl impl) {
+			boolean hasRaw = impl.projections().stream()
+					.anyMatch(p -> p.type() == SelectProjectionSupport.ProjectionType.RAW);
+			if (hasRaw) {
+				throw new IllegalArgumentException(
+						"toTable(...) with raw projections requires explicit column aliases to avoid ambiguous names");
+			}
+		}
 	}
 
 	private static Table deriveTable(Query query, String alias, String... columnAliases) {
@@ -1012,6 +1027,21 @@ public class QueryImpl implements Query {
 		return this.fromClause.joins();
 	}
 
+	List<SelectProjectionSupport.SelectProjection> projections() {
+		if (selectClause instanceof SelectProjectionSupport support) {
+			return support.projections();
+		}
+		return List.of();
+	}
+
+	List<org.in.media.res.sqlBuilder.api.query.spi.OrderBy.Ordering> orderingsView() {
+		return orderByClause.orderings();
+	}
+
+	List<Column> groupByColumnsView() {
+		return groupByClause.groupByColumns();
+	}
+
 	@Override
 	public List<Condition> conditions() {
 		return this.whereClause.conditions();
@@ -1084,6 +1114,48 @@ public class QueryImpl implements Query {
 	@Override
 	public Query orderBy(TableDescriptor<?> descriptor, SortDirection direction) {
 		return this.orderBy(descriptor.column(), direction);
+	}
+
+	@Override
+	public Query orderByAggregate(AggregateOperator aggregate, Column column) {
+		return orderByAggregate(aggregate, column, SortDirection.ASC);
+	}
+
+	@Override
+	public Query orderByAggregate(AggregateOperator aggregate, Column column, SortDirection direction) {
+		try (DialectContext.Scope ignored = DialectContext.scope(dialect)) {
+			String expr = aggregate.name() + "(" + column.transpile(false) + ")";
+			orderByClause.orderByRaw(expr + " " + direction.value());
+		}
+		return this;
+	}
+
+	@Override
+	public Query orderByAlias(String alias) {
+		return orderByAlias(alias, SortDirection.ASC);
+	}
+
+	@Override
+	public Query orderByAlias(String alias, SortDirection direction) {
+		try (DialectContext.Scope ignored = DialectContext.scope(dialect)) {
+			String quoted = DialectContext.current().quoteIdent(alias);
+			orderByClause.orderByRaw(quoted + " " + direction.value());
+		}
+		return this;
+	}
+
+	@Override
+	public Query orderByFirstAggregate() {
+		return orderByFirstAggregate(SortDirection.ASC);
+	}
+
+	@Override
+	public Query orderByFirstAggregate(SortDirection direction) {
+		if (selectClause.aggColumns().isEmpty()) {
+			return this;
+		}
+		Map.Entry<Column, AggregateOperator> first = selectClause.aggColumns().entrySet().iterator().next();
+		return orderByAggregate(first.getValue(), first.getKey(), direction);
 	}
 
 	@Override
@@ -1239,6 +1311,7 @@ public class QueryImpl implements Query {
 		appendCtePlaceholders(placeholders);
 		appendSelectPlaceholders(placeholders);
 		appendFromPlaceholders(placeholders);
+		appendDerivedTablePlaceholders(placeholders);
 		appendConditionPlaceholders(whereClause.conditions(), placeholders);
 		appendGroupByPlaceholders(placeholders);
 		appendConditionPlaceholders(havingClause.havingConditions(), placeholders);
@@ -1252,6 +1325,27 @@ public class QueryImpl implements Query {
 		for (Condition condition : conditions) {
 			collectConditionPlaceholders(condition, placeholders);
 		}
+	}
+
+	private void appendDerivedTablePlaceholders(List<CompiledQuery.Placeholder> placeholders) {
+		for (Map.Entry<Table, JoinSpec> entry : fromClause.joins().entrySet()) {
+			Table table = entry.getKey();
+			if (table instanceof org.in.media.res.sqlBuilder.api.model.DerivedTable derived) {
+				placeholders.addAll(collectSubqueryPlaceholders(derived.subquery()));
+			}
+		}
+	}
+
+	private List<CompiledQuery.Placeholder> collectSubqueryPlaceholders(Query subquery) {
+		if (subquery instanceof QueryImpl impl) {
+			return impl.collectPlaceholders();
+		}
+		SqlAndParams rendered = subquery.render();
+		List<CompiledQuery.Placeholder> subs = new ArrayList<>(rendered.params().size());
+		for (Object param : rendered.params()) {
+			subs.add(new CompiledQuery.Placeholder(null, param));
+		}
+		return subs;
 	}
 
 	private void collectConditionPlaceholders(Condition condition, List<CompiledQuery.Placeholder> placeholders) {

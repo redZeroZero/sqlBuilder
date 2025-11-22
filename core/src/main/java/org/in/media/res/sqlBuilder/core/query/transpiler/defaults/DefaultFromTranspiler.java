@@ -33,28 +33,31 @@ public class DefaultFromTranspiler implements FromTranspiler {
         if (from.joins().isEmpty()) {
             return "";
         }
-        if (from.joins().values().stream().noneMatch(joiner -> joiner == null)) {
-            throw new IllegalStateException("FROM clause requires at least one base table before joins");
-        }
 
         DefaultSqlBuilder builder = DefaultSqlBuilder.from(FROM);
-        boolean baseTableEncountered = false;
+		Map.Entry<Table, JoinSpec> base = from.joins().entrySet()
+				.stream()
+				.filter(entry -> entry.getValue() == null)
+				.findFirst()
+				.orElseThrow(() -> new IllegalStateException("FROM clause requires at least one base table before joins"));
 
-        for (Map.Entry<Table, JoinSpec> entry : from.joins().entrySet()) {
-            Table table = entry.getKey();
-            JoinSpec joiner = entry.getValue();
-            if (joiner == null) {
-                if (baseTableEncountered) {
-                    builder.append(SEP);
-                }
-                appendTable(builder, table);
-                baseTableEncountered = true;
-            } else {
-                builder.append(joiner.getOp().value());
-                appendTable(builder, table);
-                appendJoinCondition(builder, table, joiner);
-            }
-        }
+		appendTable(builder, base.getKey());
+
+		for (Map.Entry<Table, JoinSpec> entry : from.joins().entrySet()) {
+			if (entry == base) {
+				continue;
+			}
+			Table table = entry.getKey();
+			JoinSpec joiner = entry.getValue();
+			if (joiner == null) {
+				builder.append(SEP);
+				appendTable(builder, table);
+			} else {
+				builder.append(joiner.getOp().value());
+				appendTable(builder, table);
+				appendJoinCondition(builder, table, joiner);
+			}
+		}
 
 		if (rawSupport != null) {
 			appendRawJoins(builder, rawSupport.rawJoinFragments());

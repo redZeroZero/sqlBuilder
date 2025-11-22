@@ -27,9 +27,9 @@ public final class OptionalFiltersScenario implements IntegrationScenario {
 		Table employees = IntegrationSchema.employees();
 		Table departments = IntegrationSchema.departments();
 
-		SqlParameter<String> name = SqlParameters.param("nameFilter");
-		SqlParameter<String> city = SqlParameters.param("cityFilter");
-		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
+		SqlParameter<String> name = SqlParameters.param("nameFilter", String.class);
+		SqlParameter<String> city = SqlParameters.param("cityFilter", String.class);
+		SqlParameter<Integer> minSalary = SqlParameters.param("minSalary", Integer.class);
 
 		Query query = SqlQuery.newQuery()
 				.select(EmployeesTable.C_FIRST_NAME)

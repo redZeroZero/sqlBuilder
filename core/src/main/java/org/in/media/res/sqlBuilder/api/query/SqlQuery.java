@@ -78,6 +78,28 @@ public final class SqlQuery {
 		return QueryImpl.toTable(query);
 	}
 
+	/**
+	 * Helper to widen a staged builder back to the full {@link Query} API. Use this when you hold a
+	 * staged type (e.g., after grouping/having) and need ordering/limit methods.
+	 *
+	 * @throws IllegalArgumentException if the given stage does not implement {@link Query}.
+	 */
+	public static Query asQuery(Object stage) {
+		if (stage instanceof Query q) {
+			return q;
+		}
+		throw new IllegalArgumentException(
+				"Stage does not implement Query; start with SqlQuery.query() or capture .asQuery() earlier");
+	}
+
+	/**
+	 * Validate a query without executing it. Returns a report containing any errors/warnings
+	 * (e.g., grouping mismatches, missing aliases for derived tables with raw projections, etc.).
+	 */
+	public static org.in.media.res.sqlBuilder.core.query.ValidationReport validate(Query query) {
+		return org.in.media.res.sqlBuilder.core.query.QueryValidator.validate(query, null);
+	}
+
 	public static UpdateQuery update(Table table) {
 		return UpdateQueryImpl.update(Objects.requireNonNull(table, "table"));
 	}

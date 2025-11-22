@@ -32,6 +32,10 @@ public final class ClauseConditionBuffer {
 		conditions.addLast(new RawCondition(startOperator, fragment));
 	}
 
+	public boolean isEmpty() {
+		return conditions.isEmpty();
+	}
+
 	public void clear() {
 		conditions.clear();
 	}

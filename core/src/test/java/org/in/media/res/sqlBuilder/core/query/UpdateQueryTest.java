@@ -24,7 +24,7 @@ class UpdateQueryTest {
 				.render();
 
 		assertThat(rendered.sql())
-				.isEqualTo("UPDATE \"EMPLOYEES\" \"E\" SET \"E\".\"EMP_NAME\" = ?, \"E\".\"EMP_DEPT_ID\" = NULL WHERE \"E\".\"EMP_ID\" = ?");
+				.isEqualTo("UPDATE \"EMPLOYEES\" \"E\" SET \"EMP_NAME\" = ?, \"EMP_DEPT_ID\" = NULL WHERE \"E\".\"EMP_ID\" = ?");
 		assertThat(rendered.params()).containsExactly("Alice", 42);
 	}
 
@@ -41,7 +41,7 @@ class UpdateQueryTest {
 				.compile();
 
 		assertThat(compiled.sql())
-				.isEqualTo("UPDATE \"EMPLOYEES\" \"E\" SET \"E\".\"EMP_SALARY\" = ?, \"E\".\"EMP_DEPT_ID\" = ? WHERE \"E\".\"EMP_ID\" = ?");
+				.isEqualTo("UPDATE \"EMPLOYEES\" \"E\" SET \"EMP_SALARY\" = ?, \"EMP_DEPT_ID\" = ? WHERE \"E\".\"EMP_ID\" = ?");
 
 		SqlAndParams bound = compiled.bind(Map.of("salary", 120_000d, "dept", 9, "empId", 15));
 		assertThat(bound.params()).containsExactly(120_000d, 9, 15);

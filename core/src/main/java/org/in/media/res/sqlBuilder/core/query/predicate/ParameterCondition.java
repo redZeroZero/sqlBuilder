@@ -1,7 +1,13 @@
 package org.in.media.res.sqlBuilder.core.query.predicate;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.query.Condition;
@@ -72,13 +78,57 @@ public final class ParameterCondition implements Condition {
 
 	@Override
 	public String transpile() {
+		String cast = sqlType(parameter.type());
 		StringBuilder builder = new StringBuilder();
 		if (startOperator != null) {
 			builder.append(startOperator.value());
 		}
-		builder.append('?')
+		builder.append(cast != null ? "CAST(? AS " + cast + ")" : "?")
 				.append(' ')
 				.append(Operator.IS_NULL.value().trim());
 		return builder.toString();
+	}
+
+	private static String sqlType(Class<?> type) {
+		if (type == null || Object.class.equals(type)) {
+			return null;
+		}
+		if (String.class.equals(type) || CharSequence.class.isAssignableFrom(type)) {
+			return "VARCHAR";
+		}
+		if (Integer.class.equals(type) || int.class.equals(type)) {
+			return "INTEGER";
+		}
+		if (Long.class.equals(type) || long.class.equals(type)) {
+			return "BIGINT";
+		}
+		if (Short.class.equals(type) || short.class.equals(type)) {
+			return "SMALLINT";
+		}
+		if (Double.class.equals(type) || double.class.equals(type)) {
+			return "DOUBLE PRECISION";
+		}
+		if (Float.class.equals(type) || float.class.equals(type)) {
+			return "REAL";
+		}
+		if (BigDecimal.class.equals(type) || BigInteger.class.equals(type)) {
+			return "NUMERIC";
+		}
+		if (Boolean.class.equals(type) || boolean.class.equals(type)) {
+			return "BOOLEAN";
+		}
+		if (LocalDate.class.equals(type)) {
+			return "DATE";
+		}
+		if (LocalDateTime.class.equals(type) || Instant.class.equals(type)) {
+			return "TIMESTAMP";
+		}
+		if (java.util.Date.class.equals(type)) {
+			return "TIMESTAMP";
+		}
+		if (UUID.class.equals(type)) {
+			return "UUID";
+		}
+		return null;
 	}
 }

@@ -697,6 +697,39 @@ default Query fullOuterJoin(Query subquery, String alias, String... columnAliase
 
 	Query orderBy(TableDescriptor<?> descriptor, SortDirection direction);
 
+	Query orderByAggregate(AggregateOperator aggregate, Column column);
+
+	Query orderByAggregate(AggregateOperator aggregate, Column column, SortDirection direction);
+
+	Query orderByAlias(String alias);
+
+	Query orderByAlias(String alias, SortDirection direction);
+
+	default Query orderByAggregate(AggregateOperator aggregate, TableDescriptor<?> descriptor) {
+		return orderByAggregate(aggregate, descriptor.column());
+	}
+
+	default Query orderByAggregate(AggregateOperator aggregate, TableDescriptor<?> descriptor, SortDirection direction) {
+		return orderByAggregate(aggregate, descriptor.column(), direction);
+	}
+
+	default Query orderByAggregate(AggregateOperator aggregate, ColumnRef<?> ref) {
+		return orderByAggregate(aggregate, ref.column());
+	}
+
+	default Query orderByAggregate(AggregateOperator aggregate, ColumnRef<?> ref, SortDirection direction) {
+		return orderByAggregate(aggregate, ref.column(), direction);
+	}
+
+	/**
+	 * Convenience to order by the first aggregate in the projection list (if present), defaulting
+	 * to ASC. Useful when you selected a single aggregate and want to order by it without repeating
+	 * the expression.
+	 */
+	Query orderByFirstAggregate();
+
+	Query orderByFirstAggregate(SortDirection direction);
+
 	@Override
 	Query orderByRaw(String sql);
 

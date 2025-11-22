@@ -31,14 +31,14 @@ public final class DerivedTableScenario implements IntegrationScenario {
 				.groupBy(EmployeesTable.C_ID)
 				.asQuery();
 
-		Table salaryAvg = SqlQuery.toTable(salarySummary, "salary_avg", "EMPLOYEE_ID", "AVG_SALARY");
+		Table salaryAvg = SqlQuery.toTable(salarySummary, "salary_avg", "id", "avg");
 
 		Query query = SqlQuery.query();
 		query.select(EmployeesTable.C_FIRST_NAME)
 				.select(EmployeesTable.C_LAST_NAME)
 				.from(employees)
-				.join(salaryAvg).on(EmployeesTable.C_ID, salaryAvg.get("EMPLOYEE_ID"))
-				.where(salaryAvg.get("AVG_SALARY")).supOrEqTo(80_000);
+				.join(salaryAvg).on(EmployeesTable.C_ID, salaryAvg.get("id"))
+				.where(salaryAvg.get("avg")).supOrEqTo(80_000);
 
 		ScenarioSupport.executeQuery(connection, query.render(), title());
 	}

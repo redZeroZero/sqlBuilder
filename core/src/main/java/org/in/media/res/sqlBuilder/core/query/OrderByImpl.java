@@ -21,7 +21,10 @@ final class OrderByImpl implements OrderBy, OrderByRawSupport {
 
 	@Override
 	public String transpile() {
-		return orderings.isEmpty() ? "" : orderByTranspiler.transpile(this);
+		if (orderings.isEmpty() && rawFragments.isEmpty()) {
+			return "";
+		}
+		return orderByTranspiler.transpile(this);
 	}
 
 	@Override

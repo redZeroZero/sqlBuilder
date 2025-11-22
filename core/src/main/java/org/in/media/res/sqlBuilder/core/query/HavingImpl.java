@@ -48,7 +48,8 @@ final class HavingImpl implements Having {
 
     @Override
     public Having having(Condition condition) {
-        buffer.add(condition, null);
+        Operator start = buffer.isEmpty() ? null : Operator.AND;
+        buffer.add(condition, start);
         return this;
     }
 

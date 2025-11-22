@@ -591,7 +591,8 @@ final class WhereImpl implements Where {
 
 	@Override
 	public Where condition(Condition condition) {
-		buffer.add(condition, null);
+		Operator start = buffer.isEmpty() ? null : Operator.AND;
+		buffer.add(condition, start);
 		return this;
 	}
 

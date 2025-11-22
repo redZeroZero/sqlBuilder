@@ -62,7 +62,16 @@ public class QueryCatalog {
 						IntegrationQueries::ordersWithCustomers),
 				new QueryDefinition("product-revenue", "Product Revenue",
 						"Per-product revenue combining order lines and payments.",
-						IntegrationQueries::productRevenue));
+						IntegrationQueries::productRevenue),
+				new QueryDefinition("top-earners-by-department", "Top Earners by Department",
+						"Window function to rank salaries per department and pick the top earner.",
+						IntegrationQueries::topEarnersByDepartment),
+				new QueryDefinition("customer-order-summaries", "Customer Order Summaries",
+						"Aggregate order totals and payments per customer with HAVING filter.",
+						IntegrationQueries::customerOrderSummaries),
+				new QueryDefinition("above-department-average", "Above Department Average",
+						"Correlated subquery to find employees earning above their department average.",
+						IntegrationQueries::aboveDepartmentAverage));
 
 		Map<String, QueryDefinition> byId = new LinkedHashMap<>();
 		for (QueryDefinition definition : definitions) {

@@ -20,7 +20,10 @@ final class GroupByImpl implements GroupBy, GroupByRawSupport {
 
 	@Override
 	public String transpile() {
-		return columns.isEmpty() ? "" : groupByTranspiler.transpile(this);
+		if (columns.isEmpty() && rawFragments.isEmpty()) {
+			return "";
+		}
+		return groupByTranspiler.transpile(this);
 	}
 
 	@Override

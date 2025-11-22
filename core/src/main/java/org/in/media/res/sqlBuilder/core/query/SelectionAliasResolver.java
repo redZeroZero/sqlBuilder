@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
+import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 
@@ -20,7 +21,7 @@ public final class SelectionAliasResolver {
 
 	public static List<String> resolve(Query query, String... providedAliases) {
 		Objects.requireNonNull(query, "query");
-		int projectedColumns = query.aggColumns().size() + query.columns().size();
+		int projectedColumns = query.aggColumns().size() + query.columns().size() + rawProjectionCount(query);
 		if (projectedColumns == 0) {
 			throw new IllegalArgumentException("CTE/derived table requires the subquery to select at least one column");
 		}
@@ -39,7 +40,27 @@ public final class SelectionAliasResolver {
 		List<String> resolved = new ArrayList<>(projectedColumns);
 		query.aggColumns().forEach((column, agg) -> resolved.add(uniqueName(suggestAlias(column, agg), seen)));
 		query.columns().forEach(column -> resolved.add(uniqueName(suggestAlias(column, null), seen)));
+		if (query instanceof QueryImpl impl) {
+			for (SelectProjectionSupport.SelectProjection projection : impl.projections()) {
+				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
+					resolved.add(uniqueName(suggestRawAlias(projection, seen.size()), seen));
+				}
+			}
+		}
 		return List.copyOf(resolved);
+	}
+
+	private static int rawProjectionCount(Query query) {
+		if (query instanceof QueryImpl impl) {
+			int count = 0;
+			for (SelectProjectionSupport.SelectProjection projection : impl.projections()) {
+				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
+					count++;
+				}
+			}
+			return count;
+		}
+		return 0;
 	}
 
 	private static String validateAlias(String alias) {
@@ -71,5 +92,20 @@ public final class SelectionAliasResolver {
 		}
 		seen.put(candidate, counter + 1);
 		return normalized;
+	}
+
+	private static String suggestRawAlias(SelectProjectionSupport.SelectProjection projection, int position) {
+		RawSqlFragment fragment = projection.fragment();
+		if (fragment != null) {
+			String sql = fragment.sql();
+			if (sql != null) {
+				String trimmed = sql.trim();
+				int asIndex = trimmed.toUpperCase().lastIndexOf(" AS ");
+				if (asIndex > -1 && asIndex + 4 < trimmed.length()) {
+					return trimmed.substring(asIndex + 4).replaceAll("[^A-Za-z0-9_]", "");
+				}
+			}
+		}
+		return "RAW_COL_" + position;
 	}
 }

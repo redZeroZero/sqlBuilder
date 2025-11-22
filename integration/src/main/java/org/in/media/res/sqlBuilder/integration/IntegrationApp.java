@@ -11,6 +11,8 @@ import org.in.media.res.sqlBuilder.integration.scenario.CountAndPrettyScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.CteScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.DeleteScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.DerivedTableScenario;
+import org.in.media.res.sqlBuilder.integration.scenario.AboveDepartmentAverageScenario;
+import org.in.media.res.sqlBuilder.integration.scenario.CustomerOrderSummaryScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.GroupedFiltersScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.InsertScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.IntegrationScenario;
@@ -23,6 +25,7 @@ import org.in.media.res.sqlBuilder.integration.scenario.SetOperationsScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.SimpleProjectionScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.SubqueryFilteringScenario;
 import org.in.media.res.sqlBuilder.integration.scenario.UpdateScenario;
+import org.in.media.res.sqlBuilder.integration.scenario.TopEarnersByDepartmentScenario;
 
 public final class IntegrationApp {
 
@@ -42,7 +45,10 @@ public final class IntegrationApp {
 			new RawSqlScenario(),
 			new UpdateScenario(),
 			new InsertScenario(),
-			new DeleteScenario());
+			new DeleteScenario(),
+			new TopEarnersByDepartmentScenario(),
+			new CustomerOrderSummaryScenario(),
+			new AboveDepartmentAverageScenario());
 
 	public static void main(String[] args) throws Exception {
 		IntegrationConfig config = IntegrationConfig.fromEnvironment();

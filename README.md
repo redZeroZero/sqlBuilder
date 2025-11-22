@@ -124,6 +124,54 @@ String sql = SqlQuery.newQuery()
     .render().sql();
 ```
 
+### Ordering on aggregates or aliases
+
+Order by aggregates or selected aliases without dropping to raw SQL:
+
+```java
+SqlAndParams sap = SqlQuery.query()
+    .select(AggregateOperator.SUM, OrdersTable.C_TOTAL) // SUM(o.total) AS SUM_total
+    .from(orders)
+    .groupBy(OrdersTable.C_CUSTOMER_ID)
+    .orderByAggregate(AggregateOperator.SUM, OrdersTable.C_TOTAL, SortDirection.DESC)
+    .render();
+
+// Order by a selected alias (e.g., after wrapping a grouped subquery with toTable)
+SqlAndParams sap2 = SqlQuery.query()
+    .select(summary.get("SUM_total"))
+    .from(summary)
+    .orderByAlias("SUM_total", SortDirection.DESC)
+    .render();
+```
+
+### Widening staged builders
+
+If you hold a staged builder (e.g., after grouping/having) and need the full `Query` surface (order/limit), call `SqlQuery.asQuery(stage)` to widen it:
+
+```java
+SelectStage staged = SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(employee)
+    .groupBy(Employee.C_LAST_NAME); // returns a staged type
+
+Query full = SqlQuery.asQuery(staged);
+full.orderBy(Employee.C_LAST_NAME).limit(10);
+```
+
+### Validating queries (structural checks)
+
+You can run static validation without executing SQL to catch grouping/alias/parameter issues early:
+
+```java
+ValidationReport report = SqlQuery.validate(myQuery);
+if (report.hasErrors()) {
+    report.messages().forEach(m -> System.out.println(m.severity() + ": " + m.message()));
+}
+```
+
+Validation is opt-in and non-mutating; it reports potential problems (e.g., non-grouped ORDER BY, missing aliases for raw projections in derived tables) based on the current query shape.
+
+
 ## Sample Queries to Try
 
 The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, call `.render()` to obtain both SQL and bind parameters; access just the SQL text via `.render().sql()`. The legacy `.transpile()` method still exists for SPI/internal code but is deprecated in user-facing flows. Identifiers are quoted according to the active dialect (e.g., Oracle emits `"Employee"`); examples keep the unquoted form for readability.

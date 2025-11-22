@@ -54,13 +54,24 @@ public class DefaultSelectTranspiler implements SelectTranspiler {
 				builder.append(COLUMN_SEP);
 			}
 			switch (entry.type()) {
-			case COLUMN -> builder.append(entry.column().transpile());
-			case AGGREGATE -> {
-				String columnSql = entry.column().transpile(false);
-				String rendered = DialectContext.current().renderFunction(entry.aggregate().logicalName(), List.of(columnSql));
-				builder.append(rendered);
+			case COLUMN -> {
+				if (entry.column() != null) {
+					builder.append(entry.column().transpile());
+				}
 			}
-			case RAW -> builder.append(entry.fragment().sql());
+			case AGGREGATE -> {
+				if (entry.column() != null) {
+					String columnSql = entry.column().transpile(false);
+					String rendered = DialectContext.current().renderFunction(entry.aggregate().logicalName(),
+							List.of(columnSql));
+					builder.append(rendered);
+				}
+			}
+			case RAW -> {
+				if (entry.fragment() != null) {
+					builder.append(entry.fragment().sql());
+				}
+			}
 			}
 			first = false;
 		}
