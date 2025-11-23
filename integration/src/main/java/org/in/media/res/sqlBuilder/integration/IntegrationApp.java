@@ -62,13 +62,8 @@ public final class IntegrationApp {
 	}
 
 	private static void describeServer(Connection connection) throws SQLException {
-		try (PreparedStatement stmt = connection.prepareStatement("SELECT version()")) {
-			try (ResultSet rs = stmt.executeQuery()) {
-				if (rs.next()) {
-					System.out.println("PostgreSQL version: " + rs.getString(1));
-				}
-			}
-		}
+		var meta = connection.getMetaData();
+		System.out.printf("Database: %s %s%n", meta.getDatabaseProductName(), meta.getDatabaseProductVersion());
 	}
 
 	private IntegrationApp() {

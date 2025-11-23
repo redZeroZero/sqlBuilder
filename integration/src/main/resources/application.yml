@@ -16,6 +16,7 @@ server:
 sqlbuilder:
   integration:
     max-rows: 100
+    dialect: ${SQLBUILDER_DIALECT:postgres}
 
 logging:
   level:

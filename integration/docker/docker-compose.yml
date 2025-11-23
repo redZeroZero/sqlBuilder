@@ -11,3 +11,16 @@ services:
       - 5432:5432
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  oracle-xe:
+    image: gvenzl/oracle-xe:21-slim
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: Oradoc_db1
+      APP_USER: SB_USER
+      APP_USER_PASSWORD: sb_pass
+      ORACLE_DATABASE: XEPDB1
+    ports:
+      - 1521:1521
+    volumes:
+      - ./init-oracle.sql:/container-entrypoint-initdb.d/init-oracle.sql:ro

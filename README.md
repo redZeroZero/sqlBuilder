@@ -78,6 +78,22 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 - Stop the container when done:  
   `docker compose -f integration/docker/docker-compose.yml down`
 
+### Oracle XE variant
+
+- Start Oracle XE with seeded schema (service name `oracle-xe`):  
+  `docker compose -f integration/docker/docker-compose.yml up -d oracle-xe`
+- Use the Oracle defaults (set if different):  
+  `export SQLBUILDER_DIALECT=oracle`  
+  `export SQLBUILDER_JDBC_URL=jdbc:oracle:thin:@localhost:1521/XEPDB1`  
+  `export SQLBUILDER_JDBC_USER=SB_USER`  
+  `export SQLBUILDER_JDBC_PASSWORD=sb_pass`
+- Run console harness against XE:  
+  `mvn -pl integration exec:java`
+- Run Spring Boot API with the Oracle profile:  
+  `mvn -pl integration spring-boot:run -Dspring-boot.run.profiles=oracle`
+- Optional XE-backed test (live DB required):  
+  `SQLBUILDER_IT_ORACLE=true mvn -pl integration test`
+
 ## Repository layout
 
 - `core/` — distributable DSL, factories, validators, annotation processor (packaged; build runs with `-proc:none`).
