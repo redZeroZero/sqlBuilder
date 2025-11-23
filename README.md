@@ -6,6 +6,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 
 - [Get started in 60 seconds](#get-started-in-60-seconds)
 - [Build & test locally](#build--test)
+- [Run the Postgres integration quickstart](#integration-quickstart-postgres)
 - [Understand the public API](#public-api-surface--stability)
 - [Learn the DSL basics](#core-concepts)
 - [Use the DSL by task](#task-guides)
@@ -18,7 +19,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 
 1. Build locally (installs the snapshot to `~/.m2`):
    ```bash
-   mvn -q -DskipTests package
+   mvn -q -DskipTests install
    ```
 2. Add the dependency:
    - Maven
@@ -59,6 +60,23 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 - Full test suite: `mvn test` (or `mvn -o test` once dependencies are cached)
 - Package only: `mvn -q -DskipTests package`
 - Examples module only: `mvn -pl examples -q test`
+
+## Integration quickstart (Postgres)
+
+- Start the demo database (seeds schema + data):  
+  `docker compose -f integration/docker/docker-compose.yml up -d`
+- Export (or rely on defaults) for the integration modules:  
+  `export SQLBUILDER_JDBC_URL=jdbc:postgresql://localhost:5432/sqlbuilder`  
+  `export SQLBUILDER_JDBC_USER=sb_user`  
+  `export SQLBUILDER_JDBC_PASSWORD=sb_pass`
+- Run the console harness against Postgres:  
+  `mvn -pl integration exec:java`
+- Run the Spring Boot demo API:  
+  `mvn -pl integration spring-boot:run` (binds to `${PORT:-8080}`)
+- Optional integration tests (live DB required):  
+  `SQLBUILDER_IT=true mvn -pl integration test`
+- Stop the container when done:  
+  `docker compose -f integration/docker/docker-compose.yml down`
 
 ## Repository layout
 
