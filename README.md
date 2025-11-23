@@ -93,6 +93,7 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
   `mvn -pl integration spring-boot:run -Dspring-boot.run.profiles=oracle`
 - Optional XE-backed test (live DB required):  
   `SQLBUILDER_IT_ORACLE=true mvn -pl integration test`
+- Oracle JDBC: the XE profile expects `ojdbc11` on your Maven cache; download/publish locally if your mirror blocks Oracle artifacts.
 
 ### Switching between Postgres and Oracle
 
@@ -103,6 +104,11 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
   - Postgres: (defaults) `SQLBUILDER_DIALECT=postgres`, URL `jdbc:postgresql://localhost:5432/sqlbuilder`, user `sb_user`, pass `sb_pass`; no Spring profile needed.
   - Oracle: `SQLBUILDER_DIALECT=oracle`, URL `jdbc:oracle:thin:@localhost:1521/XEPDB1`, user `SB_USER`, pass `sb_pass`; add `-Dspring-boot.run.profiles=oracle` when running the Spring Boot app.
 - Re-run your console (`mvn -pl integration exec:java`) or Boot (`mvn -pl integration spring-boot:run ...`) command after adjusting.
+
+### Spring Boot wiring (schema + query beans)
+
+- The integration app publishes the DSL dialect and schema as beans (`IntegrationDslConfig`), so the same `ScannedSchema` is reused across controllers/services.
+- Each demo query is a Spring bean (`DemoQueryRepository`), then collected by `QueryCatalog`—repository-like and easy to inject or mock per domain/query.
 
 ## Repository layout
 
