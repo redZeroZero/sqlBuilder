@@ -1,217 +1,313 @@
 # sqlBuilder
 
-sqlBuilder is a lightweight fluent DSL for assembling SQL statements in Java. It provides composable builders for `SELECT`, `FROM`, `WHERE`, `GROUP BY`, `HAVING`, `ORDER BY`, and `LIMIT / OFFSET` clauses so you can express queries without string concatenation.
+sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without string concatenation. It focuses on expressive builders, dialect-aware rendering, and a small stable API surface.
 
-## Quick navigation
+## What do you want to do?
 
-- [Getting Started](#getting-started)
-  - [Public API Surface & Stability](#public-api-surface--stability)
-  - [Installation](#installation)
-  - [Repository layout](#repository-layout)
-- [Sample Queries to Try](#sample-queries-to-try)
-  - [Rendering SQL & parameters](#rendering-sql--parameters)
-  - [Injecting Optimizer Hints](#injecting-optimizer-hints)
-  - [Compiled queries & named parameters](#compiled-queries--named-parameters)
-  - [Simple Projection](#1-simple-projection)
-  - [Joins with Filters](#2-joins-with-filters)
-  - [Aggregations with GROUP BY / HAVING](#3-aggregations-with-group-by--having)
-  - [Pagination (Oracle-style)](#4-pagination-oracle-style)
-  - [Quick Count / Pretty Print](#5-quick-count--pretty-print)
-  - [Set Operations](#6-set-operations)
-  - [Derived Tables (FROM Subqueries)](#7-derived-tables-from-subqueries)
-  - [Common Table Expressions (CTEs)](#8-common-table-expressions-ctes)
-  - [Filtering with Subqueries](#9-filtering-with-subqueries)
-  - [Optional Filters for Compiled Queries](#10-optional-filters-for-compiled-queries)
-  - [Grouped Filters (Nested AND / OR Trees)](#11-grouped-filters-nested-and--or-trees)
-  - [Raw SQL Fragments](#12-raw-sql-fragments)
-  - [Updates (DML)](#13-updates-dml)
-  - [Inserts (DML)](#14-inserts-dml)
-  - [Deletes (DML)](#15-deletes-dml)
-- [Dialects & SQL Functions](#dialects--sql-functions)
-  - [Using a Different Dialect](#using-a-different-dialect)
-  - [Registering Functions](#registering-functions)
-- [Defining Tables & Schemas](#defining-tables--schemas)
-  - [Custom Schema Quick Start](#custom-schema-quick-start)
-  - [Typed Rows & Builders](#typed-rows--builders)
-  - [Manual Table Registration](#manual-table-registration)
-- [Integration Module with PostgreSQL](#integration-module-with-postgresql)
-- [Spring Boot demo API](#spring-boot-demo-api)
-- [Spring JDBC integration](#spring-jdbc-integration)
-- [Running Tests](#running-tests)
-- [Running Tests](#running-tests)
+- [Get started in 60 seconds](#get-started-in-60-seconds)
+- [Build & test locally](#build--test)
+- [Understand the public API](#public-api-surface--stability)
+- [Learn the DSL basics](#core-concepts)
+- [Use the DSL by task](#task-guides)
+- [Model schemas](#schema-modeling)
+- [Switch dialects / functions](#dialects--functions)
+- [Integrate (Postgres, Spring Boot, Spring JDBC)](#integration-modules)
+- [Reference notes](#reference)
 
-## Getting Started
+## Get started in 60 seconds
 
-### Public API Surface & Stability
+1. Build locally (installs the snapshot to `~/.m2`):
+   ```bash
+   mvn -q -DskipTests package
+   ```
+2. Add the dependency:
+   - Maven
+     ```xml
+     <dependency>
+       <groupId>org.in.media.res</groupId>
+       <artifactId>sqlBuilder-core</artifactId>
+       <version>0.0.1-SNAPSHOT</version>
+     </dependency>
+     ```
+   - Gradle (Kotlin DSL)
+     ```kotlin
+     implementation("org.in.media.res:sqlBuilder-core:0.0.1-SNAPSHOT")
+     ```
+3. Write your first query:
+   ```java
+   var schema = new EmployeeSchema();
+   var employee = schema.getTableBy(Employee.class);
+   var job = schema.getTableBy(Job.class);
+
+   SqlAndParams sap = SqlQuery.query()          // or SqlQuery.newQuery() for staged typing
+       .select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
+       .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+       .where(Employee.C_FIRST_NAME).eq("Alice")
+       .orderBy(Employee.C_LAST_NAME)
+       .limitAndOffset(20, 0)
+       .render();
+
+   sap.sql();    // SELECT ... OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+   sap.params(); // ["Alice", 0, 20]
+   ```
+
+> API boundary: only `org.in.media.res.sqlBuilder.api.*` is stable. Everything in `*.core.*` or `*.processor.*` is internal—always use the `SqlQuery` facade instead of `*Impl` classes.
+
+## Build & test
+
+- Compile: `mvn clean compile`
+- Full test suite: `mvn test` (or `mvn -o test` once dependencies are cached)
+- Package only: `mvn -q -DskipTests package`
+- Examples module only: `mvn -pl examples -q test`
+
+## Repository layout
+
+- `core/` — distributable DSL, factories, validators, annotation processor (packaged; build runs with `-proc:none`).
+- `examples/` — sample schema, `MainApp`, benchmarks, integration-style tests (runs the processor).
+
+## Public API Surface & Stability
 
 | Package / Namespace | Purpose | Stability |
 | --- | --- | --- |
-| `org.in.media.res.sqlBuilder.api.model` (incl. `.annotation`) | Table, column, and schema descriptors plus the annotation processor contracts. | **Stable** – covered by semantic versioning. |
-| `org.in.media.res.sqlBuilder.api.query` (and sub-packages except `.spi`) | Fluent SQL builders, dialect abstractions, helper utilities, and formatters. | **Stable** – backwards compatible within a minor release. |
-| `org.in.media.res.sqlBuilder.api.query.spi` | Extension hooks for frameworks/integrations that need to plug custom clauses or transpilers. | **Advanced / SPI** – may change between releases; see [AGENTS.md](AGENTS.md) for contribution guidance. |
-| `org.in.media.res.sqlBuilder.api.query.params`, `.helper`, `.format` | Parameter helpers, optional-condition builders, and `SqlFormatter` utilities. | **Stable**. |
-| `org.in.media.res.sqlBuilder.core.*`, `.processor.*`, `.examples.*` | Internal implementations, annotation processor internals, and documentation fixtures. | **Internal** – no compatibility guarantee; avoid depending on these packages from application code. |
+| `org.in.media.res.sqlBuilder.api.model` (incl. `.annotation`) | Table/column/schema descriptors and annotation processor contracts. | **Stable** |
+| `org.in.media.res.sqlBuilder.api.query` (+ subpackages except `.spi`) | Fluent SQL builders, dialect abstractions, helper utilities, formatters. | **Stable** |
+| `org.in.media.res.sqlBuilder.api.query.spi` | Extension hooks for custom clauses/transpilers. | **Advanced / SPI** |
+| `org.in.media.res.sqlBuilder.api.query.params`, `.helper`, `.format` | Parameter helpers, optional-condition builders, `SqlFormatter`. | **Stable** |
+| `org.in.media.res.sqlBuilder.core.*`, `.processor.*`, `.examples.*` | Internal implementations and docs fixtures. | **Internal** |
 
-Only the packages listed as stable above are considered the public API. Everything else (including generated `*Impl` classes) is an implementation detail that can evolve without notice. If you need to integrate at the SPI layer, keep the dependency isolated so upgrades remain straightforward.
+## Core concepts
 
-### Installation
+- **Entry points:** `SqlQuery.newQuery()` yields staged builders (`SelectStage` → `FromStage`) with compile-time clause hints. `SqlQuery.query()` widens immediately to `Query`; both converge once you reach `Query`.
+- **Rendering:** `render()` returns `SqlAndParams` (SQL with `?` placeholders + ordered params). Use `.sql()` for the SQL string, `.params()` for the values. `transpile()` exists for SPI code but is deprecated for user flows.
+- **Validation:** `SqlQuery.validate(query)` runs structural checks (grouping, aliases, parameters) without executing SQL.
+- **Dialect propagation:** Builders carry the active `Dialect`. Use `SqlQuery.newQuery(myDialect)` or set it on your schema. Dialect controls quoting, pagination, set operators, LIKE escaping, and function rendering.
+- **Compiled queries:** `compile()` freezes SQL + placeholders; later `bind(...)` supplies values (map binding rejects unknown names).
 
-1. Clone this repository (or add it as a Git submodule) and run `mvn -q -DskipTests package` from the repo root to build both modules and install the core jar into your local Maven cache.
-2. Add the dependency to your application:
+## Task guides
 
-   **Maven**
-
-   ```xml
-   <dependency>
-     <groupId>org.in.media.res</groupId>
-     <artifactId>sqlBuilder-core</artifactId>
-     <version>0.0.1-SNAPSHOT</version>
-   </dependency>
-   ```
-
-   **Gradle (Kotlin DSL)**
-
-   ```kotlin
-   implementation("org.in.media.res:sqlBuilder-core:0.0.1-SNAPSHOT")
-   ```
-
-   Adjust the version to match the coordinate published in your artifact repository (the examples assume a local install).
-
-3. Import the DSL types you plan to use, e.g. `org.in.media.res.sqlBuilder.api.query.SqlQuery` for fluent query construction and the generated table descriptors from your schema package.
-
-> **API boundary:** Only packages under `org.in.media.res.sqlBuilder.api.*` are considered stable. Everything in `org.in.media.res.sqlBuilder.core.*` is internal to the DSL—use the `SqlQuery` facade (and other `api.*` helpers) instead of instantiating `*Impl` classes directly.
-
-### Repository layout
-
-- `core/` — the distributable DSL, factories, validators, and annotation processor (compiles with `-proc:none` but packages the processor for downstream use).
-- `examples/` — the sample schema, `MainApp`, benchmarks, and integration-style tests. This module depends on `sqlBuilder-core`, runs the annotation processor to generate column facades, and mirrors the usage documented below. Run `mvn -pl examples -q test` when you only want to exercise the sample project.
-
-Once the dependency is available, you can start composing queries immediately. The DSL offers two entry points:
-
-- `SqlQuery.newQuery()` returns the staged builder (`SelectStage` → `FromStage`), which is useful when you want compile-time guidance about which clauses are available at each step.
-- `SqlQuery.query()` returns the fully widened `Query` interface right away. This is handy when you prefer a terser syntax or you already know you’ll access most clauses (it simply calls `newQuery().asQuery()` under the hood).
-
-Both entry points are equivalent once you reach the `Query` surface; choose whichever style matches your team’s preferences.
-
-### Example: building a query with either entry point
-
-```java
-EmployeeSchema schema = new EmployeeSchema();
-Table employee = schema.getTableBy(Employee.class);
-Table job = schema.getTableBy(Job.class);
-
-SqlAndParams sp = SqlQuery.query()
-    .select(Employee.C_FIRST_NAME)
-    .select(Employee.C_LAST_NAME)
-    .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-    .where(Employee.C_FIRST_NAME).eq("Alice")
-    .orderBy(Employee.C_LAST_NAME)
-    .limitAndOffset(20, 0)
-    .render();
-
-sp.sql();    // SELECT ... WHERE E.FIRST_NAME = ? ORDER BY E.LAST_NAME ASC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-sp.params(); // ["Alice", 0, 20]
-
-// Need only the placeholder SQL? Just call render().sql() and ignore the params.
-// The legacy transpile() helper remains for SPI integrations but is deprecated.
-String sql = SqlQuery.newQuery()
-    .select(Employee.C_FIRST_NAME)
-    .select(Employee.C_LAST_NAME)
-    .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-    .where(Employee.C_FIRST_NAME).eq("Alice")
-    .orderBy(Employee.C_LAST_NAME)
-    .limitAndOffset(20, 0)
-    .render().sql();
-```
-
-### Ordering on aggregates or aliases
-
-Order by aggregates or selected aliases without dropping to raw SQL:
-
-```java
-SqlAndParams sap = SqlQuery.query()
-    .select(AggregateOperator.SUM, OrdersTable.C_TOTAL) // SUM(o.total) AS SUM_total
-    .from(orders)
-    .groupBy(OrdersTable.C_CUSTOMER_ID)
-    .orderByAggregate(AggregateOperator.SUM, OrdersTable.C_TOTAL, SortDirection.DESC)
-    .render();
-
-// Order by a selected alias (e.g., after wrapping a grouped subquery with toTable)
-SqlAndParams sap2 = SqlQuery.query()
-    .select(summary.get("SUM_total"))
-    .from(summary)
-    .orderByAlias("SUM_total", SortDirection.DESC)
-    .render();
-```
-
-### Widening staged builders
-
-If you hold a staged builder (e.g., after grouping/having) and need the full `Query` surface (order/limit), call `SqlQuery.asQuery(stage)` to widen it:
-
-```java
-SelectStage staged = SqlQuery.newQuery()
-    .select(Employee.C_FIRST_NAME)
-    .from(employee)
-    .groupBy(Employee.C_LAST_NAME); // returns a staged type
-
-Query full = SqlQuery.asQuery(staged);
-full.orderBy(Employee.C_LAST_NAME).limit(10);
-```
-
-### Validating queries (structural checks)
-
-You can run static validation without executing SQL to catch grouping/alias/parameter issues early:
-
-```java
-ValidationReport report = SqlQuery.validate(myQuery);
-if (report.hasErrors()) {
-    report.messages().forEach(m -> System.out.println(m.severity() + ": " + m.message()));
-}
-```
-
-Validation is opt-in and non-mutating; it reports potential problems (e.g., non-grouped ORDER BY, missing aliases for raw projections in derived tables) based on the current query shape.
-
-
-## Sample Queries to Try
-
-The snippets below illustrate common patterns you can run in a REPL or unit test to verify the builder. Unless noted otherwise, call `.render()` to obtain both SQL and bind parameters; access just the SQL text via `.render().sql()`. The legacy `.transpile()` method still exists for SPI/internal code but is deprecated in user-facing flows. Identifiers are quoted according to the active dialect (e.g., Oracle emits `"Employee"`); examples keep the unquoted form for readability.
-
-### Rendering SQL & parameters
-
-`render()` is the primary way to execute a query: it returns a `SqlAndParams` pair containing the SQL text (with `?` placeholders) and the ordered parameter list.
+### Selecting & filtering
 
 ```java
 SqlAndParams selectByName = SqlQuery.newQuery()
     .select(Employee.C_ID)
     .where(Employee.C_FIRST_NAME).eq("Alice")
     .render();
-
-selectByName.sql();    // SELECT E.ID FROM Employee E WHERE E.FIRST_NAME = ?
-selectByName.params(); // ["Alice"]
 ```
 
-Need a literal SQL string for ad-hoc execution? Feed the `SqlAndParams` through `SqlFormatter.inlineLiterals(sp, dialect)` to inline values (use with care, since bind-parameter safety is lost).
+Use `like(...)`/`notLike`, `between`, `in`/`notIn`, `isNull`/`isNotNull`, or subqueries (`in(subquery)`, `exists(...)`).
 
-### Injecting Optimizer Hints
-
-Call `.hint("/*+ ... */")` before `FROM` when the target database accepts optimizer hints immediately after `SELECT`:
+### Joins
 
 ```java
-SqlAndParams hinted = SqlQuery.newQuery()
-    .hint("/*+ INDEX(E EMP_ID_IDX) */")
-    .select(Employee.C_FIRST_NAME)
-    .from(employee)
-    .render();
-
-hinted.sql(); // SELECT /*+ INDEX(E EMP_ID_IDX) */ "Employee"...
+String sql = SqlQuery.query()
+    .select(Employee.C_FIRST_NAME, Job.C_DESCRIPTION)
+    .leftJoin(schema.getTableBy(Job.class)).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .where(Job.C_SALARY).supOrEqTo(50_000)
+    .render().sql();
 ```
 
-Hints are emitted verbatim; ensure the syntax matches the dialect you are targeting.
+### Aggregates, GROUP BY, HAVING
 
-### Compiled queries & named parameters
+```java
+String sql = SqlQuery.query()
+    .select(Employee.C_FIRST_NAME)
+    .select(AggregateOperator.AVG, Job.C_SALARY)
+    .join(schema.getTableBy(Job.class)).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .groupBy(Employee.C_FIRST_NAME)
+    .having(Job.C_SALARY).avg(Job.C_SALARY).supTo(60_000)
+    .orderBy(Employee.C_FIRST_NAME)
+    .render().sql();
+```
 
-Use `SqlParameter` when you want to build a template once and bind values later.
+### Pagination
 
+```java
+SqlQuery.query()
+    .select(Job.C_DESCRIPTION)
+    .from(schema.getTableBy(Job.class))
+    .orderBy(Job.C_SALARY, SortDirection.DESC)
+    .limitAndOffset(10, 20)
+    .render();
+```
+
+### Set operations
+
+```java
+SqlQuery.newQuery()
+    .select(schema.getTableBy(Employee.class))
+    .union(SqlQuery.newQuery().select(schema.getTableBy(Job.class)).asQuery())
+    .render().sql();
+```
+
+`unionAll`, `intersect`, and `except` are available (`except` maps to `MINUS` for the default Oracle dialect).
+
+### Derived tables & CTEs
+
+```java
+Query summary = SqlQuery.newQuery()
+    .select(Employee.C_ID)
+    .select(AggregateOperator.AVG, Job.C_SALARY)
+    .from(schema.getTableBy(Employee.class))
+    .join(schema.getTableBy(Job.class)).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .groupBy(Employee.C_ID)
+    .asQuery();
+
+Table salaryAvg = SqlQuery.toTable(summary, "SALARY_AVG", "EMPLOYEE_ID", "AVG_SALARY");
+
+SqlAndParams sap = SqlQuery.with()
+    .cte("salary_avg", summary, "EMPLOYEE_ID", "AVG_SALARY")
+    .main(
+        SqlQuery.newQuery()
+            .select(Employee.C_FIRST_NAME)
+            .from(schema.getTableBy(Employee.class))
+            .join(salaryAvg).on(Employee.C_ID, salaryAvg.get("EMPLOYEE_ID"))
+            .where(salaryAvg.get("AVG_SALARY")).supOrEqTo(80_000)
+            .asQuery()
+    ).render();
+```
+
+### Optional filters for compiled queries
+
+```java
+SqlParameter<String> pName = SqlParameters.param("name");
+SqlParameter<Integer> pMinSalary = SqlParameters.param("minSalary");
+
+CompiledQuery cq = SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(schema.getTableBy(Employee.class))
+    .whereOptionalEquals(Employee.C_FIRST_NAME, pName)
+    .whereOptionalGreaterOrEqual(Employee.C_SALARY, pMinSalary)
+    .asQuery()
+    .compile();
+```
+
+Map binding applies or skips each optional predicate based on `null` values; positional `bind(...)` only works when each placeholder name is unique.
+
+### Grouped filters (nested AND/OR)
+
+```java
+var stateGroup = QueryHelper.group()
+    .where(Employee.C_STATE).eq("CA")
+    .or(Employee.C_STATE).eq("OR");
+
+var salaryGroup = QueryHelper.group()
+    .where(Job.C_SALARY).supOrEqTo(120_000)
+    .orGroup()
+        .where(Job.C_SALARY).between(80_000, 90_000)
+    .endGroup();
+
+SqlQuery.newQuery()
+    .select(Employee.C_FIRST_NAME)
+    .from(schema.getTableBy(Employee.class))
+    .join(schema.getTableBy(Job.class)).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+    .where(stateGroup)
+    .and(salaryGroup)
+    .render();
+```
+
+### Raw fragments
+
+Use `*Raw(...)` when you must bypass validation (vendor functions, hints, custom predicates):
+
+```java
+SqlParameter<Integer> minProjects = SqlParameters.param("minProjects");
+
+SqlQuery.newQuery()
+    .selectRaw("emp.*, COUNT(*) OVER (PARTITION BY emp.DEPARTMENT_ID) AS dept_count")
+    .fromRaw("HR.EMPLOYEE emp")
+    .whereRaw("EXISTS (SELECT 1 FROM HR.PROJECT p WHERE p.EMP_ID = emp.ID AND p.STATE = 'ACTIVE')")
+    .andRaw("emp.PROJECT_COUNT >= ?", minProjects)
+    .orderByRaw("emp.HIRE_DATE DESC NULLS LAST")
+    .render();
+```
+
+### DML (update / insert / delete)
+
+```java
+SqlParameter<Integer> empId = SqlParameters.param("empId");
+SqlParameter<Double> newSalary = SqlParameters.param("newSalary");
+
+CompiledQuery updateSalary = SqlQuery.update(schema.getTableBy(Employee.class))
+    .set(Employee.C_SALARY, newSalary)
+    .set(Employee.C_UPDATED_AT, LocalDateTime.now())
+    .where(Employee.C_ID).eq(empId)
+    .compile();
+
+SqlAndParams bound = updateSalary.bind(Map.of("empId", 42, "newSalary", 120_000d));
+```
+
+`insertInto` supports multi-row or `INSERT ... SELECT`; `deleteFrom` shares the predicate DSL. Raw `setRaw`/`valuesRaw` are available when needed.
+
+## Dialects & functions
+
+- Supply a dialect: `SqlQuery.newQuery(new PostgresDialect())` or set one on your schema. Dialect controls quoting, pagination, set operators, LIKE escaping, and function rendering.
+- Built-ins target Oracle (OFFSET/FETCH, `MINUS` for `EXCEPT`). Override via `Dialects.postgres()` or custom implementations.
+- Functions: implement `renderFunction(logicalName, argsSql)` to map logical names (`lower`, `coalesce`, etc.) to SQL.
+
+## Schema modeling
+
+### Annotated tables + scanning
+
+```java
+@SqlTable(name = "Customer", alias = "C")
+public final class Customer {
+    @SqlColumn(name = "ID", javaType = Long.class) public static ColumnRef<Long> ID;
+    @SqlColumn(name = "FIRST_NAME", alias = "firstName", javaType = String.class) public static ColumnRef<String> FIRST_NAME;
+    @SqlColumn(name = "LAST_NAME", alias = "lastName", javaType = String.class) public static ColumnRef<String> LAST_NAME;
+    private Customer() {}
+}
+
+public final class SalesSchema extends ScannedSchema {
+    public SalesSchema() { super("com.acme.sales.schema"); }
+}
+```
+
+Run the annotation processor to generate `<Table>Columns` + `<Table>ColumnsImpl`. Fetch typed handles via:
+
+```java
+SalesSchema schema = new SalesSchema();
+CustomerColumns cols = schema.facets().columns(Customer.class, CustomerColumns.class);
+SqlQuery.newQuery().select(cols.ID(), cols.FIRST_NAME()).where(cols.LAST_NAME()).like("%son").render();
+```
+
+Classpath scanning can be restricted in shaded/fat jars; fall back to manual registration if needed.
+
+### Manual table registration
+
+```java
+ColumnRef<Integer> EMP_ID = ColumnRef.of("ID", Integer.class);
+Table employee = Tables.builder("Employee", "E")
+    .column(EMP_ID)
+    .column("ACTIVE", "isActive")
+    .build();
+```
+
+`Tables.builder(...).build()` binds descriptors and returns immutable tables; rebuild to change columns.
+
+### Typed rows
+
+```java
+var facet = schema.facets().facet(Customer.class);
+CustomerColumns columns = schema.facets().columns(Customer.class, CustomerColumns.class);
+TableRow row = facet.rowBuilder()
+    .set(columns.ID(), 42L)
+    .set(columns.FIRST_NAME(), "Ada")
+    .build();
+```
+
+## Integration modules
+
+- **PostgreSQL integration**: see `integration/` for dialect and examples wired to Postgres.
+- **Spring Boot demo API**: sample REST API showing query construction + execution.
+- **Spring JDBC integration**: adapters for `JdbcTemplate` using `CompiledQuery` / `SqlAndParams`.
+
+## Reference
+
+- `render()` returns SQL with placeholders; `SqlFormatter.inlineLiterals(sp, dialect)` inlines values when you truly need raw SQL (loses bind safety).
+- `prettyPrint()` formats the current query with one clause per line for debugging.
+- Stage widening: `SqlQuery.asQuery(stage)` widens staged builders when you need clauses outside the current stage.
+- Validation surfaces grouping/alias/parameter issues early; use it in tests or startup checks.
+- The builder is not thread-safe; compiled queries are immutable and cache-friendly.
 ```java
 SqlParameter<Integer> minSalary = SqlParameters.param("minSalary");
 
