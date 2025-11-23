@@ -94,6 +94,16 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 - Optional XE-backed test (live DB required):  
   `SQLBUILDER_IT_ORACLE=true mvn -pl integration test`
 
+### Switching between Postgres and Oracle
+
+- Only run one container at a time to avoid port conflicts. Stop the other service first:  
+  `docker compose -f integration/docker/docker-compose.yml down oracle-xe` (when moving to Postgres)  
+  `docker compose -f integration/docker/docker-compose.yml down sqlbuilder-db` (when moving to Oracle)
+- Swap env vars and profile to match the active DB:
+  - Postgres: (defaults) `SQLBUILDER_DIALECT=postgres`, URL `jdbc:postgresql://localhost:5432/sqlbuilder`, user `sb_user`, pass `sb_pass`; no Spring profile needed.
+  - Oracle: `SQLBUILDER_DIALECT=oracle`, URL `jdbc:oracle:thin:@localhost:1521/XEPDB1`, user `SB_USER`, pass `sb_pass`; add `-Dspring-boot.run.profiles=oracle` when running the Spring Boot app.
+- Re-run your console (`mvn -pl integration exec:java`) or Boot (`mvn -pl integration spring-boot:run ...`) command after adjusting.
+
 ## Repository layout
 
 - `core/` — distributable DSL, factories, validators, annotation processor (packaged; build runs with `-proc:none`).
