@@ -71,6 +71,10 @@ public final class SqlFormatter {
 			return sql;
 		}
 		PrettyPrintOptions opts = options == null ? PrettyPrintOptions.defaultOptions() : options;
+		WithBlock withBlock = parseWithBlock(sql);
+		if (withBlock != null) {
+			return formatWithBlock(withBlock, opts);
+		}
 		String clausesBroken = breakIntoClauses(sql, opts);
 		return formatClauses(clausesBroken, opts);
 	}
@@ -206,14 +210,154 @@ public final class SqlFormatter {
 	}
 
 	private static String formatWithClause(String leading, String rest, PrettyPrintOptions opts) {
-		StringBuilder clause = new StringBuilder();
+		StringBuilder clause = new StringBuilder(rest.length() + 32);
 		clause.append(leading).append("WITH");
 		if (rest.isBlank()) {
 			return clause.toString();
 		}
 		clause.append('\n');
-		appendItems(clause, splitTopLevel(rest, ','), leading + opts.indentString(1), true);
+		List<String> ctes = splitTopLevel(rest, ',');
+		String cteIndent = leading + opts.indentString(1);
+		for (int i = 0; i < ctes.size(); i++) {
+			formatCte(clause, ctes.get(i), cteIndent, opts);
+			if (i < ctes.size() - 1) {
+				clause.append(",\n");
+			}
+		}
 		return clause.toString();
+	}
+
+	private static void formatCte(StringBuilder target, String rawCte, String indent, PrettyPrintOptions opts) {
+		String trimmed = rawCte.trim();
+		if (trimmed.isEmpty()) {
+			return;
+		}
+		int asIndex = findKeywordOutsideParens(trimmed, "AS");
+		if (asIndex <= 0 || asIndex + 2 >= trimmed.length()) {
+			target.append(indent).append(trimmed);
+			return;
+		}
+		String name = trimmed.substring(0, asIndex).trim();
+		String body = trimmed.substring(asIndex + 2).trim();
+		target.append(indent).append(name).append(" AS");
+		if (body.startsWith("(") && body.endsWith(")")) {
+			String inner = body.substring(1, body.length() - 1).trim();
+			String innerIndent = indent + opts.indentString(1);
+			String formattedInner = prettyPrint(inner, opts);
+			target.append(" (\n");
+			String[] lines = formattedInner.split("\n");
+			for (int i = 0; i < lines.length; i++) {
+				target.append(innerIndent).append(lines[i]);
+				if (i < lines.length - 1) {
+					target.append('\n');
+				}
+			}
+			target.append('\n')
+					.append(indent)
+					.append(')');
+			return;
+		}
+		target.append(' ').append(body);
+	}
+
+	private static WithBlock parseWithBlock(String sql) {
+		String trimmed = sql.stripLeading();
+		if (!startsWithIgnoreCase(trimmed, "WITH")) {
+			return null;
+		}
+		int position = skipWhitespace(trimmed, "WITH".length());
+		List<Cte> ctes = new ArrayList<>();
+		while (position < trimmed.length()) {
+			int asIndex = findKeywordOutsideParens(trimmed, "AS", position);
+			if (asIndex < 0) {
+				return null;
+			}
+			String name = trimmed.substring(position, asIndex).trim();
+			int bodyStart = skipWhitespace(trimmed, asIndex + 2);
+			if (bodyStart >= trimmed.length() || trimmed.charAt(bodyStart) != '(') {
+				return null;
+			}
+			int bodyEnd = findMatchingParenSafe(trimmed, bodyStart);
+			if (bodyEnd < 0) {
+				return null;
+			}
+			String body = trimmed.substring(bodyStart + 1, bodyEnd).trim();
+			ctes.add(new Cte(name, body));
+			position = skipWhitespace(trimmed, bodyEnd + 1);
+			if (position < trimmed.length() && trimmed.charAt(position) == ',') {
+				position = skipWhitespace(trimmed, position + 1);
+				continue;
+			}
+			break;
+		}
+		String mainSql = trimmed.substring(position).trim();
+		if (mainSql.isEmpty()) {
+			return null;
+		}
+		return new WithBlock(ctes, mainSql);
+	}
+
+	private static String formatWithBlock(WithBlock block, PrettyPrintOptions opts) {
+		StringBuilder builder = new StringBuilder(block.mainSql().length() + 64);
+		builder.append("WITH").append('\n');
+		String baseIndent = opts.indentString(1);
+		for (int i = 0; i < block.ctes().size(); i++) {
+			Cte cte = block.ctes().get(i);
+			String innerIndent = baseIndent + opts.indentString(1);
+			builder.append(baseIndent).append(cte.name().trim()).append(" AS (\n");
+			String formattedInner = prettyPrint(cte.body(), opts);
+			String[] lines = formattedInner.split("\n");
+			for (int l = 0; l < lines.length; l++) {
+				builder.append(innerIndent).append(lines[l]);
+				if (l < lines.length - 1) {
+					builder.append('\n');
+				}
+			}
+			builder.append('\n').append(baseIndent).append(')');
+			if (i < block.ctes().size() - 1) {
+				builder.append(',').append('\n');
+			} else {
+				builder.append('\n');
+			}
+		}
+		builder.append(prettyPrint(block.mainSql(), opts));
+		return builder.toString().stripTrailing();
+	}
+
+	private static int findMatchingParenSafe(String text, int openIndex) {
+		int depth = 0;
+		boolean inSingle = false;
+		boolean inDouble = false;
+		for (int i = openIndex; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '\'' && !inDouble) {
+				inSingle = !inSingle;
+				continue;
+			}
+			if (c == '"' && !inSingle) {
+				inDouble = !inDouble;
+				continue;
+			}
+			if (inSingle || inDouble) {
+				continue;
+			}
+			if (c == '(') {
+				depth++;
+			} else if (c == ')') {
+				depth--;
+				if (depth == 0) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+
+	private static boolean startsWithIgnoreCase(String text, String keyword) {
+		if (text.length() < keyword.length()) {
+			return false;
+		}
+		return text.regionMatches(true, 0, keyword, 0, keyword.length());
 	}
 
 	private static void appendItems(StringBuilder target, List<String> items, String indent, boolean commaSeparated) {
@@ -253,18 +397,44 @@ public final class SqlFormatter {
 			int onIndex = findKeywordOutsideParens(remainder, "ON");
 			String relation = onIndex >= 0 ? remainder.substring(0, onIndex).trim() : remainder;
 			String condition = onIndex >= 0 ? remainder.substring(onIndex).trim() : "";
-			StringBuilder formatted = new StringBuilder();
+			StringBuilder formatted = new StringBuilder(trimmed.length() + 16);
 			formatted.append(indent).append(keyword);
 			String relationIndent = indent + opts.indentString(1);
 			if (!relation.isBlank()) {
-				formatted.append('\n')
-						.append(relationIndent)
-						.append(indentMultiline(relation, relationIndent));
+				if (relation.startsWith("(")) {
+					int closing = findMatchingParenSafe(relation, 0);
+					String inner = closing >= 0 ? relation.substring(1, closing).trim() : relation.substring(1).trim();
+					String alias = closing >= 0 && closing + 1 < relation.length()
+							? relation.substring(closing + 1).trim()
+							: "";
+					String formattedInner = prettyPrint(inner, opts);
+					formatted.append(" (\n");
+					String[] lines = formattedInner.split("\n");
+					for (int i = 0; i < lines.length; i++) {
+						formatted.append(relationIndent).append(lines[i]);
+						if (i < lines.length - 1) {
+							formatted.append('\n');
+						}
+					}
+					formatted.append('\n')
+							.append(indent)
+							.append(')');
+					if (!alias.isBlank()) {
+						formatted.append(' ').append(alias);
+					}
+				} else if (relation.contains("\n")) {
+					formatted.append('\n')
+							.append(relationIndent)
+							.append(indentMultiline(relation, relationIndent));
+				} else {
+					formatted.append(' ').append(relation);
+				}
 			}
 			if (!condition.isBlank()) {
+				String onIndent = relationIndent;
 				formatted.append('\n')
-						.append(relationIndent)
-						.append(indentMultiline(condition, relationIndent));
+						.append(onIndent)
+						.append(indentMultiline(condition, onIndent));
 			}
 			return formatted.toString();
 		}
@@ -293,7 +463,12 @@ public final class SqlFormatter {
 			String inner = trimmed.substring(1, trimmed.length() - 1).trim();
 			String innerIndent = indent + opts.indentString(1);
 			target.append(prefix).append('(');
-			if (!inner.isEmpty()) {
+			List<PredicateExpression> nested = splitLogicalExpressions(inner);
+			if (nested.size() > 1) {
+				target.append('\n');
+				appendPredicateItems(target, nested, innerIndent, opts);
+				target.append('\n').append(indent).append(')');
+			} else if (!inner.isEmpty()) {
 				target.append('\n')
 						.append(innerIndent)
 						.append(indentMultiline(inner, innerIndent))
@@ -643,6 +818,11 @@ public final class SqlFormatter {
 		return -1;
 	}
 
+	private static int findKeywordOutsideParens(String text, String keyword, int startIndex) {
+		int relative = findKeywordOutsideParens(text.substring(startIndex), keyword);
+		return relative < 0 ? -1 : startIndex + relative;
+	}
+
 	private static int skipWhitespace(String text, int index) {
 		int pos = index;
 		while (pos < text.length() && Character.isWhitespace(text.charAt(pos))) {
@@ -704,6 +884,12 @@ public final class SqlFormatter {
 	private record PredicateExpression(String connector, String expression) {
 	}
 
+	private record WithBlock(List<Cte> ctes, String mainSql) {
+	}
+
+	private record Cte(String name, String body) {
+	}
+
     private static String formatLiteral(Object value, Dialect dialect) {
         if (value == null) {
             return "NULL";
@@ -724,43 +910,44 @@ public final class SqlFormatter {
 		StringBuilder builder = new StringBuilder(sql.length() + 32);
 		int depth = 0;
 		String upper = sql.toUpperCase(Locale.ROOT);
+		List<Boolean> parenBreaks = new ArrayList<>();
 		for (int i = 0; i < sql.length();) {
-			if (upper.startsWith("SELECT", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("SELECT", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("SELECT");
 				i += 6;
 				continue;
 			}
-			if (upper.startsWith("WITH", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("WITH", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("WITH");
 				i += 4;
 				continue;
 			}
-			if (upper.startsWith("FROM", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("FROM", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("FROM");
 				i += 4;
 				continue;
 			}
-			if (upper.startsWith("WHERE", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("WHERE", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("WHERE");
 				i += 5;
 				continue;
 			}
-			if (upper.startsWith("GROUP BY", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("GROUP BY", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("GROUP BY");
 				i += 8;
 				continue;
 			}
-			if (upper.startsWith("HAVING", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("HAVING", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("HAVING");
 				i += 6;
 				continue;
 			}
-			if (upper.startsWith("ORDER BY", i) && isClauseBoundary(upper, i)) {
+			if (depth == 0 && upper.startsWith("ORDER BY", i) && isClauseBoundary(upper, i)) {
 				builder.append('\n').append(opts.indentString(depth)).append("ORDER BY");
 				i += 8;
 				continue;
 			}
-			if (upper.startsWith("UNION", i) || upper.startsWith("INTERSECT", i) || upper.startsWith("EXCEPT", i)) {
+			if (depth == 0 && (upper.startsWith("UNION", i) || upper.startsWith("INTERSECT", i) || upper.startsWith("EXCEPT", i))) {
 				if (isClauseBoundary(upper, i)) {
 					builder.append('\n').append(opts.indentString(depth)).append(sql, i,
 							Math.min(sql.length(), i + nextKeywordLength(upper, i)));
@@ -771,17 +958,49 @@ public final class SqlFormatter {
 			char c = sql.charAt(i);
 			builder.append(c);
 			if (c == '(') {
+				String prevKeyword = previousKeyword(upper, i);
+				boolean breakAfter = !"JOIN".equals(prevKeyword) && shouldBreakAfterParen(upper, i + 1);
+				parenBreaks.add(Boolean.valueOf(breakAfter));
 				depth++;
-				builder.append('\n').append(opts.indentString(depth));
+				if (breakAfter) {
+					builder.append('\n').append(opts.indentString(depth));
+				}
 			} else if (c == ')') {
+				boolean breakApplied = !parenBreaks.isEmpty() && Boolean.TRUE.equals(parenBreaks.remove(parenBreaks.size() - 1));
 				depth = Math.max(depth - 1, 0);
-				if (i + 1 < sql.length()) {
+				if (breakApplied && i + 1 < sql.length()) {
 					builder.append('\n').append(opts.indentString(depth));
 				}
 			}
 			i++;
 		}
 		return builder.toString();
+	}
+
+	private static boolean shouldBreakAfterParen(String upperSql, int start) {
+		int pos = start;
+		while (pos < upperSql.length() && Character.isWhitespace(upperSql.charAt(pos))) {
+			pos++;
+		}
+		if (pos >= upperSql.length()) {
+			return false;
+		}
+		return upperSql.startsWith("SELECT", pos) || upperSql.startsWith("WITH", pos) || upperSql.startsWith("VALUES", pos);
+	}
+
+	private static String previousKeyword(String upperSql, int index) {
+		int i = index - 1;
+		while (i >= 0 && Character.isWhitespace(upperSql.charAt(i))) {
+			i--;
+		}
+		int end = i;
+		while (i >= 0 && Character.isLetter(upperSql.charAt(i))) {
+			i--;
+		}
+		if (end >= 0 && end > i) {
+			return upperSql.substring(i + 1, end + 1);
+		}
+		return "";
 	}
 
 }
