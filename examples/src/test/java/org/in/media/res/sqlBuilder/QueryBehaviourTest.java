@@ -335,6 +335,59 @@ class QueryBehaviourTest {
 	}
 
 	@Test
+	void chainedCteBuilderRendersWithClause() {
+		Query jobEmployeeIds = SqlQuery.query()
+				.select(Job.C_EMPLOYEE_ID)
+				.from(job)
+				.where(Job.C_SALARY).supOrEqTo(120_000)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		WithBuilder.CteStep step = with.with("high_salary_ids", jobEmployeeIds, "EMPLOYEE_ID");
+		CteRef highSalaryIds = step.ref();
+
+		Query main = step.and().main(SqlQuery.query()
+				.select(highSalaryIds.column("EMPLOYEE_ID"))
+				.from(highSalaryIds)
+				.asQuery());
+
+		String sql = main.render().sql();
+
+		String inner = "SELECT " + qualified(tableRef(job), "EMPLOYEE_ID") + " FROM " + quoted(job.getName()) + " "
+				+ quoted(tableRef(job)) + " WHERE " + qualified(tableRef(job), "SALARY") + " >= ?";
+		// Job.C_EMPLOYEE_ID carries alias employeeId; CTE preserves it in raw SQL.
+		String expected = "WITH \"high_salary_ids\"(\"EMPLOYEE_ID\") AS (SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")
+				+ " as " + quoted("employeeId") + " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + " WHERE "
+				+ qualified(tableRef(job), "SALARY") + " >= ?) SELECT " + quoted("high_salary_ids") + "."
+				+ quoted("EMPLOYEE_ID") + " FROM " + quoted("high_salary_ids");
+
+		assertEquals(expected, sql);
+	}
+
+	@Test
+	void stagedCteBuilderUsesAsSyntax() {
+		Query avgSalary = SqlQuery.query()
+				.select(Employee.C_ID)
+				.select(AggregateOperator.AVG, Job.C_SALARY)
+				.from(employee)
+				.join(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
+				.groupBy(Employee.C_ID)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		WithBuilder.CteStep step = with.with("salary_avg").as(avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+		CteRef salaryAvg = step.ref();
+
+		Query main = step.and().main(SqlQuery.query()
+				.select(salaryAvg.column("EMPLOYEE_ID"))
+				.from(salaryAvg)
+				.asQuery());
+
+		String sql = main.render().sql();
+		assertTrue(sql.startsWith("WITH \"salary_avg\"(\"EMPLOYEE_ID\", \"AVG_SALARY\") AS"));
+	}
+
+	@Test
 	void multipleNestedCtesRenderExpectedSql() {
 		Query salaryDetailsQuery = SqlQuery.query()
 				.select(Employee.C_ID)

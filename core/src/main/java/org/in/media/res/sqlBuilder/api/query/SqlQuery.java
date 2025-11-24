@@ -1,6 +1,8 @@
 package org.in.media.res.sqlBuilder.api.query;
 
 import java.util.Objects;
+import java.util.Arrays;
+import java.util.List;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
@@ -68,6 +70,42 @@ public final class SqlQuery {
 
 	public static WithBuilder with() {
 		return new WithBuilderImpl();
+	}
+
+	/**
+	 * Convenience entry point to start a chained CTE declaration without calling {@link #with()} explicitly.
+	 * Returns the staged declaration step, preserving the underlying builder so {@code ref()} and {@code and()}
+	 * behave the same as when starting from {@code with()}.
+	 */
+	public static WithBuilder.CteDeclarationStep withCte(String name) {
+		return new WithBuilderImpl().with(name);
+	}
+
+	/**
+	 * Convenience entry point to start a chained CTE declaration (name + body) without calling {@link #with()} explicitly.
+	 * Returns the CTE step so callers can grab the {@link org.in.media.res.sqlBuilder.api.query.CteRef} and continue with {@code and()}.
+	 */
+	public static WithBuilder.CteStep withCte(String name, Query query, String... columnAliases) {
+		return new WithBuilderImpl().with(name, query, columnAliases);
+	}
+
+	/**
+	 * Convenience wrapper that stores CTE refs by name and lets you attach the main query in one chain.
+	 */
+	public static WithChain withChain() {
+		return new WithChain(new WithBuilderImpl());
+	}
+
+	/**
+	 * Render a fully raw SQL string with positional parameters.
+	 *
+	 * @param sql SQL text containing {@code ?} placeholders
+	 * @param params positional parameter values matching the placeholders
+	 * @return immutable SQL + params pair
+	 */
+	public static SqlAndParams raw(String sql, Object... params) {
+		List<Object> paramList = params == null ? List.of() : Arrays.asList(params);
+		return new SqlAndParams(sql, paramList);
 	}
 
 	public static Table toTable(Query query, String alias, String... columnAliases) {

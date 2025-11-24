@@ -4,116 +4,51 @@ sqlBuilder is a lightweight fluent DSL for assembling SQL in Java 21 without str
 
 ## What do you want to do?
 
-- [Get started in 60 seconds](#get-started-in-60-seconds)
-- [Build & test locally](#build--test)
-- [Run the Postgres integration quickstart](#integration-quickstart-postgres)
-- [Understand the public API](#public-api-surface--stability)
-- [Learn the DSL basics](#core-concepts)
-- [Use the DSL by task](#task-guides)
-- [Model schemas](#schema-modeling)
-- [Switch dialects / functions](#dialects--functions)
-- [Integrate (Postgres, Spring Boot, Spring JDBC)](#integration-modules)
-- [Reference notes](#reference)
+- [Quickstart](docs/quickstart.md)
+- [API surface & core concepts](docs/api-and-concepts.md)
+- [Task guides & reference examples](docs/task-guides.md)
+- [Dialect tips](docs/dialects.md)
+- [Schema modeling](docs/schema.md)
+- [Integration modules](docs/integration.md)
+- [Notes & configuration](docs/notes.md)
+- [Testing & coverage](docs/testing.md)
+- [Thread safety](docs/thread-safety.md)
 
-## Get started in 60 seconds
+## Quickstart
 
-1. Build locally (installs the snapshot to `~/.m2`):
-   ```bash
-   mvn -q -DskipTests install
-   ```
-2. Add the dependency:
-   - Maven
-     ```xml
-     <dependency>
-       <groupId>org.in.media.res</groupId>
-       <artifactId>sqlBuilder-core</artifactId>
-       <version>0.0.1-SNAPSHOT</version>
-     </dependency>
-     ```
-   - Gradle (Kotlin DSL)
-     ```kotlin
-     implementation("org.in.media.res:sqlBuilder-core:0.0.1-SNAPSHOT")
-     ```
-3. Write your first query:
-   ```java
-   var schema = new EmployeeSchema();
-   var employee = schema.getTableBy(Employee.class);
-   var job = schema.getTableBy(Job.class);
+See [docs/quickstart.md](docs/quickstart.md) for build/run steps, integration quickstart (Postgres/Oracle), and repository layout.
 
-   SqlAndParams sap = SqlQuery.query()          // or SqlQuery.newQuery() for staged typing
-       .select(Employee.C_FIRST_NAME, Employee.C_LAST_NAME)
-       .innerJoin(job).on(Employee.C_ID, Job.C_EMPLOYEE_ID)
-       .where(Employee.C_FIRST_NAME).eq("Alice")
-       .orderBy(Employee.C_LAST_NAME)
-       .limitAndOffset(20, 0)
-       .render();
+## API Surface & Core Concepts
 
-   sap.sql();    // SELECT ... OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-   sap.params(); // ["Alice", 0, 20]
-   ```
+See [docs/api-and-concepts.md](docs/api-and-concepts.md).
 
-> API boundary: only `org.in.media.res.sqlBuilder.api.*` is stable. Everything in `*.core.*` or `*.processor.*` is internal—always use the `SqlQuery` facade instead of `*Impl` classes.
+## Task Guides & Reference Examples
 
-## Build & test
+See [docs/task-guides.md](docs/task-guides.md) for SELECT/joins/aggregates, pagination, set ops, CTEs, optional filters, raw fragments, DML, and reference snippets.
 
-- Compile: `mvn clean compile`
-- Full test suite: `mvn test` (or `mvn -o test` once dependencies are cached)
-- Package only: `mvn -q -DskipTests package`
-- Examples module only: `mvn -pl examples -q test`
+## Dialects & Functions
 
-## Integration quickstart (Postgres)
+See [docs/dialects.md](docs/dialects.md).
 
-- Start the demo database (seeds schema + data):  
-  `docker compose -f integration/docker/docker-compose.yml up -d`
-- Export (or rely on defaults) for the integration modules:  
-  `export SQLBUILDER_JDBC_URL=jdbc:postgresql://localhost:5432/sqlbuilder`  
-  `export SQLBUILDER_JDBC_USER=sb_user`  
-  `export SQLBUILDER_JDBC_PASSWORD=sb_pass`
-- Run the console harness against Postgres:  
-  `mvn -pl integration exec:java`
-- Run the Spring Boot demo API:  
-  `mvn -pl integration spring-boot:run` (binds to `${PORT:-8080}`)
-- Optional integration tests (live DB required):  
-  `SQLBUILDER_IT=true mvn -pl integration test`
-- Stop the container when done:  
-  `docker compose -f integration/docker/docker-compose.yml down`
+## Schema Modeling
 
-### Oracle XE variant
+See [docs/schema.md](docs/schema.md).
 
-- Start Oracle XE with seeded schema (service name `oracle-xe`):  
-  `docker compose -f integration/docker/docker-compose.yml up -d oracle-xe`
-- Use the Oracle defaults (set if different):  
-  `export SQLBUILDER_DIALECT=oracle`  
-  `export SQLBUILDER_JDBC_URL=jdbc:oracle:thin:@localhost:1521/XEPDB1`  
-  `export SQLBUILDER_JDBC_USER=SB_USER`  
-  `export SQLBUILDER_JDBC_PASSWORD=sb_pass`
-- Run console harness against XE:  
-  `mvn -pl integration exec:java`
-- Run Spring Boot API with the Oracle profile:  
-  `mvn -pl integration spring-boot:run -Dspring-boot.run.profiles=oracle`
-- Optional XE-backed test (live DB required):  
-  `SQLBUILDER_IT_ORACLE=true mvn -pl integration test`
-- Oracle JDBC: the XE profile expects `ojdbc11` on your Maven cache; download/publish locally if your mirror blocks Oracle artifacts.
+## Integration Modules
 
-### Switching between Postgres and Oracle
+See [docs/integration.md](docs/integration.md).
 
-- Only run one container at a time to avoid port conflicts. Stop the other service first:  
-  `docker compose -f integration/docker/docker-compose.yml down oracle-xe` (when moving to Postgres)  
-  `docker compose -f integration/docker/docker-compose.yml down sqlbuilder-db` (when moving to Oracle)
-- Swap env vars and profile to match the active DB:
-  - Postgres: (defaults) `SQLBUILDER_DIALECT=postgres`, URL `jdbc:postgresql://localhost:5432/sqlbuilder`, user `sb_user`, pass `sb_pass`; no Spring profile needed.
-  - Oracle: `SQLBUILDER_DIALECT=oracle`, URL `jdbc:oracle:thin:@localhost:1521/XEPDB1`, user `SB_USER`, pass `sb_pass`; add `-Dspring-boot.run.profiles=oracle` when running the Spring Boot app.
-- Re-run your console (`mvn -pl integration exec:java`) or Boot (`mvn -pl integration spring-boot:run ...`) command after adjusting.
+## Notes & Configuration
 
-### Spring Boot wiring (schema + query beans)
+See [docs/notes.md](docs/notes.md).
 
-- The integration app publishes the DSL dialect and schema as beans (`IntegrationDslConfig`), so the same `ScannedSchema` is reused across controllers/services.
-- Each demo query is a Spring bean (`DemoQueryRepository`), then collected by `QueryCatalog`—repository-like and easy to inject or mock per domain/query.
+## Testing & Coverage
 
-## Repository layout
+See [docs/testing.md](docs/testing.md).
 
-- `core/` — distributable DSL, factories, validators, annotation processor (packaged; build runs with `-proc:none`).
-- `examples/` — sample schema, `MainApp`, benchmarks, integration-style tests (runs the processor).
+## Thread Safety
+
+See [docs/thread-safety.md](docs/thread-safety.md) and `documents/THREAD_SAFETY.md`.
 
 ## Public API Surface & Stability
 
@@ -511,6 +446,54 @@ SqlAndParams sp = with.main(
 
 sp.sql();
 // WITH "salary_avg"("EMPLOYEE_ID", "AVG_SALARY") AS (...) SELECT ...
+
+// Alternate chained style for a more SQL-like feel:
+WithBuilder.CteStep step = SqlQuery.withCte("salary_avg")
+    .as(avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+CteRef salaryAverages2 = step.ref();
+
+SqlAndParams chained = step.and().main(
+    SqlQuery.newQuery()
+        .select(Employee.C_FIRST_NAME)
+        .from(employee)
+        .join(salaryAverages2).on(Employee.C_ID, salaryAverages2.column("EMPLOYEE_ID"))
+        .where(salaryAverages2.column("AVG_SALARY")).supOrEqTo(80_000)
+        .asQuery()
+).render();
+
+// One-expression flow without storing refs locally:
+SqlAndParams oneFlow = SqlQuery.withChain()
+    .cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY")
+    .main(chain -> SqlQuery.newQuery()
+        .select(Employee.C_FIRST_NAME)
+        .from(employee)
+        .join(chain.ref("salary_avg")).on(Employee.C_ID, chain.ref("salary_avg").column("EMPLOYEE_ID"))
+        .where(chain.ref("salary_avg").column("AVG_SALARY")).supOrEqTo(80_000)
+        .asQuery())
+    .render();
+
+// One-expression variant with two CTEs using attach(lambda):
+SqlAndParams oneLiner = SqlQuery.withChain()
+    .cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY")
+    .cte("dept_totals", deptTotals, "DEPT_ID", "TOTAL_SALARY")
+    .attach(chain -> SqlQuery.newQuery()
+        .select(chain.ref("salary_avg").column("EMPLOYEE_ID"))
+        .select(chain.ref("dept_totals").column("TOTAL_SALARY"))
+        .from(chain.ref("salary_avg"))
+        .join(chain.ref("dept_totals")).on(
+            chain.ref("salary_avg").column("EMPLOYEE_ID"),
+            chain.ref("dept_totals").column("DEPT_ID"))
+        .asQuery())
+    .render();
+
+// No-lambda variant: build chain, build main with chain refs, then attach and render.
+WithChain chain = SqlQuery.withChain()
+    .cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+Query mainQuery = SqlQuery.newQuery()
+    .select(chain.ref("salary_avg").column("EMPLOYEE_ID"))
+    .from(chain.ref("salary_avg"))
+    .asQuery();
+SqlAndParams noLambda = chain.attach(mainQuery).render();
 ```
 
 `cte(name, query, columnAliases)` captures any query (including joins, groups, optional filters). Each call returns a `CteRef`, which exposes columns via `column("ALIAS")` or `col("ALIAS")`. Bind variables declared inside CTEs are rendered before main-query parameters, so JDBC bindings follow SQL order. Dialects can opt out via `Dialect.supportsCte()`; attempting to render a CTE with an unsupported dialect raises `UnsupportedOperationException`.

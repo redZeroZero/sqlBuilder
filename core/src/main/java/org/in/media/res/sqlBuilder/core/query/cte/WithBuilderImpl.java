@@ -18,6 +18,20 @@ public final class WithBuilderImpl implements WithBuilder {
 	private final List<QueryImpl.CteDeclaration> declarations = new ArrayList<>();
 
 	@Override
+	public CteDeclarationStep with(String name) {
+		String normalizedName = validateName(name);
+		if (registry.containsKey(normalizedName)) {
+			throw new IllegalArgumentException("Duplicate CTE name '" + normalizedName + "'");
+		}
+		return new CteDeclarationStepImpl(normalizedName, this);
+	}
+
+	@Override
+	public CteStep with(String name, Query query, String... columnAliases) {
+		return with(name).as(query, columnAliases);
+	}
+
+	@Override
 	public CteRef cte(String name, Query query) {
 		return cte(name, query, new String[0]);
 	}
@@ -56,5 +70,43 @@ public final class WithBuilderImpl implements WithBuilder {
 			throw new IllegalArgumentException("CTE name must not be blank");
 		}
 		return normalized;
+	}
+
+	private final class CteDeclarationStepImpl implements CteDeclarationStep {
+
+		private final String name;
+		private final WithBuilder builder;
+
+		private CteDeclarationStepImpl(String name, WithBuilder builder) {
+			this.name = name;
+			this.builder = builder;
+		}
+
+		@Override
+		public CteStep as(Query query, String... columnAliases) {
+			CteRef ref = builder.cte(name, query, columnAliases);
+			return new CteStepImpl(ref, builder);
+		}
+	}
+
+	private static final class CteStepImpl implements CteStep {
+
+		private final CteRef ref;
+		private final WithBuilder builder;
+
+		private CteStepImpl(CteRef ref, WithBuilder builder) {
+			this.ref = Objects.requireNonNull(ref, "ref");
+			this.builder = Objects.requireNonNull(builder, "builder");
+		}
+
+		@Override
+		public CteRef ref() {
+			return ref;
+		}
+
+		@Override
+		public WithBuilder and() {
+			return builder;
+		}
 	}
 }

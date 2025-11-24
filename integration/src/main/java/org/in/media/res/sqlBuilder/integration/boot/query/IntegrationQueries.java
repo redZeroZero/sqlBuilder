@@ -172,8 +172,8 @@ public final class IntegrationQueries {
 				.groupBy(EmployeesTable.C_ID)
 				.asQuery();
 
-		var with = SqlQuery.with();
-		var salaryAvg = with.cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+		var salaryAvgStep = SqlQuery.withCte("salary_avg").as(avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+		var salaryAvg = salaryAvgStep.ref();
 
 		Query main = SqlQuery.newQuery()
 				.select(EmployeesTable.C_FIRST_NAME)
@@ -183,7 +183,7 @@ public final class IntegrationQueries {
 				.where(salaryAvg.column("AVG_SALARY")).supOrEqTo(85_000)
 				.asQuery();
 
-		return with.main(main).render();
+		return salaryAvgStep.and().main(main).render();
 	}
 
 	public static SqlAndParams subqueryFiltering() {

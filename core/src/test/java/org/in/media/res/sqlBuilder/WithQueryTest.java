@@ -20,6 +20,7 @@ import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.api.query.WithBuilder;
+import org.in.media.res.sqlBuilder.api.query.WithChain;
 import org.in.media.res.sqlBuilder.api.query.SetOperator;
 import org.in.media.res.sqlBuilder.core.model.ColumnImpl;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,143 @@ import org.junit.jupiter.api.Test;
 class WithQueryTest {
 
 	private static final TestTable EMPLOYEE = new TestTable("Employee", "ID", "SALARY");
+
+	@Test
+	void chainedWithBuilderRegistersCtesInOrder() {
+		Query first = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("ID"))
+				.from(EMPLOYEE)
+				.where(EMPLOYEE.column("SALARY"))
+				.eq(1000)
+				.asQuery();
+
+		Query second = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("SALARY"))
+				.from(EMPLOYEE)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		WithBuilder.CteStep firstStep = with.with("first_cte", first, "ID");
+		CteRef firstRef = firstStep.ref();
+		CteRef secondRef = firstStep.and().with("second_cte", second, "SALARY").ref();
+
+		Query main = with.main(SqlQuery.newQuery()
+				.select(firstRef.column("ID"))
+				.select(secondRef.column("SALARY"))
+				.from(firstRef)
+				.join(secondRef).on(firstRef.column("ID"), secondRef.column("SALARY"))
+				.where(secondRef.column("SALARY")).supOrEqTo(5000)
+				.asQuery());
+
+		SqlAndParams rendered = main.render();
+
+		assertTrue(rendered.sql().indexOf("\"first_cte\"") < rendered.sql().indexOf("\"second_cte\""));
+		assertEquals(List.of(1000, 5000), rendered.params());
+	}
+
+	@Test
+	void stagedWithBuilderRegistersCteViaAs() {
+		Query first = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("ID"))
+				.from(EMPLOYEE)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		WithBuilder.CteStep step = with.with("staged_cte").as(first, "EMP_ID");
+		CteRef ref = step.ref();
+
+		Query main = step.and().main(SqlQuery.newQuery()
+				.select(ref.column("EMP_ID"))
+				.from(ref)
+				.asQuery());
+
+		SqlAndParams rendered = main.render();
+
+		assertTrue(rendered.sql().startsWith("WITH \"staged_cte\""));
+		assertEquals(List.of(), rendered.params());
+	}
+
+	@Test
+	void withChainBuildsMainQueryInOneFlow() {
+		Query cteQuery = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("ID"))
+				.from(EMPLOYEE)
+				.where(EMPLOYEE.column("SALARY"))
+				.eq(700)
+				.asQuery();
+
+		WithChain chain = SqlQuery.withChain()
+				.cte("thresholds", cteQuery, "EMP_ID");
+
+		Query main = SqlQuery.newQuery()
+				.select(chain.ref("thresholds").column("EMP_ID"))
+				.from(chain.ref("thresholds"))
+				.asQuery();
+
+		SqlAndParams rendered = chain.attach(main).render();
+
+		assertTrue(rendered.sql().startsWith("WITH \"thresholds\""));
+		assertEquals(List.of(700), rendered.params());
+	}
+
+	@Test
+	void withChainAttachLambdaSupportsMultipleCtes() {
+		Query first = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("ID"))
+				.from(EMPLOYEE)
+				.asQuery();
+
+		Query second = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("SALARY"))
+				.from(EMPLOYEE)
+				.asQuery();
+
+		SqlAndParams rendered = SqlQuery.withChain()
+				.cte("first", first, "EMP_ID")
+				.cte("second", second, "SALARY")
+				.attach(chain -> SqlQuery.newQuery()
+						.select(chain.ref("first").column("EMP_ID"))
+						.select(chain.ref("second").column("SALARY"))
+						.from(chain.ref("first"))
+						.join(chain.ref("second")).on(chain.ref("first").column("EMP_ID"),
+								chain.ref("second").column("SALARY"))
+						.asQuery())
+				.render();
+
+		assertTrue(rendered.sql().startsWith("WITH \"first\""));
+		assertTrue(rendered.sql().contains("\"second\""));
+		assertEquals(List.of(), rendered.params());
+	}
+
+	@Test
+	void withChainRejectsUnknownRef() {
+		WithChain chain = SqlQuery.withChain();
+		assertThrows(IllegalArgumentException.class, () -> chain.ref("missing"));
+	}
+
+	@Test
+	void chainedWithBuilderRejectsDuplicateName() {
+		Query simple = SqlQuery.newQuery().select(EMPLOYEE.column("ID")).from(EMPLOYEE).asQuery();
+
+		WithBuilder with = SqlQuery.with();
+		WithBuilder.CteStep firstStep = with.with("dup_chain", simple, "ID");
+		firstStep.ref();
+
+		assertThrows(IllegalArgumentException.class, () -> firstStep.and().with("dup_chain", simple, "ID"));
+	}
+
+	@Test
+	void chainedWithBuilderRejectsDuplicateAliases() {
+		Query twoColumns = SqlQuery.newQuery()
+				.select(EMPLOYEE.column("ID"))
+				.select(EMPLOYEE.column("SALARY"))
+				.from(EMPLOYEE)
+				.asQuery();
+
+		WithBuilder with = SqlQuery.with();
+
+		assertThrows(IllegalArgumentException.class, () -> with.with("alias_dup", twoColumns, "COL", "COL"));
+	}
 
 	@Test
 	void renderIncludesWithClauseAndParams() {

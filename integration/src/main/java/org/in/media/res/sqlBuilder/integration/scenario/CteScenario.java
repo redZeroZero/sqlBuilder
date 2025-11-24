@@ -33,8 +33,9 @@ public final class CteScenario implements IntegrationScenario {
 				.groupBy(EmployeesTable.C_ID)
 				.asQuery();
 
-		WithBuilder with = SqlQuery.with();
-		CteRef salaryAvg = with.cte("salary_avg", avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+		// Demonstrates the chained CTE style; other scenarios still use cte(...) directly.
+		WithBuilder.CteStep salaryAvgStep = SqlQuery.withCte("salary_avg").as(avgSalary, "EMPLOYEE_ID", "AVG_SALARY");
+		CteRef salaryAvg = salaryAvgStep.ref();
 
 		Query main = SqlQuery.newQuery()
 				.select(EmployeesTable.C_FIRST_NAME)
@@ -44,6 +45,6 @@ public final class CteScenario implements IntegrationScenario {
 				.where(salaryAvg.column("AVG_SALARY")).supOrEqTo(85_000)
 				.asQuery();
 
-		ScenarioSupport.executeQuery(connection, with.main(main).render(), title());
+		ScenarioSupport.executeQuery(connection, salaryAvgStep.and().main(main).render(), title());
 	}
 }
