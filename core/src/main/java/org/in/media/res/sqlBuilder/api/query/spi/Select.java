@@ -9,6 +9,7 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.RawSqlFragment;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunction;
 
 public interface Select extends Clause, Resetable, Transpilable {
 
@@ -33,6 +34,8 @@ public interface Select extends Clause, Resetable, Transpilable {
 	Select selectRaw(String sql, SqlParameter<?>... params);
 
 	Select selectRaw(RawSqlFragment fragment);
+
+	Select select(WindowFunction windowFunction);
 
 	List<Column> columns();
 

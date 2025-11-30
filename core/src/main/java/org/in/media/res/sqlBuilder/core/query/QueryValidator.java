@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
-import org.in.media.res.sqlBuilder.api.query.Condition;
 import org.in.media.res.sqlBuilder.api.query.SqlParameter;
 import org.in.media.res.sqlBuilder.api.query.Dialect;
 import org.in.media.res.sqlBuilder.api.query.spi.From.JoinSpec;
@@ -53,7 +52,8 @@ public final class QueryValidator {
 				int projected = derived.subquery().aggColumns().size() + derived.subquery().columns().size();
 				if (derived.subquery() instanceof QueryImpl qi) {
 					projected += qi.projections().stream()
-							.filter(p -> p.type() == SelectProjectionSupport.ProjectionType.RAW)
+							.filter(p -> p.type() == SelectProjectionSupport.ProjectionType.RAW
+									|| p.type() == SelectProjectionSupport.ProjectionType.WINDOW)
 							.count();
 				}
 				if (table.getColumns().length != projected) {

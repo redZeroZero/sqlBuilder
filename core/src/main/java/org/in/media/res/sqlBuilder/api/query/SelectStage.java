@@ -6,6 +6,7 @@ import org.in.media.res.sqlBuilder.api.model.TableDescriptor;
 import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunction;
 
 /**
  * Stage exposing projection-oriented operations before a {@code FROM} clause is
@@ -42,6 +43,9 @@ public interface SelectStage extends QueryStage, Select {
 
 	@Override
 	SelectStage selectRaw(RawSqlFragment fragment);
+
+	@Override
+	SelectStage select(WindowFunction windowFunction);
 
 	@Override
 	SelectStage distinct();

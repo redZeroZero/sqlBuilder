@@ -36,6 +36,9 @@ import org.in.media.res.sqlBuilder.api.query.spi.Where;
 import org.in.media.res.sqlBuilder.core.query.dialect.DialectContext;
 import org.in.media.res.sqlBuilder.core.query.dialect.Dialects;
 import org.in.media.res.sqlBuilder.api.query.SetOperator;
+import org.in.media.res.sqlBuilder.api.query.window.WindowExpression;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunction;
+import org.in.media.res.sqlBuilder.api.query.window.WindowOrdering;
 
 public class QueryImpl implements Query {
 
@@ -137,6 +140,27 @@ public class QueryImpl implements Query {
 	private void registerBaseTable(Column column) {
 		if (column != null && column.table() != null) {
 			this.fromClause.from(column.table());
+		}
+	}
+
+	private void registerWindowTables(WindowFunction windowFunction) {
+		if (windowFunction == null) {
+			return;
+		}
+		for (WindowExpression expr : windowFunction.arguments()) {
+			if (expr != null && expr.isColumn()) {
+				registerBaseTable(expr.column());
+			}
+		}
+		for (WindowExpression expr : windowFunction.partitions()) {
+			if (expr != null && expr.isColumn()) {
+				registerBaseTable(expr.column());
+			}
+		}
+		for (WindowOrdering ordering : windowFunction.orderings()) {
+			if (ordering != null && ordering.expression() != null && ordering.expression().isColumn()) {
+				registerBaseTable(ordering.expression().column());
+			}
 		}
 	}
 
@@ -245,6 +269,13 @@ public class QueryImpl implements Query {
 	public Query select(AggregateOperator agg, Column column) {
 		registerBaseTable(column);
 		this.selectClause.select(agg, column);
+		return this;
+	}
+
+	@Override
+	public Query select(org.in.media.res.sqlBuilder.api.query.window.WindowFunction windowFunction) {
+		registerWindowTables(windowFunction);
+		this.selectClause.select(windowFunction);
 		return this;
 	}
 
@@ -1380,7 +1411,30 @@ public class QueryImpl implements Query {
 			for (SelectProjectionSupport.SelectProjection projection : support.projections()) {
 				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
 					appendRawFragment(projection.fragment(), placeholders);
+				} else if (projection.type() == SelectProjectionSupport.ProjectionType.WINDOW) {
+					appendWindowPlaceholders(projection.windowFunction(), placeholders);
 				}
+			}
+		}
+	}
+
+	private void appendWindowPlaceholders(WindowFunction windowFunction, List<CompiledQuery.Placeholder> placeholders) {
+		if (windowFunction == null) {
+			return;
+		}
+		for (WindowExpression expr : windowFunction.arguments()) {
+			if (expr != null && expr.isRaw()) {
+				appendRawFragment(expr.rawFragment(), placeholders);
+			}
+		}
+		for (WindowExpression expr : windowFunction.partitions()) {
+			if (expr != null && expr.isRaw()) {
+				appendRawFragment(expr.rawFragment(), placeholders);
+			}
+		}
+		for (WindowOrdering ordering : windowFunction.orderings()) {
+			if (ordering != null && ordering.expression() != null && ordering.expression().isRaw()) {
+				appendRawFragment(ordering.expression().rawFragment(), placeholders);
 			}
 		}
 	}

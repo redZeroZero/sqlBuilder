@@ -6,13 +6,11 @@ import java.sql.SQLException;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
-import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.integration.model.CustomersTable;
 import org.in.media.res.sqlBuilder.integration.model.IntegrationSchema;
 import org.in.media.res.sqlBuilder.integration.model.OrdersTable;
 import org.in.media.res.sqlBuilder.integration.model.PaymentsTable;
-import org.in.media.res.sqlBuilder.integration.scenario.ScenarioSupport;
 
 public final class CustomerOrderSummaryScenario implements IntegrationScenario {
 

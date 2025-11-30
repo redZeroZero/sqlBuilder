@@ -13,6 +13,7 @@ import org.in.media.res.sqlBuilder.api.query.SqlParameters;
 import org.in.media.res.sqlBuilder.api.query.SqlQuery;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunctions;
 import org.in.media.res.sqlBuilder.integration.model.CustomersTable;
 import org.in.media.res.sqlBuilder.integration.model.EmployeesTable;
 import org.in.media.res.sqlBuilder.integration.model.IntegrationSchema;
@@ -336,12 +337,17 @@ public final class IntegrationQueries {
 		Table departments = IntegrationSchema.departments();
 		Table jobs = IntegrationSchema.jobs();
 
+		var rankByDepartment = WindowFunctions.rowNumber()
+				.partitionBy(DepartmentsTable.C_ID)
+				.orderBy(JobsTable.C_SALARY, SortDirection.DESC)
+				.as("rn");
+
 		Query ranking = SqlQuery.newQuery()
 				.select(DepartmentsTable.C_NAME)
 				.select(EmployeesTable.C_FIRST_NAME)
 				.select(EmployeesTable.C_LAST_NAME)
 				.select(JobsTable.C_SALARY)
-				.selectRaw("ROW_NUMBER() OVER(PARTITION BY d.id ORDER BY j.salary DESC) AS rn")
+				.select(rankByDepartment)
 				.from(employees)
 				.join(departments).on(EmployeesTable.C_DEPARTMENT_ID, DepartmentsTable.C_ID)
 				.join(jobs).on(EmployeesTable.C_ID, JobsTable.C_EMPLOYEE_ID)

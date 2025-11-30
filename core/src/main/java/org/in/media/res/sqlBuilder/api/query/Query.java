@@ -10,6 +10,7 @@ import org.in.media.res.sqlBuilder.api.query.spi.Clause;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.constants.SortDirection;
 import org.in.media.res.sqlBuilder.api.model.ColumnRef;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunction;
 
 public interface Query extends SelectStage, FromStage {
 
@@ -51,6 +52,8 @@ public interface Query extends SelectStage, FromStage {
 
 	@Override
 	Query selectRaw(RawSqlFragment fragment);
+
+	Query select(WindowFunction windowFunction);
 
 	default Query select(AggregateOperator agg, ColumnRef<?> descriptor) {
 		return select(agg, descriptor.column());

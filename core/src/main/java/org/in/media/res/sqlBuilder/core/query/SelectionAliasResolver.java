@@ -21,7 +21,7 @@ public final class SelectionAliasResolver {
 
 	public static List<String> resolve(Query query, String... providedAliases) {
 		Objects.requireNonNull(query, "query");
-		int projectedColumns = query.aggColumns().size() + query.columns().size() + rawProjectionCount(query);
+		int projectedColumns = query.aggColumns().size() + query.columns().size() + extraProjectionCount(query);
 		if (projectedColumns == 0) {
 			throw new IllegalArgumentException("CTE/derived table requires the subquery to select at least one column");
 		}
@@ -44,17 +44,20 @@ public final class SelectionAliasResolver {
 			for (SelectProjectionSupport.SelectProjection projection : impl.projections()) {
 				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
 					resolved.add(uniqueName(suggestRawAlias(projection, seen.size()), seen));
+				} else if (projection.type() == SelectProjectionSupport.ProjectionType.WINDOW) {
+					resolved.add(uniqueName(suggestWindowAlias(projection, seen.size()), seen));
 				}
 			}
 		}
 		return List.copyOf(resolved);
 	}
 
-	private static int rawProjectionCount(Query query) {
+	private static int extraProjectionCount(Query query) {
 		if (query instanceof QueryImpl impl) {
 			int count = 0;
 			for (SelectProjectionSupport.SelectProjection projection : impl.projections()) {
-				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW) {
+				if (projection.type() == SelectProjectionSupport.ProjectionType.RAW
+						|| projection.type() == SelectProjectionSupport.ProjectionType.WINDOW) {
 					count++;
 				}
 			}
@@ -107,5 +110,19 @@ public final class SelectionAliasResolver {
 			}
 		}
 		return "RAW_COL_" + position;
+	}
+
+	private static String suggestWindowAlias(SelectProjectionSupport.SelectProjection projection, int position) {
+		if (projection.windowFunction() != null) {
+			String alias = projection.windowFunction().alias();
+			if (alias != null && !alias.isBlank()) {
+				return alias;
+			}
+			String logical = projection.windowFunction().logicalName();
+			if (logical != null && !logical.isBlank()) {
+				return logical;
+			}
+		}
+		return "WINDOW_COL_" + position;
 	}
 }

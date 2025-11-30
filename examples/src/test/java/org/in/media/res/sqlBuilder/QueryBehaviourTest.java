@@ -353,8 +353,6 @@ class QueryBehaviourTest {
 
 		String sql = main.render().sql();
 
-		String inner = "SELECT " + qualified(tableRef(job), "EMPLOYEE_ID") + " FROM " + quoted(job.getName()) + " "
-				+ quoted(tableRef(job)) + " WHERE " + qualified(tableRef(job), "SALARY") + " >= ?";
 		// Job.C_EMPLOYEE_ID carries alias employeeId; CTE preserves it in raw SQL.
 		String expected = "WITH \"high_salary_ids\"(\"EMPLOYEE_ID\") AS (SELECT " + qualified(tableRef(job), "EMPLOYEE_ID")
 				+ " as " + quoted("employeeId") + " FROM " + quoted(job.getName()) + " " + quoted(tableRef(job)) + " WHERE "

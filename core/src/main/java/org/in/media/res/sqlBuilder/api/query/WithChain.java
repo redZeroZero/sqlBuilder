@@ -5,12 +5,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
-import org.in.media.res.sqlBuilder.api.query.CompiledQuery;
-import org.in.media.res.sqlBuilder.api.query.CteRef;
-import org.in.media.res.sqlBuilder.api.query.Query;
-import org.in.media.res.sqlBuilder.api.query.SqlAndParams;
-import org.in.media.res.sqlBuilder.api.query.WithBuilder;
-
 /**
  * Convenience wrapper to declare multiple CTEs and attach the main query in a single fluent chain.
  * Stores declared {@link CteRef}s by name so downstream code can resolve them without keeping locals.

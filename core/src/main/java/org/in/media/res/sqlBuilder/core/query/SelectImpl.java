@@ -15,6 +15,7 @@ import org.in.media.res.sqlBuilder.api.query.spi.Select;
 import org.in.media.res.sqlBuilder.api.query.spi.SelectTranspiler;
 import org.in.media.res.sqlBuilder.constants.AggregateOperator;
 import org.in.media.res.sqlBuilder.core.query.transpiler.defaults.DefaultSelectTranspiler;
+import org.in.media.res.sqlBuilder.api.query.window.WindowFunction;
 
 final class SelectImpl implements Select, SelectProjectionSupport {
 
@@ -23,24 +24,31 @@ final class SelectImpl implements Select, SelectProjectionSupport {
 		private final Column column;
 		private final AggregateOperator aggregate;
 		private final RawSqlFragment fragment;
+		private final WindowFunction windowFunction;
 
-		private Entry(ProjectionType type, Column column, AggregateOperator aggregate, RawSqlFragment fragment) {
+		private Entry(ProjectionType type, Column column, AggregateOperator aggregate, RawSqlFragment fragment,
+				WindowFunction windowFunction) {
 			this.type = type;
 			this.column = column;
 			this.aggregate = aggregate;
 			this.fragment = fragment;
+			this.windowFunction = windowFunction;
 		}
 
 		static Entry column(Column column) {
-			return new Entry(ProjectionType.COLUMN, column, null, null);
+			return new Entry(ProjectionType.COLUMN, column, null, null, null);
 		}
 
 		static Entry aggregate(AggregateOperator aggregate, Column column) {
-			return new Entry(ProjectionType.AGGREGATE, column, aggregate, null);
+			return new Entry(ProjectionType.AGGREGATE, column, aggregate, null, null);
 		}
 
 		static Entry raw(RawSqlFragment fragment) {
-			return new Entry(ProjectionType.RAW, null, null, fragment);
+			return new Entry(ProjectionType.RAW, null, null, fragment, null);
+		}
+
+		static Entry window(WindowFunction windowFunction) {
+			return new Entry(ProjectionType.WINDOW, null, null, null, windowFunction);
 		}
 
 		@Override
@@ -61,6 +69,11 @@ final class SelectImpl implements Select, SelectProjectionSupport {
 		@Override
 		public RawSqlFragment fragment() {
 			return fragment;
+		}
+
+		@Override
+		public WindowFunction windowFunction() {
+			return windowFunction;
 		}
 	}
 
@@ -138,6 +151,12 @@ final class SelectImpl implements Select, SelectProjectionSupport {
 	@Override
 	public Select selectRaw(RawSqlFragment fragment) {
 		entries.add(Entry.raw(fragment));
+		return this;
+	}
+
+	@Override
+	public Select select(WindowFunction windowFunction) {
+		entries.add(Entry.window(windowFunction));
 		return this;
 	}
 

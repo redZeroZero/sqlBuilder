@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.in.media.res.sqlBuilder.api.model.Column;
 import org.in.media.res.sqlBuilder.api.model.Table;
 import org.in.media.res.sqlBuilder.api.query.Query;
+import org.in.media.res.sqlBuilder.core.query.SelectProjectionSupport;
 
 final class QueryValidation {
 
@@ -36,7 +37,14 @@ final class QueryValidation {
 	}
 
 	private static int projectionSize(Query query) {
-		return query.columns().size() + query.aggColumns().size();
+		int count = query.columns().size() + query.aggColumns().size();
+		if (query instanceof QueryImpl impl) {
+			count += impl.projections().stream()
+					.filter(p -> p.type() == SelectProjectionSupport.ProjectionType.RAW
+							|| p.type() == SelectProjectionSupport.ProjectionType.WINDOW)
+					.count();
+		}
+		return count;
 	}
 
 }
